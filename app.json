@@ -13,7 +13,10 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSUserNotificationUsageDescription": "Permite notificări pentru a primi gândul zilnic de la Dan."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,6 +27,14 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "sounds": ["default"]
+        }
+      ]
+    ]
   }
 }
