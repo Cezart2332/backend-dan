@@ -13,10 +13,71 @@ const {
   MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL,
   MYSQL_SSL,
   MYSQL_SSL_MODE,
+  MYSQL, // optional DSN-like string (e.g., Server=host;Database=db;User=root;Password=...;Port=3306;)
+  CORE_MYSQL, // same but under CORE_*
 } = process.env;
+
+function parseMysqlDsn(raw) {
+  if (!raw) return null;
+  // Accept both ';' and newlines as separators
+  const tokens = raw
+    .split(";")
+    .map((t) => t.trim())
+    .filter(Boolean);
+  const out = {};
+  for (const t of tokens) {
+    // Support key=value OR key:value
+    const sepIndexEq = t.indexOf("=");
+    const sepIndexCol = t.indexOf(":");
+    let k = "";
+    let v = "";
+    if (sepIndexEq > -1 && (sepIndexCol === -1 || sepIndexEq < sepIndexCol)) {
+      k = t.slice(0, sepIndexEq).trim();
+      v = t.slice(sepIndexEq + 1).trim();
+    } else if (sepIndexCol > -1) {
+      k = t.slice(0, sepIndexCol).trim();
+      v = t.slice(sepIndexCol + 1).trim();
+    } else {
+      continue;
+    }
+    const key = k.toLowerCase();
+    out[key] = v;
+  }
+  // Map common aliases
+  const host = out.host || out.server || out.hostname;
+  const database = out.database || out.db || out.schema || out.initialcatalog;
+  const user = out.user || out.username || out["user id"] || out.uid;
+  const password = out.password || out.pwd;
+  const port = out.port ? Number(out.port) : 3306;
+  const sslMode = out.sslmode || out["ssl mode"]; // e.g., None, Required
+  const allowPkRaw = out.allowpublickeyretrieval || out["allow public key retrieval"];
+  const allowPublicKeyRetrieval =
+    typeof allowPkRaw === "string" && ["true", "1", "yes"].includes(allowPkRaw.toLowerCase());
+  const ssl = out.ssl || out["use ssl"];
+  const useSSL = typeof ssl === "string" && ["true", "1", "yes"].includes(ssl.toLowerCase());
+  return { host, database, user, password, port, sslMode, allowPublicKeyRetrieval, useSSL };
+}
 
 function createMysqlDialect() {
   // Prefer DATABASE_URL if provided; otherwise use discrete MYSQL_* vars
+  // 1) Accept single DSN-like env first if provided
+  const dsn = parseMysqlDsn(CORE_MYSQL || MYSQL);
+  if (dsn && dsn.host && dsn.database && dsn.user) {
+    const poolOptions = {
+      host: dsn.host,
+      port: dsn.port || 3306,
+      database: dsn.database,
+      user: dsn.user,
+      password: dsn.password || "",
+    };
+    if (dsn.allowPublicKeyRetrieval) Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
+    if (dsn.useSSL && (!dsn.sslMode || dsn.sslMode.toLowerCase() !== "none")) {
+      Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
+    }
+    return new MysqlDialect({ pool: mysql.createPool(poolOptions) });
+  }
+
+  // 2) DATABASE_URL (mysql://...)
   if (DATABASE_URL) {
     // Parse mysql://user:pass@host:port/dbname
     const url = new URL(DATABASE_URL);
