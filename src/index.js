@@ -6,7 +6,26 @@ import { auth, testDbConnection } from "./auth.js";
 const app = Fastify({ logger: true });
 
 await app.register(fastifyCors, {
-  origin: process.env.CLIENT_ORIGIN || "http://localhost:19006",
+  // Allow native apps (no Origin header) and a whitelist of web origins
+  origin: (origin, cb) => {
+    // Support comma-separated CLIENT_ORIGINS or fallback to single CLIENT_ORIGIN or dev default
+    const configured = (
+      process.env.CORE_CLIENT_ORIGINS ||
+      process.env.CLIENT_ORIGINS ||
+      process.env.CORE_CLIENT_ORIGIN ||
+      process.env.CLIENT_ORIGIN ||
+      "http://localhost:19006"
+    )
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!origin) {
+      // Native apps/Postman often send no Origin; allow them
+      return cb(null, true);
+    }
+    if (configured.includes(origin)) return cb(null, true);
+    return cb(new Error("CORS origin not allowed"), false);
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   credentials: true,
@@ -43,7 +62,7 @@ app.route({
   },
 });
 
-const port = Number(process.env.PORT || 4000);
+const port = Number(process.env.CORE_PORT || process.env.PORT || 4000);
 app.listen({ port, host: "0.0.0.0" }, async (err) => {
   if (err) {
     app.log.error(err);
