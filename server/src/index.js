@@ -63,14 +63,14 @@ app.route({
 });
 
 const port = Number(process.env.CORE_PORT || process.env.PORT || 4000);
-app.listen({ port, host: "0.0.0.0" }, async (err) => {
-  if (err) {
-    app.log.error(err);
-    process.exit(1);
-  }
+try {
+  await app.listen({ port, host: "0.0.0.0" });
   // Try DB connection on startup (non-fatal for server start, but will log errors)
   try {
     await testDbConnection();
   } catch {}
   console.log(`Auth server running on http://localhost:${port}`);
-});
+} catch (err) {
+  app.log.error(err);
+  process.exit(1);
+}
