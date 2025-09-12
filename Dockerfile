@@ -24,9 +24,9 @@ COPY --from=build /app/src ./src
 # Expose port
 EXPOSE 4000
 
-# Healthcheck (optional)
+# Healthcheck (optional) using Node's global fetch (Node 20)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD wget -qO- http://localhost:4000/health || exit 1
+  CMD node -e "fetch('http://localhost:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 # Start server
 CMD ["node", "src/index.js"]
