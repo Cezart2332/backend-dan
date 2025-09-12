@@ -15,13 +15,19 @@ const {
   MYSQL_SSL_MODE,
   MYSQL, // optional DSN-like string (e.g., Server=host;Database=db;User=root;Password=...;Port=3306;)
   CORE_MYSQL, // same but under CORE_*
+  // Additional generic fallbacks some platforms use
+  DB_HOST,
+  DB_PORT,
+  DB_NAME,
+  DB_USER,
+  DB_PASSWORD,
 } = process.env;
 
 function parseMysqlDsn(raw) {
   if (!raw) return null;
   // Accept both ';' and newlines as separators
   const tokens = raw
-    .split(";")
+    .split(/;|\r?\n/)
     .map((t) => t.trim())
     .filter(Boolean);
   const out = {};
@@ -44,11 +50,11 @@ function parseMysqlDsn(raw) {
     out[key] = v;
   }
   // Map common aliases
-  const host = out.host || out.server || out.hostname;
-  const database = out.database || out.db || out.schema || out.initialcatalog;
-  const user = out.user || out.username || out["user id"] || out.uid;
-  const password = out.password || out.pwd;
-  const port = out.port ? Number(out.port) : 3306;
+  const host = out.host || out.server || out.hostname || out.mysql_host;
+  const database = out.database || out.db || out.schema || out.initialcatalog || out.mysql_database;
+  const user = out.user || out.username || out["user id"] || out.uid || out.mysql_user;
+  const password = out.password || out.pwd || out.mysql_password;
+  const port = out.port ? Number(out.port) : (out.mysql_port ? Number(out.mysql_port) : 3306);
   const sslMode = out.sslmode || out["ssl mode"]; // e.g., None, Required
   const allowPkRaw = out.allowpublickeyretrieval || out["allow public key retrieval"];
   const allowPublicKeyRetrieval =
@@ -100,17 +106,34 @@ function createMysqlDialect() {
 
     return new MysqlDialect({ pool: mysql.createPool(poolOptions) });
   }
-  if (!MYSQL_HOST || !MYSQL_DATABASE || !MYSQL_USER) {
+  // Allow DB_* fallbacks
+  const host = MYSQL_HOST || DB_HOST;
+  const database = MYSQL_DATABASE || DB_NAME;
+  const user = MYSQL_USER || DB_USER;
+  const port = Number(MYSQL_PORT || DB_PORT || 3306);
+  const password = MYSQL_PASSWORD || DB_PASSWORD || "";
+  if (!host || !database || !user) {
+    const present = {
+      DATABASE_URL: Boolean(DATABASE_URL),
+      MYSQL: Boolean(MYSQL || CORE_MYSQL),
+      MYSQL_HOST: Boolean(MYSQL_HOST),
+      MYSQL_DATABASE: Boolean(MYSQL_DATABASE),
+      MYSQL_USER: Boolean(MYSQL_USER),
+      DB_HOST: Boolean(DB_HOST),
+      DB_NAME: Boolean(DB_NAME),
+      DB_USER: Boolean(DB_USER),
+    };
+    console.error("[DB] Missing MySQL envs", present);
     throw new Error(
       "Missing MySQL configuration. Set DATABASE_URL or MYSQL_HOST, MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD."
     );
   }
   const poolOptions = {
-    host: MYSQL_HOST,
-    port: Number(MYSQL_PORT),
-    database: MYSQL_DATABASE,
-    user: MYSQL_USER,
-    password: MYSQL_PASSWORD || "",
+    host,
+    port,
+    database,
+    user,
+    password,
   };
   const allowPk = String(MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL || "").toLowerCase();
   if (allowPk === "true" || allowPk === "1") Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
