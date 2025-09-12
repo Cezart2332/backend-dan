@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { kyselyAdapter } from "better-auth/adapters/kysely";
 import { Kysely, MysqlDialect, sql } from "kysely";
 import mysql from "mysql2/promise";
 
@@ -159,22 +160,53 @@ export async function testDbConnection() {
   }
 }
 
+function parseKeyValueBlock(raw) {
+  if (!raw) return null;
+  const tokens = raw
+    .split(/;|\r?\n/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+  const out = {};
+  for (const t of tokens) {
+    const eq = t.indexOf("=");
+    const col = t.indexOf(":");
+    let k = "";
+    let v = "";
+    if (eq > -1 && (col === -1 || eq < col)) {
+      k = t.slice(0, eq).trim();
+      v = t.slice(eq + 1).trim();
+    } else if (col > -1) {
+      k = t.slice(0, col).trim();
+      v = t.slice(col + 1).trim();
+    } else continue;
+    out[k.toLowerCase()] = v;
+  }
+  return out;
+}
+
+const coreKV = parseKeyValueBlock(process.env.CORE);
+
 // Configure Better Auth
 export const auth = betterAuth({
-  secret: process.env.CORE_BETTER_AUTH_SECRET || process.env.BETTER_AUTH_SECRET,
+  secret:
+    (process.env.CORE_BETTER_AUTH_SECRET || (coreKV && coreKV["better_auth_secret"])) ||
+    process.env.BETTER_AUTH_SECRET,
   // Use Better Auth's built-in Kysely integration by passing the Kysely instance
   // Better Auth will create and manage tables via its CLI (see package.json migrate script)
-  database: db,
-  baseURL: process.env.CORE_BETTER_AUTH_URL || process.env.BETTER_AUTH_URL || "http://localhost:4000",
+  database: kyselyAdapter(db, { provider: "mysql" }),
+  baseURL:
+    (process.env.CORE_BETTER_AUTH_URL || (coreKV && coreKV["better_auth_url"])) ||
+    process.env.BETTER_AUTH_URL ||
+    "http://localhost:4000",
   emailAndPassword: {
     enabled: true,
     autoSignIn: true,
   },
   trustedOrigins: (
-    process.env.CORE_CLIENT_ORIGINS ||
+    (process.env.CORE_CLIENT_ORIGINS || (coreKV && coreKV["client_origins"])) ||
     process.env.CLIENT_ORIGINS ||
     process.env.CORE_CLIENT_ORIGIN ||
-    process.env.CLIENT_ORIGIN ||
+    process.env.CLIENT_ORIGIN || (coreKV && coreKV["client_origin"]) ||
     "http://localhost:19006"
   )
     .split(",")
