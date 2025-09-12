@@ -77,13 +77,23 @@ export async function testDbConnection() {
 
 // Configure Better Auth
 export const auth = betterAuth({
+  secret: process.env.CORE_BETTER_AUTH_SECRET || process.env.BETTER_AUTH_SECRET,
   // Use Better Auth's built-in Kysely integration by passing the Kysely instance
   // Better Auth will create and manage tables via its CLI (see package.json migrate script)
   database: db,
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:4000",
+  baseURL: process.env.CORE_BETTER_AUTH_URL || process.env.BETTER_AUTH_URL || "http://localhost:4000",
   emailAndPassword: {
     enabled: true,
     autoSignIn: true,
   },
-  trustedOrigins: [process.env.CLIENT_ORIGIN || "http://localhost:19006"],
+  trustedOrigins: (
+    process.env.CORE_CLIENT_ORIGINS ||
+    process.env.CLIENT_ORIGINS ||
+    process.env.CORE_CLIENT_ORIGIN ||
+    process.env.CLIENT_ORIGIN ||
+    "http://localhost:19006"
+  )
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
 });
