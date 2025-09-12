@@ -1,5 +1,4 @@
 import { betterAuth } from "better-auth";
-import { kyselyAdapter } from "better-auth/adapters/kysely";
 import { Kysely, MysqlDialect, sql } from "kysely";
 import mysql from "mysql2/promise";
 
@@ -193,7 +192,7 @@ export const auth = betterAuth({
     process.env.BETTER_AUTH_SECRET,
   // Use Better Auth's built-in Kysely integration by passing the Kysely instance
   // Better Auth will create and manage tables via its CLI (see package.json migrate script)
-  database: kyselyAdapter(db, { provider: "mysql" }),
+  database: db,
   baseURL:
     (process.env.CORE_BETTER_AUTH_URL || (coreKV && coreKV["better_auth_url"])) ||
     process.env.BETTER_AUTH_URL ||
