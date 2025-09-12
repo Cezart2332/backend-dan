@@ -64,7 +64,7 @@ function parseMysqlDsn(raw) {
   return { host, database, user, password, port, sslMode, allowPublicKeyRetrieval, useSSL };
 }
 
-function createMysqlDialect() {
+function resolveMysqlPoolOptions() {
   // Prefer DATABASE_URL if provided; otherwise use discrete MYSQL_* vars
   // 1) Accept single DSN-like env first if provided
   const dsn = parseMysqlDsn(CORE_MYSQL || MYSQL);
@@ -80,7 +80,7 @@ function createMysqlDialect() {
     if (dsn.useSSL && (!dsn.sslMode || dsn.sslMode.toLowerCase() !== "none")) {
       Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
     }
-    return new MysqlDialect({ pool: mysql.createPool(poolOptions) });
+    return poolOptions;
   }
 
   // 2) DATABASE_URL (mysql://...)
@@ -104,7 +104,7 @@ function createMysqlDialect() {
     if (allowPublicKeyRetrieval) Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
     if (useSSL) Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
 
-    return new MysqlDialect({ pool: mysql.createPool(poolOptions) });
+    return poolOptions;
   }
   // Allow DB_* fallbacks
   const host = MYSQL_HOST || DB_HOST;
@@ -142,11 +142,13 @@ function createMysqlDialect() {
   if ((sslFlag === "true" || sslFlag === "1") && sslMode !== "none") {
     Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
   }
-  return new MysqlDialect({ pool: mysql.createPool(poolOptions) });
+  return poolOptions;
 }
 
-// Create Kysely instance
-const db = new Kysely({ dialect: createMysqlDialect() });
+// Create a single mysql2 pool and reuse it for both Better Auth and Kysely
+const mysqlPool = mysql.createPool(resolveMysqlPoolOptions());
+// Create Kysely instance with the same pool
+const db = new Kysely({ dialect: new MysqlDialect({ pool: mysqlPool }) });
 
 // Optional: connection test helper
 export async function testDbConnection() {
@@ -186,13 +188,14 @@ function parseKeyValueBlock(raw) {
 const coreKV = parseKeyValueBlock(process.env.CORE);
 
 // Configure Better Auth
-export const auth = betterAuth({
+let authInstance;
+try {
+  authInstance = betterAuth({
   secret:
     (process.env.CORE_BETTER_AUTH_SECRET || (coreKV && coreKV["better_auth_secret"])) ||
     process.env.BETTER_AUTH_SECRET,
-  // Use Better Auth's built-in Kysely integration by passing the Kysely instance
-  // Better Auth will create and manage tables via its CLI (see package.json migrate script)
-  database: db,
+    // Pass mysql2 pool directly; Better Auth supports driver pools (like pg Pool or mysql2 Pool)
+    database: mysqlPool,
   baseURL:
     (process.env.CORE_BETTER_AUTH_URL || (coreKV && coreKV["better_auth_url"])) ||
     process.env.BETTER_AUTH_URL ||
@@ -211,4 +214,11 @@ export const auth = betterAuth({
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean),
-});
+  });
+  console.log("[Auth] Better Auth initialized ✅");
+} catch (e) {
+  console.error("[Auth] Better Auth initialization failed ❌", e?.message, e?.cause ?? "no-cause");
+  throw e;
+}
+
+export const auth = authInstance;
