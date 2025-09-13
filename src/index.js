@@ -3,12 +3,15 @@ import Fastify from "fastify";
 import { sql } from "kysely";
 import fastifyCors from "@fastify/cors";
 import { auth } from "./auth.js";
-import { db, testDbConnection, effectiveDbConfig } from "./mysql.js";
+import { db, testDbConnection, effectiveDbConfig, mysqlPool } from "./mysql.js";
 import net from "node:net";
 import { runMigrations } from "./migrate.js";
 import { registerAuthRoutes } from "./routes-auth.js";
 
-const app = Fastify({ logger: true, ignoreTrailingSlash: true });
+const app = Fastify({
+  logger: true,
+  routerOptions: { ignoreTrailingSlash: true },
+});
 
 await app.register(fastifyCors, {
   // Allow native apps (no Origin header) and a whitelist of web origins
@@ -104,29 +107,41 @@ app.get("/health/db/socket", async (request, reply) => {
 // Lightweight DB ping (fast SELECT 1)
 app.get("/health/db/ping", async (request, reply) => {
   const qp = request.query || {};
-  const routeTimeoutMs = Number(qp.timeout || qp.t || process.env.HEALTH_DB_PING_TIMEOUT || 6000);
+  const routeTimeoutMs = Number(qp.timeout || qp.t || process.env.HEALTH_DB_PING_TIMEOUT || 10000);
   let timeoutId;
   const withTimeout = new Promise((_, reject) => {
     timeoutId = setTimeout(() => reject(new Error("DB ping timed out")), routeTimeoutMs);
   });
   async function ping() {
-    await sql`SELECT 1`.execute(db);
-    return { ok: true };
+    // Use mysql2 directly with per-query timeout for better diagnostics
+    try {
+      await mysqlPool.query({ sql: "SELECT 1", timeout: routeTimeoutMs - 100 });
+      return { ok: true };
+    } catch (e) {
+      const errInfo = {
+        code: e?.code,
+        errno: e?.errno,
+        sqlState: e?.sqlState || e?.sqlStateMarker,
+        fatal: e?.fatal,
+        message: e?.message,
+      };
+      throw Object.assign(new Error(e?.message || "DB ping error"), { details: errInfo });
+    }
   }
   try {
     const res = await Promise.race([ping(), withTimeout]);
     if (timeoutId) clearTimeout(timeoutId);
     return res;
   } catch (err) {
-    request.log.error({ err, db: effectiveDbConfig }, "DB ping failed");
-    reply.status(500).send({ ok: false, error: err?.message || String(err) });
+    request.log.error({ err, details: err?.details, db: effectiveDbConfig }, "DB ping failed");
+    reply.status(500).send({ ok: false, error: err?.message || String(err), details: err?.details });
   }
 });
 
 // DB health to inspect current database and tables (always enabled)
 app.get("/health/db", async (request, reply) => {
   // Per-request timeout safeguard so the route never hangs indefinitely
-  const routeTimeoutMs = Number(process.env.HEALTH_DB_TIMEOUT || 5000);
+  const routeTimeoutMs = Number(process.env.HEALTH_DB_TIMEOUT || 12000);
 
   async function checkDb() {
     const dbNameRes = await sql`SELECT DATABASE() as dbname`.execute(db);

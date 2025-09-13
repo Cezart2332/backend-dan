@@ -87,6 +87,8 @@ function resolveOptions() {
     if (truthy(sslFlagEnv) && sslModeEnv !== "none") {
       Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
     }
+    // If SSL is enabled, do not send allowPublicKeyRetrieval (not needed and can warn)
+    if (poolOptions.ssl) delete poolOptions.allowPublicKeyRetrieval;
     return poolOptions;
   }
 
@@ -128,6 +130,7 @@ function resolveOptions() {
     if (truthy(sslFlagEnv) && sslModeEnv !== "none") {
       Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
     }
+    if (poolOptions.ssl) delete poolOptions.allowPublicKeyRetrieval;
     return poolOptions;
   }
 
@@ -172,6 +175,7 @@ function resolveOptions() {
   if (truthy(sslFlag) && sslMode !== "none") {
     Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
   }
+  if (poolOptions.ssl) delete poolOptions.allowPublicKeyRetrieval;
   return poolOptions;
 }
 
