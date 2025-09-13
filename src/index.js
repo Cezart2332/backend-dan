@@ -1,7 +1,9 @@
 import "dotenv/config";
 import Fastify from "fastify";
+import { sql } from "kysely";
 import fastifyCors from "@fastify/cors";
-import { auth, testDbConnection } from "./auth.js";
+import { auth } from "./auth.js";
+import { db, testDbConnection } from "./mysql.js";
 import { runMigrations } from "./migrate.js";
 import { registerAuthRoutes } from "./routes-auth.js";
 
@@ -36,6 +38,22 @@ await app.register(fastifyCors, {
 
 // Health check
 app.get("/health", async () => ({ ok: true }));
+
+// Optional DB health to inspect tables (enable by setting DB_HEALTH_ENABLED=true)
+if (String(process.env.DB_HEALTH_ENABLED || "").toLowerCase() === "true") {
+  app.get("/health/db", async (request, reply) => {
+    try {
+      const dbNameRes = await sql`SELECT DATABASE() as dbname`.execute(db);
+      const dbName = dbNameRes.rows?.[0]?.dbname || null;
+      const tablesRes = await sql`SHOW TABLES`.execute(db);
+      const tables = (tablesRes.rows || []).map((row) => Object.values(row)[0]);
+      return { ok: true, database: dbName, tables };
+    } catch (err) {
+      request.log.error({ err }, "DB health check failed");
+      reply.status(500).send({ ok: false, error: err?.message || String(err) });
+    }
+  });
+}
 
 // Better Auth handler catch-all
 app.route({
@@ -73,8 +91,14 @@ try {
   // Try DB connection on startup (non-fatal for server start, but will log errors)
   try {
     await testDbConnection();
+  } catch (e) {
+    app.log.error({ err: e }, "DB connection test failed");
+  }
+  try {
     await runMigrations();
-  } catch {}
+  } catch (e) {
+    app.log.error({ err: e }, "DB migrations failed");
+  }
   console.log(`Auth server running on http://localhost:${port}`);
 } catch (err) {
   app.log.error(err);

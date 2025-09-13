@@ -1,4 +1,4 @@
-import { Kysely, MysqlDialect } from "kysely";
+import { Kysely, MysqlDialect, sql } from "kysely";
 import mysql from "mysql2/promise";
 
 function parseMysqlDsn(raw) {
@@ -109,5 +109,16 @@ function resolveOptions() {
   return poolOptions;
 }
 
-const pool = mysql.createPool(resolveOptions());
-export const db = new Kysely({ dialect: new MysqlDialect({ pool }) });
+export const mysqlPool = mysql.createPool(resolveOptions());
+export const db = new Kysely({ dialect: new MysqlDialect({ pool: mysqlPool }) });
+
+// Optional: connection test helper (exported for server startup)
+export async function testDbConnection() {
+  try {
+    await sql`select 1`.execute(db);
+    console.log("[DB] MySQL connection established ✅");
+  } catch (err) {
+    console.error("[DB] MySQL connection failed ❌", err);
+    throw err;
+  }
+}

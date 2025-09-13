@@ -6,7 +6,8 @@
   "scripts": {
   "dev": "node --watch src/index.js",
   "start": "node src/index.js",
-    "migrate": "npx @better-auth/cli migrate"
+    "migrate": "npx @better-auth/cli migrate",
+    "migrate:custom": "node -e \"import('./src/migrate.js').then(m=>m.runMigrations())\""
   },
   "dependencies": {
   "@fastify/cors": "^10.0.0",

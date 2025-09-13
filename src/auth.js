@@ -1,27 +1,9 @@
 import { betterAuth } from "better-auth";
-import { Kysely, MysqlDialect, sql } from "kysely";
-import mysql from "mysql2/promise";
+import { sql } from "kysely";
+import { mysqlPool } from "./mysql.js";
 
-// Build MySQL connection from env (supports Coolify internal networking)
-const {
-  DATABASE_URL,
-  MYSQL_HOST,
-  MYSQL_PORT = "3306",
-  MYSQL_DATABASE,
-  MYSQL_USER,
-  MYSQL_PASSWORD,
-  MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL,
-  MYSQL_SSL,
-  MYSQL_SSL_MODE,
-  MYSQL, // optional DSN-like string (e.g., Server=host;Database=db;User=root;Password=...;Port=3306;)
-  CORE_MYSQL, // same but under CORE_*
-  // Additional generic fallbacks some platforms use
-  DB_HOST,
-  DB_PORT,
-  DB_NAME,
-  DB_USER,
-  DB_PASSWORD,
-} = process.env;
+// Build MySQL connection info (only for optional CORE key parsing); actual pool comes from mysql.js
+const { DATABASE_URL, MYSQL, CORE_MYSQL } = process.env;
 
 function parseMysqlDsn(raw) {
   if (!raw) return null;
@@ -69,18 +51,13 @@ function resolveMysqlPoolOptions() {
   // 1) Accept single DSN-like env first if provided
   const dsn = parseMysqlDsn(CORE_MYSQL || MYSQL);
   if (dsn && dsn.host && dsn.database && dsn.user) {
-    const poolOptions = {
+    return {
       host: dsn.host,
       port: dsn.port || 3306,
       database: dsn.database,
       user: dsn.user,
       password: dsn.password || "",
     };
-    if (dsn.allowPublicKeyRetrieval) Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
-    if (dsn.useSSL && (!dsn.sslMode || dsn.sslMode.toLowerCase() !== "none")) {
-      Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
-    }
-    return poolOptions;
   }
 
   // 2) DATABASE_URL (mysql://...)
@@ -106,60 +83,10 @@ function resolveMysqlPoolOptions() {
 
     return poolOptions;
   }
-  // Allow DB_* fallbacks
-  const host = MYSQL_HOST || DB_HOST;
-  const database = MYSQL_DATABASE || DB_NAME;
-  const user = MYSQL_USER || DB_USER;
-  const port = Number(MYSQL_PORT || DB_PORT || 3306);
-  const password = MYSQL_PASSWORD || DB_PASSWORD || "";
-  if (!host || !database || !user) {
-    const present = {
-      DATABASE_URL: Boolean(DATABASE_URL),
-      MYSQL: Boolean(MYSQL || CORE_MYSQL),
-      MYSQL_HOST: Boolean(MYSQL_HOST),
-      MYSQL_DATABASE: Boolean(MYSQL_DATABASE),
-      MYSQL_USER: Boolean(MYSQL_USER),
-      DB_HOST: Boolean(DB_HOST),
-      DB_NAME: Boolean(DB_NAME),
-      DB_USER: Boolean(DB_USER),
-    };
-    console.error("[DB] Missing MySQL envs", present);
-    throw new Error(
-      "Missing MySQL configuration. Set DATABASE_URL or MYSQL_HOST, MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD."
-    );
-  }
-  const poolOptions = {
-    host,
-    port,
-    database,
-    user,
-    password,
-  };
-  const allowPk = String(MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL || "").toLowerCase();
-  if (allowPk === "true" || allowPk === "1") Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
-  const sslMode = (MYSQL_SSL_MODE || "").toLowerCase();
-  const sslFlag = (MYSQL_SSL || "").toLowerCase();
-  if ((sslFlag === "true" || sslFlag === "1") && sslMode !== "none") {
-    Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
-  }
-  return poolOptions;
+  return null;
 }
 
-// Create a single mysql2 pool and reuse it for both Better Auth and Kysely
-const mysqlPool = mysql.createPool(resolveMysqlPoolOptions());
-// Create Kysely instance with the same pool
-const db = new Kysely({ dialect: new MysqlDialect({ pool: mysqlPool }) });
-
-// Optional: connection test helper
-export async function testDbConnection() {
-  try {
-    await sql`select 1`.execute(db);
-    console.log("[DB] MySQL connection established ✅");
-  } catch (err) {
-    console.error("[DB] MySQL connection failed ❌", err);
-    throw err;
-  }
-}
+// We now import mysqlPool from mysql.js and do not create a second pool here
 
 function parseKeyValueBlock(raw) {
   if (!raw) return null;
@@ -217,8 +144,8 @@ try {
     secret:
       (process.env.CORE_BETTER_AUTH_SECRET || (coreKV && coreKV["better_auth_secret"])) ||
       process.env.BETTER_AUTH_SECRET,
-    // Pass mysql2 pool directly; Better Auth supports driver pools (like pg Pool or mysql2 Pool)
-    database: mysqlPool,
+  // Pass shared mysql2 pool directly
+  database: mysqlPool,
     baseURL:
       (process.env.CORE_BETTER_AUTH_URL || (coreKV && coreKV["better_auth_url"])) ||
       process.env.BETTER_AUTH_URL ||
