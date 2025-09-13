@@ -7,13 +7,13 @@ A minimal Fastify server providing authentication using Better Auth with SQLite.
 
 ## Setup
 1. Install deps
-2. Run DB migration (optional for SQLite core; tables are auto-managed by Better Auth with Kysely adapter — for `better-sqlite3` the library manages schema internally)
+2. Run DB migration (optional: Better Auth manages its own schema internally; custom tables are created by our migrate script using mysql2)
 3. Start server
 
 ## Scripts
 - `npm run dev` — start with watch
 - `npm start` — start
-- `npm run migrate` — Better Auth CLI migrate (when using Kysely adapter)
+- `npm run migrate` — Better Auth CLI migrate (if using Better Auth's CLI-managed migrations)
 
 ## Env
 Create `server/.env`:

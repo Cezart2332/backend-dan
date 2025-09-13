@@ -1,5 +1,4 @@
 import { betterAuth } from "better-auth";
-import { sql } from "kysely";
 import { mysqlPool } from "./mysql.js";
 
 // Build MySQL connection info (only for optional CORE key parsing); actual pool comes from mysql.js

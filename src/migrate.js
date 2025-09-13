@@ -1,15 +1,14 @@
-import { sql } from "kysely";
-import { db } from "./mysql.js";
+import { mysqlPool } from "./mysql.js";
 
 export async function runMigrations() {
   try {
     // Log current database
-    const dbNameRes = await sql`SELECT DATABASE() as dbname`.execute(db);
-    const dbName = dbNameRes.rows?.[0]?.dbname || "<unknown>";
+    const [rows] = await mysqlPool.query("SELECT DATABASE() AS dbname");
+    const dbName = Array.isArray(rows) && rows[0] ? rows[0].dbname : "<unknown>";
     console.log(`[DB] Running migrations on database: ${dbName}`);
 
     // Ensure tables
-    await sql`
+    await mysqlPool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id BIGINT PRIMARY KEY AUTO_INCREMENT,
         email VARCHAR(255) UNIQUE,
@@ -19,9 +18,9 @@ export async function runMigrations() {
         provider_id VARCHAR(255),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
-    `.execute(db);
+    `);
 
-    await sql`
+    await mysqlPool.query(`
       CREATE TABLE IF NOT EXISTS sessions (
         id BIGINT PRIMARY KEY AUTO_INCREMENT,
         user_id BIGINT NOT NULL,
@@ -30,7 +29,7 @@ export async function runMigrations() {
         expires_at TIMESTAMP NULL,
         CONSTRAINT fk_sessions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
-    `.execute(db);
+    `);
 
     console.log("[DB] Migrations ensured ✅");
   } catch (err) {

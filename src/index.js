@@ -1,9 +1,8 @@
 import "dotenv/config";
 import Fastify from "fastify";
-import { sql } from "kysely";
 import fastifyCors from "@fastify/cors";
 import { auth } from "./auth.js";
-import { db, testDbConnection, effectiveDbConfig, mysqlPool } from "./mysql.js";
+import { testDbConnection, effectiveDbConfig, mysqlPool } from "./mysql.js";
 import net from "node:net";
 import { runMigrations } from "./migrate.js";
 import { registerAuthRoutes } from "./routes-auth.js";

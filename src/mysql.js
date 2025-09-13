@@ -1,4 +1,3 @@
-import { Kysely, MysqlDialect, sql } from "kysely";
 import mysql from "mysql2/promise";
 
 function parseMysqlDsn(raw) {
@@ -195,12 +194,17 @@ export const effectiveDbConfig = {
 };
 
 export const mysqlPool = mysql.createPool(_resolvedOptions);
-export const db = new Kysely({ dialect: new MysqlDialect({ pool: mysqlPool }) });
+
+// Lightweight query helper
+export async function query(sql, params = [], options = {}) {
+  const timeout = options.timeout;
+  return mysqlPool.query(timeout ? { sql, timeout } : sql, params);
+}
 
 // Optional: connection test helper (exported for server startup)
 export async function testDbConnection() {
   try {
-    await sql`select 1`.execute(db);
+    await mysqlPool.query("SELECT 1");
     console.log("[DB] MySQL connection established ✅");
   } catch (err) {
     console.error("[DB] MySQL connection failed ❌", err);
