@@ -190,30 +190,55 @@ const coreKV = parseKeyValueBlock(process.env.CORE);
 // Configure Better Auth
 let authInstance;
 try {
+  // Configure social providers from env if present
+  const socialProviders = {};
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    socialProviders.google = {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    };
+  }
+  if (process.env.FACEBOOK_CLIENT_ID && process.env.FACEBOOK_CLIENT_SECRET) {
+    socialProviders.facebook = {
+      clientId: process.env.FACEBOOK_CLIENT_ID,
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
+    };
+  }
+  if (process.env.APPLE_CLIENT_ID && process.env.APPLE_TEAM_ID && process.env.APPLE_KEY_ID && process.env.APPLE_PRIVATE_KEY) {
+    socialProviders.apple = {
+      clientId: process.env.APPLE_CLIENT_ID,
+      teamId: process.env.APPLE_TEAM_ID,
+      keyId: process.env.APPLE_KEY_ID,
+      privateKey: process.env.APPLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+    };
+  }
+
   authInstance = betterAuth({
-  secret:
-    (process.env.CORE_BETTER_AUTH_SECRET || (coreKV && coreKV["better_auth_secret"])) ||
-    process.env.BETTER_AUTH_SECRET,
+    secret:
+      (process.env.CORE_BETTER_AUTH_SECRET || (coreKV && coreKV["better_auth_secret"])) ||
+      process.env.BETTER_AUTH_SECRET,
     // Pass mysql2 pool directly; Better Auth supports driver pools (like pg Pool or mysql2 Pool)
     database: mysqlPool,
-  baseURL:
-    (process.env.CORE_BETTER_AUTH_URL || (coreKV && coreKV["better_auth_url"])) ||
-    process.env.BETTER_AUTH_URL ||
-    "http://localhost:4000",
-  emailAndPassword: {
-    enabled: true,
-    autoSignIn: true,
-  },
-  trustedOrigins: (
-    (process.env.CORE_CLIENT_ORIGINS || (coreKV && coreKV["client_origins"])) ||
-    process.env.CLIENT_ORIGINS ||
-    process.env.CORE_CLIENT_ORIGIN ||
-    process.env.CLIENT_ORIGIN || (coreKV && coreKV["client_origin"]) ||
-    "http://localhost:19006"
-  )
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean),
+    baseURL:
+      (process.env.CORE_BETTER_AUTH_URL || (coreKV && coreKV["better_auth_url"])) ||
+      process.env.BETTER_AUTH_URL ||
+      "http://localhost:4000",
+    emailAndPassword: {
+      enabled: true,
+      autoSignIn: true,
+    },
+    // Add providers only if any are configured
+    ...(Object.keys(socialProviders).length > 0 ? { socialProviders } : {}),
+    trustedOrigins: (
+      (process.env.CORE_CLIENT_ORIGINS || (coreKV && coreKV["client_origins"])) ||
+      process.env.CLIENT_ORIGINS ||
+      process.env.CORE_CLIENT_ORIGIN ||
+      process.env.CLIENT_ORIGIN || (coreKV && coreKV["client_origin"]) ||
+      "http://localhost:19006"
+    )
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
   });
   console.log("[Auth] Better Auth initialized ✅");
 } catch (e) {
