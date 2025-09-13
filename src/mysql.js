@@ -46,6 +46,11 @@ function resolveOptions() {
     const v = String(val).trim().toLowerCase();
     return v === "true" || v === "1" || v === "yes" || v === "on" || v === "y";
   };
+  const falsy = (val) => {
+    if (val === undefined || val === null) return false;
+    const v = String(val).trim().toLowerCase();
+    return v === "false" || v === "0" || v === "no" || v === "off" || v === "n";
+  };
 
   // 1) Multiline KV blocks under CORE_MYSQL or MYSQL
   const dsn = parseMysqlDsn(CORE_MYSQL || MYSQL);
@@ -70,8 +75,13 @@ function resolveOptions() {
       Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
     }
     // Env overrides (even when DSN is present)
-  const allowPkEnv = process.env.MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL ?? process.env.CORE_MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL;
-    if (truthy(allowPkEnv)) Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
+    const allowPkEnv = process.env.MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL ?? process.env.CORE_MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL;
+    if (allowPkEnv !== undefined && allowPkEnv !== null) {
+      Object.assign(poolOptions, { allowPublicKeyRetrieval: truthy(allowPkEnv) && !falsy(allowPkEnv) });
+    } else {
+      // Default ON per user request
+      Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
+    }
   const sslModeEnv = String(process.env.MYSQL_SSL_MODE || process.env.CORE_MYSQL_SSL_MODE || "").trim().toLowerCase();
   const sslFlagEnv = process.env.MYSQL_SSL ?? process.env.CORE_MYSQL_SSL;
     if (truthy(sslFlagEnv) && sslModeEnv !== "none") {
@@ -106,8 +116,13 @@ function resolveOptions() {
     if (allowPublicKeyRetrieval) Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
     if (useSSL) Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
     // Env overrides
-  const allowPkEnv = process.env.MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL ?? process.env.CORE_MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL;
-    if (truthy(allowPkEnv)) Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
+    const allowPkEnv = process.env.MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL ?? process.env.CORE_MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL;
+    if (allowPkEnv !== undefined && allowPkEnv !== null) {
+      Object.assign(poolOptions, { allowPublicKeyRetrieval: truthy(allowPkEnv) && !falsy(allowPkEnv) });
+    } else {
+      // Default ON per user request
+      Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
+    }
   const sslModeEnv = String(process.env.MYSQL_SSL_MODE || process.env.CORE_MYSQL_SSL_MODE || "").trim().toLowerCase();
   const sslFlagEnv = process.env.MYSQL_SSL ?? process.env.CORE_MYSQL_SSL;
     if (truthy(sslFlagEnv) && sslModeEnv !== "none") {
@@ -146,7 +161,12 @@ function resolveOptions() {
   const queueLimit = Number(process.env.MYSQL_QUEUE_LIMIT || process.env.DB_QUEUE_LIMIT || 0);
   Object.assign(poolOptions, { connectTimeout, connectionLimit, waitForConnections, queueLimit });
   const allowPk = process.env.MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL ?? process.env.CORE_MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL;
-  if (truthy(allowPk)) Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
+  if (allowPk !== undefined && allowPk !== null) {
+    Object.assign(poolOptions, { allowPublicKeyRetrieval: truthy(allowPk) && !falsy(allowPk) });
+  } else {
+    // Default ON per user request
+    Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
+  }
   const sslMode = String(process.env.MYSQL_SSL_MODE || process.env.CORE_MYSQL_SSL_MODE || "").trim().toLowerCase();
   const sslFlag = process.env.MYSQL_SSL ?? process.env.CORE_MYSQL_SSL;
   if (truthy(sslFlag) && sslMode !== "none") {
