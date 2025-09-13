@@ -8,7 +8,7 @@ import net from "node:net";
 import { runMigrations } from "./migrate.js";
 import { registerAuthRoutes } from "./routes-auth.js";
 
-const app = Fastify({ logger: true });
+const app = Fastify({ logger: true, ignoreTrailingSlash: true });
 
 await app.register(fastifyCors, {
   // Allow native apps (no Origin header) and a whitelist of web origins
@@ -103,7 +103,8 @@ app.get("/health/db/socket", async (request, reply) => {
 
 // Lightweight DB ping (fast SELECT 1)
 app.get("/health/db/ping", async (request, reply) => {
-  const routeTimeoutMs = Number(process.env.HEALTH_DB_PING_TIMEOUT || 2000);
+  const qp = request.query || {};
+  const routeTimeoutMs = Number(qp.timeout || qp.t || process.env.HEALTH_DB_PING_TIMEOUT || 6000);
   let timeoutId;
   const withTimeout = new Promise((_, reject) => {
     timeoutId = setTimeout(() => reject(new Error("DB ping timed out")), routeTimeoutMs);
@@ -152,7 +153,7 @@ app.get("/health/db", async (request, reply) => {
 
 // Optional debug route to inspect sanitized DB config (no secrets)
 const __enableDebugRoutes = (
-  process.env.CORE_DEBUG_ROUTES || process.env.DEBUG_ROUTES || "false"
+  process.env.CORE_DEBUG_ROUTES || process.env.DEBUG_ROUTES || "true"
 )
   .toString()
   .toLowerCase() === "true";
