@@ -12,6 +12,14 @@ const app = Fastify({ logger: true });
 await app.register(fastifyCors, {
   // Allow native apps (no Origin header) and a whitelist of web origins
   origin: (origin, cb) => {
+    const allowAll = (
+      process.env.CORE_CORS_ALLOW_ALL ||
+      process.env.CORS_ALLOW_ALL ||
+      "false"
+    )
+      .toString()
+      .toLowerCase();
+
     // Support comma-separated CLIENT_ORIGINS or fallback to single CLIENT_ORIGIN or dev default
     const configured = (
       process.env.CORE_CLIENT_ORIGINS ||
@@ -23,11 +31,41 @@ await app.register(fastifyCors, {
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
+
+    // Support wildcard domain patterns like *.sslip.io (scheme-specific)
+    const wildcards = configured.filter((o) => o.includes("*"));
+    const exacts = configured.filter((o) => !o.includes("*"));
+
     if (!origin) {
       // Native apps/Postman often send no Origin; allow them
       return cb(null, true);
     }
-    if (configured.includes(origin)) return cb(null, true);
+    if (allowAll === "true" || allowAll === "1") {
+      return cb(null, true);
+    }
+    if (exacts.includes(origin)) return cb(null, true);
+    try {
+      const u = new URL(origin);
+      const host = u.hostname;
+      const scheme = u.protocol.replace(":", ""); // http or https
+      const match = wildcards.some((pat) => {
+        // pat may look like http://*.sslip.io or https://*.example.com
+        try {
+          const pu = new URL(pat);
+          const pScheme = pu.protocol.replace(":", "");
+          if (pScheme && pScheme !== scheme) return false;
+          const pHost = pu.hostname; // e.g., *.sslip.io
+          if (!pHost.includes("*")) return false;
+          const suffix = pHost.replace(/^\*\./, "");
+          return host === suffix || host.endsWith("." + suffix);
+        } catch (_) {
+          return false;
+        }
+      });
+      if (match) return cb(null, true);
+    } catch (_) {
+      // fallthrough to deny
+    }
     return cb(new Error("CORS origin not allowed"), false);
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
