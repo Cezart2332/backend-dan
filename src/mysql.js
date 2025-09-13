@@ -52,16 +52,23 @@ function resolveOptions() {
       password: dsn.password || "",
     };
     // Generic pool tunables (env-configurable)
-  const connectTimeout = Number(process.env.MYSQL_CONNECT_TIMEOUT || process.env.DB_CONNECT_TIMEOUT || 8000);
-  const acquireTimeout = Number(process.env.MYSQL_ACQUIRE_TIMEOUT || process.env.DB_ACQUIRE_TIMEOUT || 8000);
+    const connectTimeout = Number(process.env.MYSQL_CONNECT_TIMEOUT || process.env.DB_CONNECT_TIMEOUT || 8000);
     const connectionLimit = Number(process.env.MYSQL_CONNECTION_LIMIT || process.env.DB_CONNECTION_LIMIT || 10);
     const waitForConnections =
       (process.env.MYSQL_WAIT_FOR_CONNECTIONS || process.env.DB_WAIT_FOR_CONNECTIONS || "true").toString().toLowerCase() !==
       "false";
     const queueLimit = Number(process.env.MYSQL_QUEUE_LIMIT || process.env.DB_QUEUE_LIMIT || 0);
-  Object.assign(poolOptions, { connectTimeout, acquireTimeout, connectionLimit, waitForConnections, queueLimit });
+    Object.assign(poolOptions, { connectTimeout, connectionLimit, waitForConnections, queueLimit });
     if (dsn.allowPublicKeyRetrieval) Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
     if (dsn.useSSL && (!dsn.sslMode || dsn.sslMode.toLowerCase() !== "none")) {
+      Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
+    }
+    // Env overrides (even when DSN is present)
+    const allowPkEnv = String(process.env.MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL || "").toLowerCase();
+    if (allowPkEnv === "true" || allowPkEnv === "1") Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
+    const sslModeEnv = (process.env.MYSQL_SSL_MODE || "").toLowerCase();
+    const sslFlagEnv = (process.env.MYSQL_SSL || "").toLowerCase();
+    if ((sslFlagEnv === "true" || sslFlagEnv === "1") && sslModeEnv !== "none") {
       Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
     }
     return poolOptions;
@@ -83,16 +90,23 @@ function resolveOptions() {
     const useSSL = (sslParam === "true" || sslParam === "1") && (!sslModeParam || sslModeParam.toLowerCase() !== "none");
     const poolOptions = { host, port, database, user, password };
     // Generic pool tunables (env-configurable)
-  const connectTimeout = Number(process.env.MYSQL_CONNECT_TIMEOUT || process.env.DB_CONNECT_TIMEOUT || 8000);
-  const acquireTimeout = Number(process.env.MYSQL_ACQUIRE_TIMEOUT || process.env.DB_ACQUIRE_TIMEOUT || 8000);
+    const connectTimeout = Number(process.env.MYSQL_CONNECT_TIMEOUT || process.env.DB_CONNECT_TIMEOUT || 8000);
     const connectionLimit = Number(process.env.MYSQL_CONNECTION_LIMIT || process.env.DB_CONNECTION_LIMIT || 10);
     const waitForConnections =
       (process.env.MYSQL_WAIT_FOR_CONNECTIONS || process.env.DB_WAIT_FOR_CONNECTIONS || "true").toString().toLowerCase() !==
       "false";
     const queueLimit = Number(process.env.MYSQL_QUEUE_LIMIT || process.env.DB_QUEUE_LIMIT || 0);
-  Object.assign(poolOptions, { connectTimeout, acquireTimeout, connectionLimit, waitForConnections, queueLimit });
+    Object.assign(poolOptions, { connectTimeout, connectionLimit, waitForConnections, queueLimit });
     if (allowPublicKeyRetrieval) Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
     if (useSSL) Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
+    // Env overrides
+    const allowPkEnv = String(process.env.MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL || "").toLowerCase();
+    if (allowPkEnv === "true" || allowPkEnv === "1") Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
+    const sslModeEnv = (process.env.MYSQL_SSL_MODE || "").toLowerCase();
+    const sslFlagEnv = (process.env.MYSQL_SSL || "").toLowerCase();
+    if ((sslFlagEnv === "true" || sslFlagEnv === "1") && sslModeEnv !== "none") {
+      Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
+    }
     return poolOptions;
   }
 
@@ -119,13 +133,12 @@ function resolveOptions() {
   const poolOptions = { host, port, database, user, password };
   // Generic pool tunables (env-configurable)
   const connectTimeout = Number(process.env.MYSQL_CONNECT_TIMEOUT || process.env.DB_CONNECT_TIMEOUT || 8000);
-  const acquireTimeout = Number(process.env.MYSQL_ACQUIRE_TIMEOUT || process.env.DB_ACQUIRE_TIMEOUT || 8000);
   const connectionLimit = Number(process.env.MYSQL_CONNECTION_LIMIT || process.env.DB_CONNECTION_LIMIT || 10);
   const waitForConnections =
     (process.env.MYSQL_WAIT_FOR_CONNECTIONS || process.env.DB_WAIT_FOR_CONNECTIONS || "true").toString().toLowerCase() !==
     "false";
   const queueLimit = Number(process.env.MYSQL_QUEUE_LIMIT || process.env.DB_QUEUE_LIMIT || 0);
-  Object.assign(poolOptions, { connectTimeout, acquireTimeout, connectionLimit, waitForConnections, queueLimit });
+  Object.assign(poolOptions, { connectTimeout, connectionLimit, waitForConnections, queueLimit });
   const allowPk = String(process.env.MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL || "").toLowerCase();
   if (allowPk === "true" || allowPk === "1") Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
   const sslMode = (process.env.MYSQL_SSL_MODE || "").toLowerCase();
