@@ -39,21 +39,19 @@ await app.register(fastifyCors, {
 // Health check
 app.get("/health", async () => ({ ok: true }));
 
-// Optional DB health to inspect tables (enable by setting DB_HEALTH_ENABLED=true)
-if (String(process.env.DB_HEALTH_ENABLED || "").toLowerCase() === "true") {
-  app.get("/health/db", async (request, reply) => {
-    try {
-      const dbNameRes = await sql`SELECT DATABASE() as dbname`.execute(db);
-      const dbName = dbNameRes.rows?.[0]?.dbname || null;
-      const tablesRes = await sql`SHOW TABLES`.execute(db);
-      const tables = (tablesRes.rows || []).map((row) => Object.values(row)[0]);
-      return { ok: true, database: dbName, tables };
-    } catch (err) {
-      request.log.error({ err }, "DB health check failed");
-      reply.status(500).send({ ok: false, error: err?.message || String(err) });
-    }
-  });
-}
+// DB health to inspect current database and tables (always enabled)
+app.get("/health/db", async (request, reply) => {
+  try {
+    const dbNameRes = await sql`SELECT DATABASE() as dbname`.execute(db);
+    const dbName = dbNameRes.rows?.[0]?.dbname || null;
+    const tablesRes = await sql`SHOW TABLES`.execute(db);
+    const tables = (tablesRes.rows || []).map((row) => Object.values(row)[0]);
+    return { ok: true, database: dbName, tables };
+  } catch (err) {
+    request.log.error({ err }, "DB health check failed");
+    reply.status(500).send({ ok: false, error: err?.message || String(err) });
+  }
+});
 
 // Better Auth handler catch-all
 app.route({
