@@ -2,6 +2,8 @@ import "dotenv/config";
 import Fastify from "fastify";
 import fastifyCors from "@fastify/cors";
 import { auth, testDbConnection } from "./auth.js";
+import { runMigrations } from "./migrate.js";
+import { registerAuthRoutes } from "./routes-auth.js";
 
 const app = Fastify({ logger: true });
 
@@ -62,12 +64,16 @@ app.route({
   },
 });
 
+// Register custom endpoints (email/password + social helpers)
+await registerAuthRoutes(app);
+
 const port = Number(process.env.CORE_PORT || process.env.PORT || 4000);
 try {
   await app.listen({ port, host: "0.0.0.0" });
   // Try DB connection on startup (non-fatal for server start, but will log errors)
   try {
     await testDbConnection();
+    await runMigrations();
   } catch {}
   console.log(`Auth server running on http://localhost:${port}`);
 } catch (err) {
