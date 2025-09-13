@@ -144,11 +144,16 @@ app.get("/health/db", async (request, reply) => {
   const routeTimeoutMs = Number(process.env.HEALTH_DB_TIMEOUT || 12000);
 
   async function checkDb() {
-    const dbNameRes = await sql`SELECT DATABASE() as dbname`.execute(db);
-    const dbName = dbNameRes.rows?.[0]?.dbname || null;
-    const tablesRes = await sql`SHOW TABLES`.execute(db);
-    const tables = (tablesRes.rows || []).map((row) => Object.values(row)[0]);
-    return { ok: true, database: dbName, tables };
+    // Use mysql2 directly to apply per-query timeouts and avoid hanging Kysely ops
+    try {
+      const sql = "SELECT DATABASE() AS dbname, VERSION() AS version, (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()) AS table_count";
+      const [rows] = await mysqlPool.query({ sql, timeout: Math.max(1, routeTimeoutMs - 200) });
+      const row = Array.isArray(rows) && rows[0] ? rows[0] : {};
+      return { ok: true, database: row.dbname ?? null, version: row.version ?? null, table_count: Number(row.table_count ?? 0) };
+    } catch (e) {
+      const errInfo = { code: e?.code, errno: e?.errno, sqlState: e?.sqlState || e?.sqlStateMarker, fatal: e?.fatal, message: e?.message };
+      throw Object.assign(new Error(e?.message || "DB health error"), { details: errInfo });
+    }
   }
 
   let timeoutId;
@@ -161,8 +166,8 @@ app.get("/health/db", async (request, reply) => {
     if (timeoutId) clearTimeout(timeoutId);
     return result;
   } catch (err) {
-    request.log.error({ err, db: effectiveDbConfig }, "DB health check failed");
-    reply.status(500).send({ ok: false, error: err?.message || String(err) });
+    request.log.error({ err, details: err?.details, db: effectiveDbConfig }, "DB health check failed");
+    reply.status(500).send({ ok: false, error: err?.message || String(err), details: err?.details });
   }
 });
 
