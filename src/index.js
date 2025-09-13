@@ -41,12 +41,26 @@ app.get("/health", async () => ({ ok: true }));
 
 // DB health to inspect current database and tables (always enabled)
 app.get("/health/db", async (request, reply) => {
-  try {
+  // Per-request timeout safeguard so the route never hangs indefinitely
+  const routeTimeoutMs = Number(process.env.HEALTH_DB_TIMEOUT || 5000);
+
+  async function checkDb() {
     const dbNameRes = await sql`SELECT DATABASE() as dbname`.execute(db);
     const dbName = dbNameRes.rows?.[0]?.dbname || null;
     const tablesRes = await sql`SHOW TABLES`.execute(db);
     const tables = (tablesRes.rows || []).map((row) => Object.values(row)[0]);
     return { ok: true, database: dbName, tables };
+  }
+
+  let timeoutId;
+  const withTimeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error("DB health check timed out")), routeTimeoutMs);
+  });
+
+  try {
+    const result = await Promise.race([checkDb(), withTimeout]);
+    if (timeoutId) clearTimeout(timeoutId);
+    return result;
   } catch (err) {
     request.log.error({ err }, "DB health check failed");
     reply.status(500).send({ ok: false, error: err?.message || String(err) });
