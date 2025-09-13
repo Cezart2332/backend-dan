@@ -133,7 +133,22 @@ function resolveOptions() {
   return poolOptions;
 }
 
-export const mysqlPool = mysql.createPool(resolveOptions());
+// Resolve once and export sanitized config for diagnostics
+const _resolvedOptions = resolveOptions();
+export const effectiveDbConfig = {
+  host: _resolvedOptions.host,
+  port: _resolvedOptions.port,
+  database: _resolvedOptions.database,
+  user: _resolvedOptions.user,
+  ssl: Boolean(_resolvedOptions.ssl),
+  allowPublicKeyRetrieval: Boolean(_resolvedOptions.allowPublicKeyRetrieval),
+  connectTimeout: _resolvedOptions.connectTimeout,
+  connectionLimit: _resolvedOptions.connectionLimit,
+  waitForConnections: _resolvedOptions.waitForConnections,
+  queueLimit: _resolvedOptions.queueLimit,
+};
+
+export const mysqlPool = mysql.createPool(_resolvedOptions);
 export const db = new Kysely({ dialect: new MysqlDialect({ pool: mysqlPool }) });
 
 // Optional: connection test helper (exported for server startup)

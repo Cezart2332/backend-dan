@@ -3,7 +3,7 @@ import Fastify from "fastify";
 import { sql } from "kysely";
 import fastifyCors from "@fastify/cors";
 import { auth } from "./auth.js";
-import { db, testDbConnection } from "./mysql.js";
+import { db, testDbConnection, effectiveDbConfig } from "./mysql.js";
 import { runMigrations } from "./migrate.js";
 import { registerAuthRoutes } from "./routes-auth.js";
 
@@ -77,6 +77,27 @@ await app.register(fastifyCors, {
 // Health check
 app.get("/health", async () => ({ ok: true }));
 
+// Lightweight DB ping (fast SELECT 1)
+app.get("/health/db/ping", async (request, reply) => {
+  const routeTimeoutMs = Number(process.env.HEALTH_DB_PING_TIMEOUT || 2000);
+  let timeoutId;
+  const withTimeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error("DB ping timed out")), routeTimeoutMs);
+  });
+  async function ping() {
+    await sql`SELECT 1`.execute(db);
+    return { ok: true };
+  }
+  try {
+    const res = await Promise.race([ping(), withTimeout]);
+    if (timeoutId) clearTimeout(timeoutId);
+    return res;
+  } catch (err) {
+    request.log.error({ err, db: effectiveDbConfig }, "DB ping failed");
+    reply.status(500).send({ ok: false, error: err?.message || String(err) });
+  }
+});
+
 // DB health to inspect current database and tables (always enabled)
 app.get("/health/db", async (request, reply) => {
   // Per-request timeout safeguard so the route never hangs indefinitely
@@ -100,10 +121,21 @@ app.get("/health/db", async (request, reply) => {
     if (timeoutId) clearTimeout(timeoutId);
     return result;
   } catch (err) {
-    request.log.error({ err }, "DB health check failed");
+    request.log.error({ err, db: effectiveDbConfig }, "DB health check failed");
     reply.status(500).send({ ok: false, error: err?.message || String(err) });
   }
 });
+
+// Optional debug route to inspect sanitized DB config (no secrets)
+const __enableDebugRoutes = (
+  process.env.CORE_DEBUG_ROUTES || process.env.DEBUG_ROUTES || "false"
+)
+  .toString()
+  .toLowerCase() === "true";
+
+if (__enableDebugRoutes) {
+  app.get("/__debug/db-config", async () => ({ ok: true, db: effectiveDbConfig }));
+}
 
 // Better Auth handler catch-all
 app.route({
@@ -140,6 +172,7 @@ try {
   await app.listen({ port, host: "0.0.0.0" });
   // Try DB connection on startup (non-fatal for server start, but will log errors)
   try {
+    app.log.info({ db: effectiveDbConfig }, "Effective DB config");
     await testDbConnection();
   } catch (e) {
     app.log.error({ err: e }, "DB connection test failed");
