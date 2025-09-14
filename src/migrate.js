@@ -31,6 +31,21 @@ export async function runMigrations() {
       )
     `);
 
+    // progress entries table
+    await mysqlPool.query(`
+      CREATE TABLE IF NOT EXISTS progress_entries (
+        id BIGINT PRIMARY KEY AUTO_INCREMENT,
+        user_id BIGINT NOT NULL,
+        level TINYINT NOT NULL,
+        description TEXT NULL,
+        actions TEXT NULL,
+        client_date DATETIME NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_progress_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_progress_user_created_at (user_id, created_at)
+      )
+    `);
+
     console.log("[DB] Migrations ensured ✅");
   } catch (err) {
     console.error("[DB] Migration error ❌", err?.message || err);
