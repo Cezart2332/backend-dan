@@ -1,6 +1,5 @@
 import "dotenv/config";
 import Fastify from "fastify";
-import { sql } from "kysely";
 import fastifyCors from "@fastify/cors";
 import { auth } from "./auth.js";
 import { db, testDbConnection } from "./mysql.js";
