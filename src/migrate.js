@@ -63,6 +63,22 @@ export async function runMigrations() {
       )
     `);
 
+    // challenge runs table
+    await mysqlPool.query(`
+      CREATE TABLE IF NOT EXISTS challenge_runs (
+        id BIGINT PRIMARY KEY AUTO_INCREMENT,
+        user_id BIGINT NOT NULL,
+        challenge_id VARCHAR(128) NOT NULL,
+        difficulty TINYINT NULL,
+        notes TEXT NULL,
+        client_date DATETIME NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_challenge_runs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_challenge_runs_user_created (user_id, created_at),
+        INDEX idx_challenge_runs_challenge (challenge_id)
+      )
+    `);
+
     console.log("[DB] Migrations ensured ✅");
   } catch (err) {
     console.error("[DB] Migration error ❌", err?.message || err);

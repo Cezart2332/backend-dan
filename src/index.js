@@ -5,6 +5,7 @@ import { auth } from "./auth.js";
 import { mysqlPool, testDbConnection, effectiveDbConfig } from "./mysql.js";
 import { registerProgressRoutes } from "./routes-progress.js";
 import { registerQuestionRoutes } from "./routes-questions.js";
+import { registerChallengeRoutes } from "./routes-challenges.js";
 import { runMigrations } from "./migrate.js";
 import { registerAuthRoutes } from "./routes-auth.js";
 
@@ -85,6 +86,7 @@ app.route({
 await registerAuthRoutes(app);
 await registerProgressRoutes(app);
 await registerQuestionRoutes(app);
+await registerChallengeRoutes(app);
 
 const port = Number(process.env.CORE_PORT || process.env.PORT || 4000);
 try {
