@@ -2,8 +2,9 @@ import "dotenv/config";
 import Fastify from "fastify";
 import fastifyCors from "@fastify/cors";
 import { auth } from "./auth.js";
-import { testDbConnection } from "./mysql.js";
+import { mysqlPool, testDbConnection, effectiveDbConfig } from "./mysql.js";
 import { registerProgressRoutes } from "./routes-progress.js";
+import { registerQuestionRoutes } from "./routes-questions.js";
 import { runMigrations } from "./migrate.js";
 import { registerAuthRoutes } from "./routes-auth.js";
 
@@ -42,11 +43,11 @@ app.get("/health", async () => ({ ok: true }));
 // DB health to inspect current database and tables (always enabled)
 app.get("/health/db", async (request, reply) => {
   try {
-    const dbNameRes = await sql`SELECT DATABASE() as dbname`.execute(db);
-    const dbName = dbNameRes.rows?.[0]?.dbname || null;
-    const tablesRes = await sql`SHOW TABLES`.execute(db);
-    const tables = (tablesRes.rows || []).map((row) => Object.values(row)[0]);
-    return { ok: true, database: dbName, tables };
+    const [dbNameRows] = await mysqlPool.query("SELECT DATABASE() as dbname");
+    const dbName = Array.isArray(dbNameRows) && dbNameRows[0] ? dbNameRows[0].dbname : null;
+    const [tablesRows] = await mysqlPool.query("SHOW TABLES");
+    const tables = Array.isArray(tablesRows) ? tablesRows.map((row) => Object.values(row)[0]) : [];
+    return { ok: true, database: dbName, tables, config: effectiveDbConfig };
   } catch (err) {
     request.log.error({ err }, "DB health check failed");
     reply.status(500).send({ ok: false, error: err?.message || String(err) });
@@ -83,6 +84,7 @@ app.route({
 // Register custom endpoints (email/password + social helpers)
 await registerAuthRoutes(app);
 await registerProgressRoutes(app);
+await registerQuestionRoutes(app);
 
 const port = Number(process.env.CORE_PORT || process.env.PORT || 4000);
 try {

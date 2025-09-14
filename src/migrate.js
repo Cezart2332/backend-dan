@@ -46,6 +46,23 @@ export async function runMigrations() {
       )
     `);
 
+    // questions table (for "Trimite-mi o întrebare")
+    await mysqlPool.query(`
+      CREATE TABLE IF NOT EXISTS questions (
+        id BIGINT PRIMARY KEY AUTO_INCREMENT,
+        user_id BIGINT NULL,
+        name VARCHAR(255) NULL,
+        email VARCHAR(255) NULL,
+        question TEXT NOT NULL,
+        consent TINYINT(1) NOT NULL DEFAULT 0,
+        status ENUM('new','read','answered','archived') NOT NULL DEFAULT 'new',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_questions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+        INDEX idx_questions_created_at (created_at),
+        INDEX idx_questions_user (user_id)
+      )
+    `);
+
     console.log("[DB] Migrations ensured ✅");
   } catch (err) {
     console.error("[DB] Migration error ❌", err?.message || err);
