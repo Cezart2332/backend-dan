@@ -6,6 +6,7 @@ import { mysqlPool, testDbConnection, effectiveDbConfig } from "./mysql.js";
 import { registerProgressRoutes } from "./routes-progress.js";
 import { registerQuestionRoutes } from "./routes-questions.js";
 import { registerChallengeRoutes } from "./routes-challenges.js";
+import { registerMediaRoutes } from "./routes-media.js";
 import { runMigrations } from "./migrate.js";
 import { registerAuthRoutes } from "./routes-auth.js";
 
@@ -87,6 +88,7 @@ await registerAuthRoutes(app);
 await registerProgressRoutes(app);
 await registerQuestionRoutes(app);
 await registerChallengeRoutes(app);
+await registerMediaRoutes(app);
 
 const port = Number(process.env.CORE_PORT || process.env.PORT || 4000);
 try {
