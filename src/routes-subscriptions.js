@@ -117,15 +117,17 @@ export async function registerSubscriptionRoutes(app) {
       if (!stripe) return reply.code(500).send({ error: 'Stripe neconfigurat', code: 'STRIPE_NOT_CONFIGURED' });
       const user = requireAuth(request);
       const { plan, mode = 'subscription', priceId: rawPriceId, quantity = 1 } = request.body || {};
+      const normPlan = typeof plan === 'string' ? plan.toLowerCase().trim() : '';
 
       // Resolve price ID (explicit overrides plan mapping)
-  const finalPriceId = await resolvePriceId(plan, rawPriceId);
-      if (!plan) return reply.code(400).send({ error: 'Plan lipsă', code: 'PLAN_REQUIRED' });
+      const finalPriceId = await resolvePriceId(normPlan, rawPriceId);
+      if (!normPlan) return reply.code(400).send({ error: 'Plan lipsă', code: 'PLAN_REQUIRED' });
+      const rawMapValue = priceMap[normPlan];
       if (!finalPriceId) {
         return reply.code(400).send({
           error: 'Preț inexistent pentru plan / produs sau priceId invalid',
-          code: 'PRICE_NOT_FOUND',
-          plan,
+          code: rawMapValue && rawMapValue.startsWith('prod_') ? 'PRODUCT_PRICE_NOT_FOUND' : 'PRICE_NOT_FOUND',
+          plan: normPlan,
         });
       }
       if (!['subscription', 'payment', 'setup'].includes(mode)) {
@@ -146,16 +148,27 @@ export async function registerSubscriptionRoutes(app) {
       }
 
       // Build line items
-      const lineItems = [{ price: finalPriceId, quantity: Number(quantity) > 0 ? Number(quantity) : 1 }];
+  const lineItems = [{ price: finalPriceId, quantity: Number(quantity) > 0 ? Number(quantity) : 1 }];
 
       const successBase = process.env.CLIENT_ORIGIN || 'http://localhost:19006';
+      // Debug mode (no session creation) if ?debug=1
+      if (request.query && (request.query.debug === '1' || request.query.debug === 'true')) {
+        return reply.send({
+          debug: true,
+          plan: normPlan,
+          resolvedPriceId: finalPriceId,
+          sourceValue: rawMapValue || null,
+          explicitPriceOverride: Boolean(rawPriceId),
+        });
+      }
+
       const session = await stripe.checkout.sessions.create({
         mode,
         customer: customerId,
         line_items: lineItems,
         success_url: `${successBase}/?checkout=success&plan=${encodeURIComponent(plan)}`,
         cancel_url: `${successBase}/?checkout=cancel&plan=${encodeURIComponent(plan)}`,
-        metadata: { userId: user.sub, plan },
+        metadata: { userId: user.sub, plan: normPlan },
       });
       reply.send({ url: session.url });
     } catch (e) {
@@ -167,6 +180,40 @@ export async function registerSubscriptionRoutes(app) {
       console.error('[checkout] error', e);
       reply.code(500).send({ error: 'Eroare creare sesiune checkout', code: 'CHECKOUT_FAILED' });
     }
+  });
+
+  // Diagnostic endpoint to view price/product mapping & resolution
+  app.get('/api/subscriptions/prices', async (request, reply) => {
+    const plans = Object.keys(priceMap);
+    const out = {};
+    for (const p of plans) {
+      const source = priceMap[p] || null;
+      let resolved = null;
+      let type = null;
+      let ok = false;
+      let reason = null;
+      if (!source) {
+        reason = 'no env var set';
+      } else if (source.startsWith('price_')) {
+        type = 'price';
+        resolved = source;
+        ok = true;
+      } else if (source.startsWith('prod_')) {
+        type = 'product';
+        if (!stripe) {
+          reason = 'stripe not configured';
+        } else {
+          resolved = await resolvePriceId(p, null);
+          ok = Boolean(resolved);
+          if (!ok) reason = 'could not resolve default/active price';
+        }
+      } else {
+        type = 'unknown';
+        reason = 'value not price_ or prod_';
+      }
+      out[p] = { source, type, resolvedPriceId: resolved, ok, reason };
+    }
+    reply.send({ prices: out, stripeConfigured: Boolean(stripe) });
   });
 
   // Webhook with signature verification & subscription sync
