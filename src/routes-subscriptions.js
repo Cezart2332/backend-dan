@@ -147,8 +147,31 @@ export async function registerSubscriptionRoutes(app) {
         customerId = customer.id;
       }
 
-      // Build line items
-  const lineItems = [{ price: finalPriceId, quantity: Number(quantity) > 0 ? Number(quantity) : 1 }];
+      // Optional pre-validation of price to surface clearer errors (enabled by env STRIPE_VALIDATE_PRICE=1)
+      if (process.env.STRIPE_VALIDATE_PRICE === '1') {
+        try {
+          const priceObj = await stripe.prices.retrieve(finalPriceId);
+          if (mode === 'subscription' && !priceObj.recurring) {
+            return reply.code(400).send({
+              error: 'Prețul nu este de tip abonament (recurring) pentru mode=subscription',
+              code: 'PRICE_NOT_RECURRING',
+              price: finalPriceId,
+            });
+          }
+        } catch (err) {
+          request.log.error({ err, price: finalPriceId }, 'Price retrieval failed');
+          return reply.code(400).send({
+            error: 'Prețul nu a putut fi găsit în Stripe (verifică dacă faci test vs live)',
+            code: 'PRICE_LOOKUP_FAILED',
+            price: finalPriceId,
+          });
+        }
+      }
+
+      // Build line items for session
+      const lineItems = [{ price: finalPriceId, quantity: Number(quantity) > 0 ? Number(quantity) : 1 }];
+
+      request.log.info({ plan: normPlan, finalPriceId, mode, rawMapValue }, 'Preparing checkout session');
 
       const successBase = process.env.CLIENT_ORIGIN || 'http://localhost:19006';
       // Debug mode (no session creation) if ?debug=1
@@ -176,7 +199,12 @@ export async function registerSubscriptionRoutes(app) {
       if (e.message === 'NO_AUTH' || e.message === 'BAD_TOKEN') return reply.code(401).send({ error: 'Neautorizat' });
       // Stripe price missing -> 400 with clearer code
       if (e && e.code === 'resource_missing' && e.param === 'line_items[0][price]') {
-        return reply.code(400).send({ error: 'Preț Stripe inexistent', code: 'STRIPE_PRICE_MISSING', param: e.param });
+        return reply.code(400).send({
+          error: 'Preț Stripe inexistent (posibil test vs live mismatch sau ID greșit)',
+          code: 'STRIPE_PRICE_MISSING',
+          param: e.param,
+          hint: 'Verifică dacă folosești cheia sk_test cu un price_ test și nu amesteci cu live',
+        });
       }
       console.error('[checkout] error', e);
       reply.code(500).send({ error: 'Eroare creare sesiune checkout', code: 'CHECKOUT_FAILED' });
