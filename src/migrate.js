@@ -79,6 +79,26 @@ export async function runMigrations() {
       )
     `);
 
+    // subscriptions table
+    await mysqlPool.query(`
+      CREATE TABLE IF NOT EXISTS subscriptions (
+        id BIGINT PRIMARY KEY AUTO_INCREMENT,
+        user_id BIGINT NOT NULL,
+        type ENUM('trial','basic','premium','vip') NOT NULL,
+        starts_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        ends_at TIMESTAMP NULL,
+        stripe_customer_id VARCHAR(255) NULL,
+        stripe_subscription_id VARCHAR(255) NULL,
+        stripe_price_id VARCHAR(255) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+        CONSTRAINT fk_subscriptions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_subscriptions_user (user_id),
+        INDEX idx_subscriptions_active (user_id, ends_at),
+        INDEX idx_subscriptions_stripe_sub (stripe_subscription_id)
+      )
+    `);
+
     console.log("[DB] Migrations ensured ✅");
   } catch (err) {
     console.error("[DB] Migration error ❌", err?.message || err);

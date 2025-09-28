@@ -4,18 +4,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-  "dev": "node --watch src/index.js",
-  "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
     "migrate": "npx @better-auth/cli migrate",
     "migrate:custom": "node -e \"import('./src/migrate.js').then(m=>m.runMigrations())\""
   },
   "dependencies": {
-  "@fastify/cors": "^10.0.0",
-    "better-auth": "^1.3.9",
+    "@fastify/cors": "^10.0.0",
+    "@fastify/raw-body": "^5.0.0",
     "bcryptjs": "^2.4.3",
+    "better-auth": "^1.3.9",
     "dotenv": "^16.4.5",
     "fastify": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mysql2": "^3.11.3"
+    "mysql2": "^3.11.3",
+    "stripe": "^18.5.0"
   }
 }

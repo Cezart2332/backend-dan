@@ -1,16 +1,26 @@
 import "dotenv/config";
 import Fastify from "fastify";
 import fastifyCors from "@fastify/cors";
+import rawBody from '@fastify/raw-body';
 import { auth } from "./auth.js";
 import { mysqlPool, testDbConnection, effectiveDbConfig } from "./mysql.js";
 import { registerProgressRoutes } from "./routes-progress.js";
 import { registerQuestionRoutes } from "./routes-questions.js";
 import { registerChallengeRoutes } from "./routes-challenges.js";
 import { registerMediaRoutes } from "./routes-media.js";
+import { registerSubscriptionRoutes } from "./routes-subscriptions.js";
 import { runMigrations } from "./migrate.js";
 import { registerAuthRoutes } from "./routes-auth.js";
 
 const app = Fastify({ logger: true });
+
+// Raw body plugin (needed for Stripe webhook signature verification)
+await app.register(rawBody, {
+  field: 'rawBody', // store on request.rawBody
+  global: false,    // we will enable per-route
+  encoding: 'utf8',
+  runFirst: true,
+});
 
 await app.register(fastifyCors, {
   // Allow native apps (no Origin header) and a whitelist of web origins
@@ -89,6 +99,7 @@ await registerProgressRoutes(app);
 await registerQuestionRoutes(app);
 await registerChallengeRoutes(app);
 await registerMediaRoutes(app);
+await registerSubscriptionRoutes(app);
 
 const port = Number(process.env.CORE_PORT || process.env.PORT || 4000);
 try {
