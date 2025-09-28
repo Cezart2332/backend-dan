@@ -533,15 +533,44 @@ export async function registerSubscriptionRoutes(app) {
               else if (stripeStatus === 'trialing') localType = 'trial';
               else localType = 'premium';
             }
-            const currentPeriodEnd = subObj.current_period_end ? new Date(subObj.current_period_end * 1000) : null;
-            await mysqlPool.query(
-              `UPDATE subscriptions SET ends_at = NOW() WHERE user_id = ? AND (ends_at IS NULL OR ends_at > NOW())`,
-              [userId]
+            const periodStart = subObj.current_period_start ? new Date(subObj.current_period_start * 1000) : new Date();
+            const periodEnd = subObj.current_period_end ? new Date(subObj.current_period_end * 1000) : null;
+
+            // Fetch latest row for this subscription (if any)
+            const [rows] = await mysqlPool.query(
+              `SELECT * FROM subscriptions WHERE user_id = ? AND stripe_subscription_id = ? ORDER BY id DESC LIMIT 1`,
+              [userId, subObj.id]
             );
-            await mysqlPool.query(
-              `INSERT INTO subscriptions (user_id, type, starts_at, ends_at, stripe_customer_id, stripe_subscription_id, stripe_price_id) VALUES (?, ?, NOW(), ?, ?, ?, ?)`,
-              [userId, localType, currentPeriodEnd, subObj.customer, subObj.id, priceId]
-            );
+            const existing = Array.isArray(rows) && rows.length ? rows[0] : null;
+
+            if (!existing) {
+              // First time we see this subscription -> insert with explicit periodStart
+              await mysqlPool.query(
+                `INSERT INTO subscriptions (user_id, type, starts_at, ends_at, stripe_customer_id, stripe_subscription_id, stripe_price_id) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [userId, localType, periodStart, periodEnd, subObj.customer, subObj.id, priceId]
+              );
+            } else {
+              // If still same billing period (starts_at within 2 minutes of new periodStart) just update fields
+              const existingStart = existing.starts_at ? new Date(existing.starts_at) : null;
+              const samePeriod = existingStart && Math.abs(existingStart.getTime() - periodStart.getTime()) < 120000; // 2 min tolerance
+              if (samePeriod) {
+                await mysqlPool.query(
+                  `UPDATE subscriptions SET type = ?, ends_at = ?, stripe_price_id = ? WHERE id = ?`,
+                  [localType, periodEnd, priceId, existing.id]
+                );
+              } else if (periodStart > existingStart) {
+                // New billing period began -> close previous (if not closed) and insert new period row
+                if (!existing.ends_at || new Date(existing.ends_at).getTime() < periodStart.getTime()) {
+                  await mysqlPool.query(`UPDATE subscriptions SET ends_at = ? WHERE id = ?`, [periodStart, existing.id]);
+                }
+                await mysqlPool.query(
+                  `INSERT INTO subscriptions (user_id, type, starts_at, ends_at, stripe_customer_id, stripe_subscription_id, stripe_price_id) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                  [userId, localType, periodStart, periodEnd, subObj.customer, subObj.id, priceId]
+                );
+              } else {
+                // Edge case: out-of-order event with earlier start -> ignore
+              }
+            }
           }
           break;
         }
