@@ -461,6 +461,44 @@ export async function registerSubscriptionRoutes(app) {
     reply.send(result);
   });
 
+  // Debug: fetch raw Stripe subscription (limited fields) for current user
+  app.get('/api/subscriptions/stripe/raw/:id', async (request, reply) => {
+    try {
+      if (!stripe) return reply.code(500).send({ error: 'Stripe neconfigurat', code: 'STRIPE_NOT_CONFIGURED' });
+      const user = requireAuth(request);
+      const subId = request.params.id;
+      if (!subId || !subId.startsWith('sub_')) return reply.code(400).send({ error: 'ID invalid', code: 'BAD_SUB_ID' });
+      // Verify ownership via local DB
+      const [rows] = await mysqlPool.query(
+        'SELECT * FROM subscriptions WHERE user_id = ? AND stripe_subscription_id = ? ORDER BY id DESC LIMIT 1',
+        [user.sub, subId]
+      );
+      if (!Array.isArray(rows) || !rows.length) return reply.code(404).send({ error: 'Subscription not found', code: 'NOT_FOUND' });
+      const stripeSub = await stripe.subscriptions.retrieve(subId, { expand: ['latest_invoice.payment_intent', 'pending_update'] });
+      const out = {
+        id: stripeSub.id,
+        status: stripeSub.status,
+        planPriceId: stripeSub.items?.data?.[0]?.price?.id || null,
+        current_period_start: stripeSub.current_period_start,
+        current_period_end: stripeSub.current_period_end,
+        cancel_at_period_end: stripeSub.cancel_at_period_end,
+        canceled_at: stripeSub.canceled_at,
+        latest_invoice_amount: stripeSub.latest_invoice && typeof stripeSub.latest_invoice === 'object' ? stripeSub.latest_invoice.amount_paid : null,
+        latest_invoice_status: stripeSub.latest_invoice && typeof stripeSub.latest_invoice === 'object' ? stripeSub.latest_invoice.status : null,
+        collection_method: stripeSub.collection_method,
+        default_payment_method: stripeSub.default_payment_method && typeof stripeSub.default_payment_method === 'object' ? {
+          id: stripeSub.default_payment_method.id,
+          type: stripeSub.default_payment_method.type,
+          card: stripeSub.default_payment_method.card ? { brand: stripeSub.default_payment_method.card.brand, last4: stripeSub.default_payment_method.card.last4 } : null,
+        } : null,
+      };
+      reply.send(out);
+    } catch (err) {
+      request.log.error({ err }, 'Stripe subscription debug fetch failed');
+      reply.code(500).send({ error: 'Debug fetch failed', code: 'STRIPE_SUB_DEBUG_FAILED' });
+    }
+  });
+
   // Webhook with signature verification & subscription sync
   app.post('/api/subscriptions/webhook', { config: { rawBody: true } }, async (request, reply) => {
     const sig = request.headers['stripe-signature'];
