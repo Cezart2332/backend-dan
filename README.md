@@ -15,13 +15,44 @@ A minimal Fastify server providing authentication using Better Auth with SQLite.
 - `npm start` — start
 - `npm run migrate` — Better Auth CLI migrate (if using Better Auth's CLI-managed migrations)
 
-## Env
-Create `server/.env`:
+## Environment Variables
+
+Copy `.env.example` to `.env` and fill in real values (never commit the real `.env`).
+
+Key groups:
+- Auth: `BETTER_AUTH_SECRET`, `JWT_SECRET`
+- Database: `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`
+- Stripe: `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`
+- Subscription mapping: `SUBSCRIPTION_PRICE_BASIC`, `SUBSCRIPTION_PRICE_PREMIUM`, `SUBSCRIPTION_PRICE_VIP`
+
+Each subscription mapping var can be either:
+1. A direct Stripe Price ID (e.g. `price_123`) — used as-is.
+2. A Stripe Product ID (e.g. `prod_123`) — backend lazily resolves its `default_price` (or first active price) and caches it.
+
+Diagnostic endpoint to verify resolution before attempting checkout:
+`GET /api/subscriptions/prices`
+
+Example response:
 ```
-BETTER_AUTH_SECRET=change_me
-BETTER_AUTH_URL=http://localhost:4000
-CLIENT_ORIGIN=http://localhost:19006
+{
+	"prices": {
+		"basic": { "source": "prod_abc", "type": "product", "resolvedPriceId": "price_xyz", "ok": true, "reason": null },
+		"premium": { "source": "price_def", "type": "price", "resolvedPriceId": "price_def", "ok": true, "reason": null },
+		"vip": { "source": null, "type": null, "resolvedPriceId": null, "ok": false, "reason": "no env var set" }
+	},
+	"stripeConfigured": true
+}
 ```
+
+If a product returns `ok: false` with `reason: could not resolve default/active price`, ensure:
+- The product has an active recurring price in Stripe.
+- The price is not archived and is set to the desired billing interval.
+- Consider setting the product's default price in the Stripe dashboard for faster resolution.
+
+### Checkout Debugging
+You can test plan resolution without creating a real session:
+`POST /api/subscriptions/create-checkout?debug=1` with body `{ "plan": "basic" }`.
+It returns the resolved price ID and mapping details.
 
 ## Endpoints
 - `GET /health` — quick check

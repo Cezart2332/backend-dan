@@ -166,9 +166,10 @@ export async function registerSubscriptionRoutes(app) {
         mode,
         customer: customerId,
         line_items: lineItems,
+        subscription_data: { metadata: { userId: String(user.sub), plan: normPlan } },
         success_url: `${successBase}/?checkout=success&plan=${encodeURIComponent(plan)}`,
         cancel_url: `${successBase}/?checkout=cancel&plan=${encodeURIComponent(plan)}`,
-        metadata: { userId: user.sub, plan: normPlan },
+        metadata: { userId: String(user.sub), plan: normPlan },
       });
       reply.send({ url: session.url });
     } catch (e) {
@@ -238,18 +239,19 @@ export async function registerSubscriptionRoutes(app) {
         case 'customer.subscription.created':
         case 'customer.subscription.updated': {
           const subObj = event.data.object;
-          const userId = subObj.metadata?.userId; // we set it when creating customer or checkout metadata
+          const userId = subObj.metadata?.userId; // ensured via subscription_data.metadata
           if (userId) {
-            // Map Stripe status to local type & end date (simplified)
             const stripeStatus = subObj.status; // active, trialing, canceled, incomplete, past_due ...
-            // Determine local type from first item price metadata or lookup (simplified fallback premium)
             const priceId = subObj.items?.data?.[0]?.price?.id;
-            let localType = 'premium';
-            if (priceId?.includes('basic')) localType = 'basic';
-            else if (priceId?.includes('vip')) localType = 'vip';
-            else if (stripeStatus === 'trialing') localType = 'trial';
+            // Prefer explicit plan metadata; fallback to pattern heuristic & status
+            let localType = (subObj.metadata?.plan || '').toLowerCase();
+            if (!['basic','premium','vip','trial'].includes(localType)) {
+              if (priceId?.includes('basic')) localType = 'basic';
+              else if (priceId?.includes('vip')) localType = 'vip';
+              else if (stripeStatus === 'trialing') localType = 'trial';
+              else localType = 'premium';
+            }
             const currentPeriodEnd = subObj.current_period_end ? new Date(subObj.current_period_end * 1000) : null;
-            // Upsert logic: close previous active subscription rows and insert a new row referencing stripe data
             await mysqlPool.query(
               `UPDATE subscriptions SET ends_at = NOW() WHERE user_id = ? AND (ends_at IS NULL OR ends_at > NOW())`,
               [userId]
