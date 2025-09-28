@@ -119,6 +119,8 @@ export async function registerSubscriptionRoutes(app) {
       const user = requireAuth(request);
       const { plan, mode = 'subscription', priceId: rawPriceId, quantity = 1 } = request.body || {};
       const normPlan = typeof plan === 'string' ? plan.toLowerCase().trim() : '';
+      // Log early request body for diagnostics (priceId may still be a placeholder in frontend code)
+      request.log.info({ body: request.body }, 'Incoming create-checkout payload');
 
       // Resolve price ID (explicit overrides plan mapping)
       const finalPriceId = await resolvePriceId(normPlan, rawPriceId);
@@ -127,8 +129,10 @@ export async function registerSubscriptionRoutes(app) {
       if (rawMapValue && rawMapValue.toLowerCase().includes('placeholder')) {
         return reply.code(400).send({
           error: 'Valoare placeholder în env pentru acest plan – setează un ID real de produs (prod_...) sau preț (price_...)',
-            code: 'PLACEHOLDER_PRICE_ID',
-            plan: normPlan,
+          code: 'PLACEHOLDER_PRICE_ID',
+          plan: normPlan,
+          source: 'env',
+          rawMapValue,
         });
       }
       if (!finalPriceId) {
@@ -143,6 +147,9 @@ export async function registerSubscriptionRoutes(app) {
           error: 'ID-ul de preț este încă un placeholder – actualizează mediul și redepornește containerul',
           code: 'PLACEHOLDER_PRICE_ID',
           price: finalPriceId,
+          source: rawPriceId && rawPriceId.toLowerCase().includes('placeholder') ? 'explicit-request' : 'resolved',
+          rawPriceId: rawPriceId || null,
+          mapValue: rawMapValue || null,
         });
       }
       if (!['subscription', 'payment', 'setup'].includes(mode)) {
