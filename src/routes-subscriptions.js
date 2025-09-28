@@ -5,6 +5,50 @@ import jwt from 'jsonwebtoken';
 const stripeSecret = process.env.STRIPE_SECRET_KEY || '';
 const stripe = stripeSecret ? new Stripe(stripeSecret, { apiVersion: '2024-06-20' }) : null;
 
+// Price / Product mapping via env (frontend supplies a logical plan)
+// Values can be either a Stripe Price ID (price_...) or a Product ID (prod_...).
+const priceMap = {
+  basic: process.env.SUBSCRIPTION_PRICE_BASIC,
+  premium: process.env.SUBSCRIPTION_PRICE_PREMIUM,
+  vip: process.env.SUBSCRIPTION_PRICE_VIP,
+};
+
+// Simple in-memory cache for product -> default price resolution
+const productDefaultPriceCache = new Map();
+
+async function resolvePriceId(plan, explicit) {
+  if (explicit) return explicit; // override wins
+  if (!plan) return null;
+  const val = priceMap[plan];
+  if (!val) return null;
+  // If it's already a price id, return directly
+  if (val.startsWith('price_')) return val;
+  // If it's a product id, try to resolve its default price
+  if (val.startsWith('prod_')) {
+    if (!stripe) return null; // cannot resolve without Stripe client
+    if (productDefaultPriceCache.has(val)) return productDefaultPriceCache.get(val);
+    try {
+      const product = await stripe.products.retrieve(val);
+      let priceId = product.default_price && typeof product.default_price === 'string'
+        ? product.default_price
+        : (typeof product.default_price === 'object' && product.default_price?.id) ? product.default_price.id : null;
+      if (!priceId) {
+        // Fallback: list one active price
+        const prices = await stripe.prices.list({ product: val, active: true, limit: 1 });
+        if (prices.data.length) priceId = prices.data[0].id;
+      }
+      if (priceId) {
+        productDefaultPriceCache.set(val, priceId);
+        return priceId;
+      }
+      return null;
+    } catch (err) {
+      return null;
+    }
+  }
+  return null; // unsupported format
+}
+
 function requireAuth(request) {
   const auth = request.headers.authorization || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
@@ -70,14 +114,30 @@ export async function registerSubscriptionRoutes(app) {
   // Create checkout session (Stripe Hosted) - placeholder until product/price IDs configured
   app.post('/api/subscriptions/create-checkout', async (request, reply) => {
     try {
-      if (!stripe) return reply.code(500).send({ error: 'Stripe neconfigurat' });
+      if (!stripe) return reply.code(500).send({ error: 'Stripe neconfigurat', code: 'STRIPE_NOT_CONFIGURED' });
       const user = requireAuth(request);
-      const { plan, mode = 'subscription', priceId } = request.body || {};
-      if (!plan || !priceId) return reply.code(400).send({ error: 'Parametri lipsă' });
+      const { plan, mode = 'subscription', priceId: rawPriceId, quantity = 1 } = request.body || {};
 
-      // Create or reuse customer (simplified - store later)
+      // Resolve price ID (explicit overrides plan mapping)
+  const finalPriceId = await resolvePriceId(plan, rawPriceId);
+      if (!plan) return reply.code(400).send({ error: 'Plan lipsă', code: 'PLAN_REQUIRED' });
+      if (!finalPriceId) {
+        return reply.code(400).send({
+          error: 'Preț inexistent pentru plan / produs sau priceId invalid',
+          code: 'PRICE_NOT_FOUND',
+          plan,
+        });
+      }
+      if (!['subscription', 'payment', 'setup'].includes(mode)) {
+        return reply.code(400).send({ error: 'Mode invalid', code: 'INVALID_MODE' });
+      }
+
+      // Create or reuse customer
       let customerId;
-      const [existing] = await mysqlPool.query(`SELECT stripe_customer_id FROM subscriptions WHERE user_id = ? AND stripe_customer_id IS NOT NULL ORDER BY id DESC LIMIT 1`, [user.sub]);
+      const [existing] = await mysqlPool.query(
+        `SELECT stripe_customer_id FROM subscriptions WHERE user_id = ? AND stripe_customer_id IS NOT NULL ORDER BY id DESC LIMIT 1`,
+        [user.sub]
+      );
       if (Array.isArray(existing) && existing.length && existing[0].stripe_customer_id) {
         customerId = existing[0].stripe_customer_id;
       } else {
@@ -85,19 +145,27 @@ export async function registerSubscriptionRoutes(app) {
         customerId = customer.id;
       }
 
+      // Build line items
+      const lineItems = [{ price: finalPriceId, quantity: Number(quantity) > 0 ? Number(quantity) : 1 }];
+
+      const successBase = process.env.CLIENT_ORIGIN || 'http://localhost:19006';
       const session = await stripe.checkout.sessions.create({
         mode,
         customer: customerId,
-        line_items: [{ price: priceId, quantity: 1 }],
-        success_url: (process.env.CLIENT_ORIGIN || 'http://localhost:19006') + '/?checkout=success',
-        cancel_url: (process.env.CLIENT_ORIGIN || 'http://localhost:19006') + '/?checkout=cancel',
+        line_items: lineItems,
+        success_url: `${successBase}/?checkout=success&plan=${encodeURIComponent(plan)}`,
+        cancel_url: `${successBase}/?checkout=cancel&plan=${encodeURIComponent(plan)}`,
         metadata: { userId: user.sub, plan },
       });
       reply.send({ url: session.url });
     } catch (e) {
       if (e.message === 'NO_AUTH' || e.message === 'BAD_TOKEN') return reply.code(401).send({ error: 'Neautorizat' });
-      console.error(e);
-      reply.code(500).send({ error: 'Eroare creare sesiune checkout' });
+      // Stripe price missing -> 400 with clearer code
+      if (e && e.code === 'resource_missing' && e.param === 'line_items[0][price]') {
+        return reply.code(400).send({ error: 'Preț Stripe inexistent', code: 'STRIPE_PRICE_MISSING', param: e.param });
+      }
+      console.error('[checkout] error', e);
+      reply.code(500).send({ error: 'Eroare creare sesiune checkout', code: 'CHECKOUT_FAILED' });
     }
   });
 
