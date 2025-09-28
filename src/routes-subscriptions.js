@@ -21,6 +21,7 @@ async function resolvePriceId(plan, explicit) {
   if (!plan) return null;
   const val = priceMap[plan];
   if (!val) return null;
+  if (typeof val === 'string' && val.toLowerCase().includes('placeholder')) return null; // treat placeholders as unset
   // If it's already a price id, return directly
   if (val.startsWith('price_')) return val;
   // If it's a product id, try to resolve its default price
@@ -123,11 +124,25 @@ export async function registerSubscriptionRoutes(app) {
       const finalPriceId = await resolvePriceId(normPlan, rawPriceId);
       if (!normPlan) return reply.code(400).send({ error: 'Plan lipsă', code: 'PLAN_REQUIRED' });
       const rawMapValue = priceMap[normPlan];
+      if (rawMapValue && rawMapValue.toLowerCase().includes('placeholder')) {
+        return reply.code(400).send({
+          error: 'Valoare placeholder în env pentru acest plan – setează un ID real de produs (prod_...) sau preț (price_...)',
+            code: 'PLACEHOLDER_PRICE_ID',
+            plan: normPlan,
+        });
+      }
       if (!finalPriceId) {
         return reply.code(400).send({
           error: 'Preț inexistent pentru plan / produs sau priceId invalid',
           code: rawMapValue && rawMapValue.startsWith('prod_') ? 'PRODUCT_PRICE_NOT_FOUND' : 'PRICE_NOT_FOUND',
           plan: normPlan,
+        });
+      }
+      if (finalPriceId.toLowerCase().includes('placeholder')) {
+        return reply.code(400).send({
+          error: 'ID-ul de preț este încă un placeholder – actualizează mediul și redepornește containerul',
+          code: 'PLACEHOLDER_PRICE_ID',
+          price: finalPriceId,
         });
       }
       if (!['subscription', 'payment', 'setup'].includes(mode)) {
@@ -243,6 +258,64 @@ export async function registerSubscriptionRoutes(app) {
       out[p] = { source, type, resolvedPriceId: resolved, ok, reason };
     }
     reply.send({ prices: out, stripeConfigured: Boolean(stripe) });
+  });
+
+  // Inspect a single plan with deeper Stripe data (does NOT expose secrets)
+  app.get('/api/subscriptions/inspect', async (request, reply) => {
+    if (!stripe) return reply.code(500).send({ error: 'Stripe neconfigurat', code: 'STRIPE_NOT_CONFIGURED' });
+    const plan = (request.query.plan || '').toLowerCase();
+    if (!plan) return reply.code(400).send({ error: 'Parametru plan lipsă', code: 'PLAN_REQUIRED' });
+    const source = priceMap[plan];
+    if (!source) return reply.code(404).send({ error: 'Plan fără configurare', code: 'PLAN_NOT_CONFIGURED' });
+    const detail = { plan, source, type: null, resolvedPriceId: null, stripe: {}, notes: [] };
+    try {
+      if (source.startsWith('price_')) {
+        detail.type = 'price';
+        const priceObj = await stripe.prices.retrieve(source);
+        detail.resolvedPriceId = priceObj.id;
+        detail.stripe.price = {
+          id: priceObj.id,
+          active: priceObj.active,
+          currency: priceObj.currency,
+          unit_amount: priceObj.unit_amount,
+          recurring: priceObj.recurring || null,
+          product: priceObj.product,
+        };
+      } else if (source.startsWith('prod_')) {
+        detail.type = 'product';
+        const product = await stripe.products.retrieve(source);
+        detail.stripe.product = { id: product.id, name: product.name, active: product.active, default_price: product.default_price || null };
+        const priceId = await resolvePriceId(plan, null);
+        detail.resolvedPriceId = priceId;
+        if (priceId) {
+          const priceObj = await stripe.prices.retrieve(priceId);
+            detail.stripe.price = {
+              id: priceObj.id,
+              active: priceObj.active,
+              currency: priceObj.currency,
+              unit_amount: priceObj.unit_amount,
+              recurring: priceObj.recurring || null,
+            };
+        } else {
+          const prices = await stripe.prices.list({ product: source, active: true, limit: 5 });
+          detail.stripe.availablePrices = prices.data.map(p => ({ id: p.id, recurring: p.recurring || null, active: p.active, unit_amount: p.unit_amount }));
+          detail.notes.push('No default price resolved; see availablePrices');
+        }
+      } else {
+        detail.type = 'unknown';
+        detail.notes.push('Source value must start with price_ or prod_');
+      }
+      reply.send(detail);
+    } catch (err) {
+      reply.code(500).send({ error: 'Inspect failure', code: 'INSPECT_ERROR', message: err.message });
+    }
+  });
+
+  // Clear cached product->price resolutions
+  app.post('/api/subscriptions/refresh-price-cache', async (_request, reply) => {
+    const size = productDefaultPriceCache.size;
+    productDefaultPriceCache.clear();
+    reply.send({ cleared: size });
   });
 
   // Webhook with signature verification & subscription sync
