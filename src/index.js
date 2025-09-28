@@ -1,7 +1,7 @@
 import "dotenv/config";
 import Fastify from "fastify";
 import fastifyCors from "@fastify/cors";
-import rawBody from '@fastify/raw-body';
+import fastifyRawBody from "fastify-raw-body";
 import { auth } from "./auth.js";
 import { mysqlPool, testDbConnection, effectiveDbConfig } from "./mysql.js";
 import { registerProgressRoutes } from "./routes-progress.js";
@@ -14,13 +14,14 @@ import { registerAuthRoutes } from "./routes-auth.js";
 
 const app = Fastify({ logger: true });
 
-// Raw body plugin (needed for Stripe webhook signature verification)
-await app.register(rawBody, {
-  field: 'rawBody', // store on request.rawBody
-  global: false,    // we will enable per-route
+// Register raw body plugin (needed for Stripe webhook signature verification)
+await app.register(fastifyRawBody, {
+  field: 'rawBody',      // request.rawBody
+  global: false,         // only enabled per-route via config.rawBody
   encoding: 'utf8',
-  runFirst: true,
+  runFirst: true,        // parse before any other body parsers
 });
+
 
 await app.register(fastifyCors, {
   // Allow native apps (no Origin header) and a whitelist of web origins
