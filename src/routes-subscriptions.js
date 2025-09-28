@@ -318,6 +318,79 @@ export async function registerSubscriptionRoutes(app) {
     reply.send({ cleared: size });
   });
 
+  // Comprehensive debug endpoint for all plan price/product data
+  app.get('/api/subscriptions/debug/prices', async (request, reply) => {
+    if (!stripe) return reply.code(500).send({ error: 'Stripe neconfigurat', code: 'STRIPE_NOT_CONFIGURED' });
+    const includeRaw = request.query && (request.query.full === '1' || request.query.full === 'true');
+    const envMode = stripeSecret.includes('_test_') || stripeSecret.startsWith('sk_test') ? 'test' : 'live';
+    const plans = Object.keys(priceMap);
+    const result = { envMode, plans: {} };
+    for (const plan of plans) {
+      const entry = { source: priceMap[plan] || null, resolution: null, resolvedPriceId: null, product: null, price: null, error: null, notes: [] };
+      const source = entry.source;
+      if (!source) {
+        entry.error = 'NO_SOURCE';
+        result.plans[plan] = entry;
+        continue;
+      }
+      try {
+        if (source.startsWith('price_')) {
+            entry.resolution = 'direct-price';
+            entry.resolvedPriceId = source;
+            const p = await stripe.prices.retrieve(source);
+            entry.price = {
+              id: p.id,
+              active: p.active,
+              currency: p.currency,
+              unit_amount: p.unit_amount,
+              recurring: p.recurring || null,
+              product: typeof p.product === 'string' ? p.product : p.product?.id,
+            };
+            if (includeRaw) entry.priceRaw = p;
+            if (typeof p.product === 'string') {
+              try {
+                const prod = await stripe.products.retrieve(p.product);
+                entry.product = { id: prod.id, name: prod.name, active: prod.active, default_price: prod.default_price || null };
+                if (includeRaw) entry.productRaw = prod;
+              } catch (err) {
+                entry.notes.push('Failed to retrieve product for price');
+              }
+            }
+        } else if (source.startsWith('prod_')) {
+            entry.resolution = 'product->price';
+            const prod = await stripe.products.retrieve(source);
+            entry.product = { id: prod.id, name: prod.name, active: prod.active, default_price: prod.default_price || null };
+            if (includeRaw) entry.productRaw = prod;
+            const resolved = await resolvePriceId(plan, null);
+            entry.resolvedPriceId = resolved;
+            if (resolved) {
+              const p = await stripe.prices.retrieve(resolved);
+              entry.price = {
+                id: p.id,
+                active: p.active,
+                currency: p.currency,
+                unit_amount: p.unit_amount,
+                recurring: p.recurring || null,
+                product: typeof p.product === 'string' ? p.product : p.product?.id,
+              };
+              if (includeRaw) entry.priceRaw = p;
+            } else {
+              entry.error = 'NO_RESOLVED_PRICE';
+              const fallbackList = await stripe.prices.list({ product: source, active: true, limit: 5 });
+              entry.availablePrices = fallbackList.data.map(pp => ({ id: pp.id, recurring: pp.recurring || null, active: pp.active, unit_amount: pp.unit_amount }));
+            }
+        } else {
+          entry.error = 'UNSUPPORTED_SOURCE_FORMAT';
+        }
+      } catch (err) {
+        entry.error = 'LOOKUP_FAILED';
+        entry.notes.push(err.message);
+      }
+      result.plans[plan] = entry;
+    }
+    reply.send(result);
+  });
+
   // Webhook with signature verification & subscription sync
   app.post('/api/subscriptions/webhook', { config: { rawBody: true } }, async (request, reply) => {
     const sig = request.headers['stripe-signature'];
