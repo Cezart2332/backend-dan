@@ -233,6 +233,69 @@ export async function registerSubscriptionRoutes(app) {
     }
   });
 
+  // In-app PaymentSheet subscription setup (returns ephemeral key + payment intent client secret)
+  app.post('/api/subscriptions/create-payment-sheet', async (request, reply) => {
+    try {
+      if (!stripe) return reply.code(500).send({ error: 'Stripe neconfigurat', code: 'STRIPE_NOT_CONFIGURED' });
+      const user = requireAuth(request);
+      const { plan, priceId: explicitPriceId } = request.body || {};
+      const normPlan = typeof plan === 'string' ? plan.toLowerCase().trim() : '';
+      if (!normPlan) return reply.code(400).send({ error: 'Plan lipsă', code: 'PLAN_REQUIRED' });
+      const rawMapValue = priceMap[normPlan];
+      if (rawMapValue && rawMapValue.toLowerCase().includes('placeholder')) {
+        return reply.code(400).send({ error: 'Valoare placeholder în env pentru acest plan', code: 'PLACEHOLDER_PRICE_ID', plan: normPlan });
+      }
+      const finalPriceId = await resolvePriceId(normPlan, explicitPriceId);
+      if (!finalPriceId) return reply.code(400).send({ error: 'Preț inexistent pentru plan', code: 'PRICE_NOT_FOUND', plan: normPlan });
+      if (finalPriceId.toLowerCase().includes('placeholder')) return reply.code(400).send({ error: 'ID placeholder', code: 'PLACEHOLDER_PRICE_ID' });
+
+      // Reuse existing customer if available
+      let customerId;
+      const [existing] = await mysqlPool.query(
+        `SELECT stripe_customer_id FROM subscriptions WHERE user_id = ? AND stripe_customer_id IS NOT NULL ORDER BY id DESC LIMIT 1`,
+        [user.sub]
+      );
+      if (Array.isArray(existing) && existing.length && existing[0].stripe_customer_id) {
+        customerId = existing[0].stripe_customer_id;
+      } else {
+        const customer = await stripe.customers.create({ email: user.email, metadata: { userId: String(user.sub) } });
+        customerId = customer.id;
+      }
+
+      // Create ephemeral key for PaymentSheet (client uses publishable key + this secret)
+      const ephemeralKey = await stripe.ephemeralKeys.create({ customer: customerId }, { apiVersion: '2024-06-20' });
+
+      // Create subscription in incomplete state until payment is confirmed in PaymentSheet
+      const subscription = await stripe.subscriptions.create({
+        customer: customerId,
+        items: [{ price: finalPriceId }],
+        payment_behavior: 'default_incomplete',
+        payment_settings: { save_default_payment_method: 'on_subscription' },
+        expand: ['latest_invoice.payment_intent'],
+        metadata: { userId: String(user.sub), plan: normPlan },
+      });
+
+      const latestInvoice = subscription.latest_invoice;
+      const paymentIntent = latestInvoice && latestInvoice.payment_intent;
+      if (!paymentIntent) {
+        return reply.code(500).send({ error: 'PaymentIntent lipsă în subscription', code: 'MISSING_PAYMENT_INTENT' });
+      }
+
+      reply.send({
+        customerId,
+        ephemeralKeySecret: ephemeralKey.secret,
+        paymentIntentClientSecret: paymentIntent.client_secret,
+        subscriptionId: subscription.id,
+        priceId: finalPriceId,
+        plan: normPlan,
+      });
+    } catch (e) {
+      if (e.message === 'NO_AUTH' || e.message === 'BAD_TOKEN') return reply.code(401).send({ error: 'Neautorizat' });
+      request.log.error({ err: e }, 'create-payment-sheet failed');
+      reply.code(500).send({ error: 'Eroare creare PaymentSheet subscription', code: 'PAYMENTSHEET_SUB_CREATE_FAILED', message: e.message });
+    }
+  });
+
   // Diagnostic endpoint to view price/product mapping & resolution
   app.get('/api/subscriptions/prices', async (request, reply) => {
     const plans = Object.keys(priceMap);
