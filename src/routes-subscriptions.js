@@ -585,7 +585,30 @@ export async function registerSubscriptionRoutes(app) {
             }
           break;
         }
-        case 'invoice.payment_succeeded':
+        case 'invoice.payment_succeeded': {
+          // Backfill ends_at for current period if we inserted row before initial payment (ends_at may still be NULL)
+          const invoice = event.data.object;
+          const subId = invoice.subscription;
+          if (stripe && subId && typeof subId === 'string' && subId.startsWith('sub_')) {
+            try {
+              const stripeSub = await stripe.subscriptions.retrieve(subId);
+              const userId = stripeSub.metadata?.userId;
+              if (userId) {
+                const periodEnd = stripeSub.current_period_end ? new Date(stripeSub.current_period_end * 1000) : null;
+                if (periodEnd) {
+                  // Update latest row for this subscription if ends_at is still null
+                  await mysqlPool.query(
+                    `UPDATE subscriptions SET ends_at = ? WHERE user_id = ? AND stripe_subscription_id = ? AND (ends_at IS NULL OR ends_at < ?)`,
+                    [periodEnd, userId, subId, periodEnd]
+                  );
+                }
+              }
+            } catch (err) {
+              request.log.error({ err, subId }, 'Failed to backfill ends_at on invoice.payment_succeeded');
+            }
+          }
+          break;
+        }
         default:
           break;
       }
