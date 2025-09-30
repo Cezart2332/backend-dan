@@ -96,15 +96,25 @@ export async function registerSubscriptionRoutes(app) {
   app.post('/api/subscriptions/start-trial', async (request, reply) => {
     try {
       const user = requireAuth(request);
-      const existing = await getActiveSubscription(user.sub);
-      if (existing) return reply.send({ subscription: existing, note: 'Subscription already active' });
-      // 3 day trial
+      // If user already has any active subscription (trial or paid) do not grant new trial
+      const active = await getActiveSubscription(user.sub);
+      if (active) return reply.send({ subscription: active, note: 'Subscription already active' });
+
+      // Enforce one-time trial: check if user ever had a trial row before
+      const [pastTrials] = await mysqlPool.query(
+        `SELECT id FROM subscriptions WHERE user_id = ? AND type = 'trial' LIMIT 1`,
+        [user.sub]
+      );
+      if (Array.isArray(pastTrials) && pastTrials.length) {
+        return reply.code(400).send({ error: 'Trial deja folosit', code: 'TRIAL_ALREADY_USED' });
+      }
+      // Grant a 3-day Basic-equivalent trial (type=trial)
       await mysqlPool.query(
         `INSERT INTO subscriptions (user_id, type, starts_at, ends_at) VALUES (?, 'trial', NOW(), DATE_ADD(NOW(), INTERVAL 3 DAY))`,
         [user.sub]
       );
       const created = await getActiveSubscription(user.sub);
-      reply.send({ subscription: created });
+      reply.send({ subscription: created, note: 'Trial started' });
     } catch (e) {
       if (e.message === 'NO_AUTH' || e.message === 'BAD_TOKEN') return reply.code(401).send({ error: 'Neautorizat' });
       request.log.error(e);
