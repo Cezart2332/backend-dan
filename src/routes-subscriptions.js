@@ -76,7 +76,30 @@ export async function registerSubscriptionRoutes(app) {
   app.get('/api/subscriptions/current', async (request, reply) => {
     try {
       const user = requireAuth(request);
-      const sub = await getActiveSubscription(user.sub);
+      let sub = await getActiveSubscription(user.sub);
+      // Auto fallback: if no active sub and user had an expired trial, morph to basic (one-time) unless already has a paid/basic entry
+      if (!sub) {
+        const [trialRows] = await mysqlPool.query(
+          `SELECT * FROM subscriptions WHERE user_id = ? AND type = 'trial' ORDER BY ends_at DESC LIMIT 1`,
+          [user.sub]
+        );
+        const lastTrial = Array.isArray(trialRows) && trialRows.length ? trialRows[0] : null;
+        if (lastTrial && lastTrial.ends_at && new Date(lastTrial.ends_at).getTime() < Date.now()) {
+          // Check if any non-trial subscription already exists after trial end
+          const [postRows] = await mysqlPool.query(
+            `SELECT id FROM subscriptions WHERE user_id = ? AND type IN ('basic','premium','vip') AND starts_at > ? LIMIT 1`,
+            [user.sub, lastTrial.ends_at]
+          );
+            if (!Array.isArray(postRows) || !postRows.length) {
+              // Create a perpetual basic access row (ends_at NULL) as fallback
+              await mysqlPool.query(
+                `INSERT INTO subscriptions (user_id, type, starts_at, ends_at) VALUES (?, 'basic', NOW(), NULL)`,
+                [user.sub]
+              );
+              sub = await getActiveSubscription(user.sub);
+            }
+        }
+      }
       let status = 'none';
       if (sub) {
         const now = Date.now();
@@ -509,6 +532,22 @@ export async function registerSubscriptionRoutes(app) {
     }
   });
 
+  // History endpoint – all subscription rows for the user (limited to last 50)
+  app.get('/api/subscriptions/history', async (request, reply) => {
+    try {
+      const user = requireAuth(request);
+      const [rows] = await mysqlPool.query(
+        `SELECT id, type, starts_at, ends_at, stripe_subscription_id, stripe_price_id, created_at, updated_at
+         FROM subscriptions WHERE user_id = ? ORDER BY starts_at DESC LIMIT 50`,
+        [user.sub]
+      );
+      reply.send({ history: rows });
+    } catch (e) {
+      if (e.message === 'NO_AUTH' || e.message === 'BAD_TOKEN') return reply.code(401).send({ error: 'Neautorizat' });
+      reply.code(500).send({ error: 'Eroare server' });
+    }
+  });
+
   // Webhook with signature verification & subscription sync
   app.post('/api/subscriptions/webhook', { config: { rawBody: true } }, async (request, reply) => {
     const sig = request.headers['stripe-signature'];
@@ -615,6 +654,23 @@ export async function registerSubscriptionRoutes(app) {
               }
             } catch (err) {
               request.log.error({ err, subId }, 'Failed to backfill ends_at on invoice.payment_succeeded');
+            }
+          }
+          break;
+        }
+        case 'invoice.payment_failed': {
+          const invoice = event.data.object;
+          const subId = invoice.subscription;
+          if (stripe && subId && typeof subId === 'string') {
+            try {
+              const stripeSub = await stripe.subscriptions.retrieve(subId);
+              const userId = stripeSub.metadata?.userId;
+              if (userId) {
+                // Mark current active row as at-risk (ends_at unchanged) – optional: could add a flag column; for now we just log
+                request.log.warn({ subId, userId }, 'Payment failed for subscription');
+              }
+            } catch (err) {
+              request.log.error({ err, subId }, 'Failed to process payment_failed');
             }
           }
           break;
