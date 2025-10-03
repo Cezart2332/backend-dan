@@ -96,6 +96,7 @@ export async function registerSubscriptionRoutes(app) {
                 `INSERT INTO subscriptions (user_id, type, starts_at, ends_at) VALUES (?, 'basic', NOW(), NULL)`,
                 [user.sub]
               );
+              console.log('[subscriptions] inserted fallback basic subscription', { userId: user.sub, source: 'auto-basic-fallback' });
               sub = await getActiveSubscription(user.sub);
             }
         }
@@ -136,6 +137,7 @@ export async function registerSubscriptionRoutes(app) {
         `INSERT INTO subscriptions (user_id, type, starts_at, ends_at) VALUES (?, 'trial', NOW(), DATE_ADD(NOW(), INTERVAL 3 DAY))`,
         [user.sub]
       );
+      console.log('[subscriptions] inserted trial subscription', { userId: user.sub, durationDays: 3 });
       const created = await getActiveSubscription(user.sub);
       reply.send({ subscription: created, note: 'Trial started' });
     } catch (e) {
@@ -598,6 +600,14 @@ export async function registerSubscriptionRoutes(app) {
                 `INSERT INTO subscriptions (user_id, type, starts_at, ends_at, stripe_customer_id, stripe_subscription_id, stripe_price_id) VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [userId, localType, periodStart, periodEnd, subObj.customer, subObj.id, priceId]
               );
+              console.log('[subscriptions] webhook insert new subscription', {
+                userId,
+                type: localType,
+                starts_at: periodStart,
+                ends_at: periodEnd,
+                stripe_subscription_id: subObj.id,
+                stripe_price_id: priceId,
+              });
             } else {
               // If still same billing period (starts_at within 2 minutes of new periodStart) just update fields
               const existingStart = existing.starts_at ? new Date(existing.starts_at) : null;
@@ -616,6 +626,14 @@ export async function registerSubscriptionRoutes(app) {
                   `INSERT INTO subscriptions (user_id, type, starts_at, ends_at, stripe_customer_id, stripe_subscription_id, stripe_price_id) VALUES (?, ?, ?, ?, ?, ?, ?)`,
                   [userId, localType, periodStart, periodEnd, subObj.customer, subObj.id, priceId]
                 );
+                console.log('[subscriptions] webhook insert new billing period', {
+                  userId,
+                  type: localType,
+                  starts_at: periodStart,
+                  ends_at: periodEnd,
+                  stripe_subscription_id: subObj.id,
+                  stripe_price_id: priceId,
+                });
               } else {
                 // Edge case: out-of-order event with earlier start -> ignore
               }
