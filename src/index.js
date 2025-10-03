@@ -14,6 +14,21 @@ import { registerAuthRoutes } from "./routes-auth.js";
 
 const app = Fastify({ logger: true });
 
+// Allow empty JSON bodies (treat as {}) instead of throwing parser errors
+app.removeContentTypeParser("application/json");
+app.addContentTypeParser(/^application\/json($|;)/, { parseAs: "string" }, (request, body, done) => {
+  if (!body || body.trim().length === 0) {
+    return done(null, {});
+  }
+  try {
+    const json = JSON.parse(body);
+    done(null, json);
+  } catch (err) {
+    err.statusCode = 400;
+    done(err, undefined);
+  }
+});
+
 // Register raw body plugin (needed for Stripe webhook signature verification)
 await app.register(fastifyRawBody, {
   field: 'rawBody',      // request.rawBody
