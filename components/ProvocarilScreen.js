@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,56 +9,27 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { levels as levelDefs } from '../challenges';
 
 const { width } = Dimensions.get('window');
 
 export default function ProvocarilScreen({ navigation }) {
   const [selectedLevel, setSelectedLevel] = useState(null);
 
-  const challengeLevels = [
-    {
-      id: 1,
-      level: "Nivel 1",
-      title: "Provocări Simple",
-      subtitle: "Primele expuneri blânde",
-  goal: "➡️ scop: obișnuirea cu senzațiile, gândurile și situațiile ușoare",
-      description: "Începe călătoria ta cu pași mici și siguri. Aceste provocări sunt concepute să te ajute să te familiarizezi cu procesul de expunere într-un mod blând și controlat.",
-      icon: "🌱",
-      color: "#5cb85c",
-      gradientColors: ["#5cb85c", "#4cae4c"],
-      difficulty: "Ușor",
-      duration: "5-10 min",
-      exercises: 8
-    },
-    {
-      id: 2,
-      level: "Nivel 2", 
-      title: "Provocări Moderate",
-      subtitle: "Expuneri mai sensibile",
-  goal: "➡️ scop: să înveți că și în contexte mai incomode ești în siguranță",
-      description: "Fă următorul pas în dezvoltarea ta personală. Aceste provocări îți vor testa limitele într-un mod echilibrat și constructiv.",
-      icon: "🌿",
-      color: "#f0ad4e",
-      gradientColors: ["#f0ad4e", "#eea236"],
-      difficulty: "Moderat",
-      duration: "10-20 min",
-      exercises: 12
-    },
-    {
-      id: 3,
-      level: "Nivel 3",
-      title: "Provocări Avansate", 
-      subtitle: "Confruntarea directă",
-  goal: "➡️ scop: înfruntarea situațiilor și gândurilor cele mai temute",
-      description: "Pentru cei care sunt gata să își depășească cu adevărat limitele. Aceste provocări sunt cele mai intense și transformatoare.",
-      icon: "🔥",
-      color: "#d9534f",
-      gradientColors: ["#d9534f", "#c9302c"],
-      difficulty: "Avansat",
-      duration: "20-30 min",
-      exercises: 15
-    }
-  ];
+  const challengeLevels = useMemo(() => levelDefs.map(l => ({
+    id: l.id,
+    level: `Nivel ${l.id}`,
+    title: l.title,
+    subtitle: l.duration,
+    goal: l.goal,
+    description: l.goal,
+    icon: l.id === 1 ? '🌱' : l.id === 2 ? '🌿' : '🔥',
+    color: l.color,
+    gradientColors: l.gradientColors,
+    difficulty: l.difficulty,
+    duration: l.duration,
+    exercises: l.challenges.length,
+  })), [levelDefs]);
 
   const handleLevelPress = (level) => {
     setSelectedLevel(level.id === selectedLevel ? null : level.id);
@@ -90,6 +61,15 @@ export default function ProvocarilScreen({ navigation }) {
               </View>
               <Text style={styles.title}>Provocări</Text>
               <Text style={styles.subtitle}>Alege-ți nivelul de provocare</Text>
+            </View>
+
+            <View style={styles.historyWrap}>
+              <TouchableOpacity onPress={() => navigation.navigate('ChallengeHistory')} style={styles.historyButton}>
+                <LinearGradient colors={["#4a90e2", "#357abd"]} style={styles.historyButtonGradient}>
+                  <Text style={styles.historyIcon}>⏱</Text>
+                  <Text style={styles.historyButtonText}>Vezi istoric</Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -249,6 +229,11 @@ const styles = StyleSheet.create({
     color: '#4a90e2',
     fontWeight: 'bold',
   },
+  historyWrap: { position: 'absolute', right: 0, top: 10 },
+  historyButton: { borderRadius: 20, overflow: 'hidden' },
+  historyButtonGradient: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20 },
+  historyIcon: { color: '#fff', marginRight: 6 },
+  historyButtonText: { color: '#fff', fontWeight: '700' },
   headerContent: {
     alignItems: 'center',
   },

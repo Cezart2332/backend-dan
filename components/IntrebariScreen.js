@@ -1,18 +1,59 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Switch, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { api } from '../utils/api';
+import { getToken } from '../utils/authStorage';
+import { getUser } from '../utils/userStorage';
 
 export default function IntrebariScreen({ navigation }) {
   const [question, setQuestion] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [consent, setConsent] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const sendQuestion = () => {
+  React.useEffect(() => {
+    (async () => {
+      const [u, t] = await Promise.all([getUser(), getToken()]);
+      if (t) setIsLoggedIn(true);
+      if (u?.name) setName(u.name);
+      if (u?.email) setEmail(u.email);
+    })();
+  }, []);
+
+  const sendQuestion = async () => {
     if (!question.trim()) {
       Alert.alert('Mesaj gol', 'Te rog scrie întrebarea ta.');
       return;
     }
-    Alert.alert('Întrebare trimisă', 'Îți mulțumesc! Voi reveni în curând.');
-    setQuestion('');
+    setLoading(true);
+    try {
+      const token = await getToken();
+      const payload = { question, consent };
+      // Always include name/email if available (from stored login or manual input)
+      if (name) payload.name = name;
+      if (email) payload.email = email;
+      await api.createQuestion(payload, token || undefined);
+      Alert.alert('Întrebare trimisă', 'Îți mulțumesc! Voi reveni în curând.');
+      setQuestion('');
+      setConsent(true);
+      if (!token) {
+        // Anonymous submit: clear manually-entered identity
+        setName('');
+        setEmail('');
+      } else {
+        // Logged-in: keep identity; refresh from storage in case state was changed
+        const u = await getUser();
+        if (u?.name) setName(u.name);
+        if (u?.email) setEmail(u.email);
+      }
+    } catch (e) {
+      Alert.alert('Eroare', e?.message || 'Nu am putut trimite întrebarea. Încearcă din nou.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -28,7 +69,43 @@ export default function IntrebariScreen({ navigation }) {
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Întrebarea ta</Text>
+            {isLoggedIn ? (
+              <View style={{ marginBottom: 8 }}>
+                <Text style={styles.inputLabel}>
+                  Se trimite ca: <Text style={{ color: '#2c3e50', fontWeight: '600' }}>{name || 'Utilizator'}</Text>{email ? ` (${email})` : ''}
+                </Text>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.cardTitle}>Câteva detalii (opțional)</Text>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>Nume</Text>
+                    <TextInput
+                      value={name}
+                      onChangeText={setName}
+                      placeholder="Numele tău"
+                      placeholderTextColor="#99a6ae"
+                      style={styles.input}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>Email</Text>
+                    <TextInput
+                      value={email}
+                      onChangeText={setEmail}
+                      placeholder="email@exemplu.com"
+                      placeholderTextColor="#99a6ae"
+                      style={styles.input}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
+                  </View>
+                </View>
+              </>
+            )}
+
+            <Text style={[styles.cardTitle, { marginTop: 10 }]}>Întrebarea ta</Text>
             <TextInput
               value={question}
               onChangeText={setQuestion}
@@ -37,9 +114,15 @@ export default function IntrebariScreen({ navigation }) {
               style={styles.textarea}
               multiline
             />
-            <TouchableOpacity style={styles.primaryBtn} onPress={sendQuestion}>
+            <View style={styles.rowBetween}>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <Text style={styles.consentText}>Sunt de acord ca întrebarea mea să fie folosită în materiale educaționale (fără date personale).</Text>
+              </View>
+              <Switch value={consent} onValueChange={setConsent} />
+            </View>
+            <TouchableOpacity style={[styles.primaryBtn, loading && { opacity: 0.7 }]} onPress={sendQuestion} disabled={loading}>
               <LinearGradient colors={["#4a90e2", "#2e6bb8"]} style={styles.btnInner}>
-                <Text style={styles.primaryText}>Trimite</Text>
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Trimite</Text>}
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -69,6 +152,11 @@ const styles = StyleSheet.create({
     shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 4,
   },
   cardTitle: { fontSize: 16, fontWeight: '700', color: '#2c3e50', marginBottom: 6 },
+  inputLabel: { fontSize: 12, color: '#6c7b84', marginBottom: 4 },
+  input: {
+    borderWidth: 1, borderColor: '#e8f4fd', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 10,
+    backgroundColor: '#ffffff', color: '#2c3e50',
+  },
   textarea: {
     minHeight: 120, borderWidth: 1, borderColor: '#e8f4fd', borderRadius: 12, padding: 10,
     textAlignVertical: 'top', backgroundColor: '#ffffff',
@@ -76,4 +164,6 @@ const styles = StyleSheet.create({
   primaryBtn: { marginTop: 12, borderRadius: 12, overflow: 'hidden' },
   btnInner: { paddingVertical: 12, alignItems: 'center' },
   primaryText: { color: '#fff', fontWeight: '700' },
+  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
+  consentText: { fontSize: 12, color: '#6c7b84' },
 });

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,39 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getSubscription, clearSubscription } from '../utils/subscriptionStorage';
+import { clearToken } from '../utils/authStorage';
+import { clearUser } from '../utils/userStorage';
+import { clearEntries } from '../utils/progressStorage';
+import { replaceAllRuns } from '../utils/challengeStorage';
 
 const { width } = Dimensions.get('window');
 
 export default function DashboardScreen({ navigation }) {
+  const [subType, setSubType] = useState(null);
+  useEffect(() => {
+    (async () => {
+      const sub = await getSubscription();
+      if (sub && sub.type) setSubType(sub.type);
+    })();
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await Promise.all([
+        clearToken(),
+        clearUser(),
+        clearSubscription(),
+        clearEntries(),
+        replaceAllRuns([]),
+      ]);
+      setSubType(null);
+    } catch (err) {
+      console.log('Logout cleanup failed', err);
+    } finally {
+      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+    }
+  }, [navigation]);
   const menuItems = [
     // 1) SOS first
     {
@@ -25,8 +54,8 @@ export default function DashboardScreen({ navigation }) {
     // 2) Tehnici second
     {
       id: 6,
-      title: "Tehnici",
-      subtitle: "Exersează calmul",
+      title: "Tehnica HAI – metoda care elimină anxietatea",
+      subtitle: "Descoperă pașii și aplicațiile",
       icon: "🧘",
       color: "#2bbbad"
     },
@@ -74,6 +103,20 @@ export default function DashboardScreen({ navigation }) {
       icon: "❓",
       color: "#5bc0de"
     }
+    ,{
+      id: 9,
+      title: "Abonamente & Acces",
+      subtitle: "Planuri Basic / Premium / VIP",
+      icon: "💎",
+      color: "#ff8c42"
+    },
+    {
+      id: 10,
+      title: "Înțelege anxietatea",
+      subtitle: "Audio-uri și video explicative",
+      icon: "🎧",
+      color: "#8e44ad"
+    }
   ];
 
   const handleMenuPress = (item) => {
@@ -94,6 +137,10 @@ export default function DashboardScreen({ navigation }) {
       navigation.navigate('Ajutor');
     } else if (item.id === 8) { // Eu sunt Dan fost anxios
       navigation.navigate('AboutDan');
+    } else if (item.id === 9) { // Subscriptions
+      navigation.navigate('Subscriptions');
+    } else if (item.id === 10) {
+      navigation.navigate('IntelegeAnxietate');
     } else {
       console.log(`Pressed: ${item.title}`);
     }
@@ -111,6 +158,11 @@ export default function DashboardScreen({ navigation }) {
             <View style={styles.welcomeContainer}>
               <Text style={styles.welcomeText}>Bine ai venit!</Text>
               <Text style={styles.userName}>În spațiul tău sigur</Text>
+              {subType && (
+                <View style={styles.subBadge}>
+                  <Text style={styles.subBadgeText}>{subType.toUpperCase()}</Text>
+                </View>
+              )}
             </View>
             
             <View style={styles.logoContainer}>
@@ -165,7 +217,7 @@ export default function DashboardScreen({ navigation }) {
             
             <TouchableOpacity 
               style={styles.logoutButton}
-              onPress={() => navigation.navigate('Login')}
+              onPress={handleLogout}
             >
               <Text style={styles.logoutIcon}>🚪</Text>
               <Text style={styles.logoutText}>Ieșire</Text>
@@ -210,6 +262,20 @@ const styles = StyleSheet.create({
     color: '#6c7b84',
     fontWeight: '400',
   },
+  subBadge: {
+    alignSelf:'flex-start',
+    backgroundColor:'#4a90e2',
+    paddingHorizontal:10,
+    paddingVertical:4,
+    borderRadius:12,
+    marginTop:6,
+    shadowColor:'#4a90e2',
+    shadowOffset:{ width:0, height:2 },
+    shadowOpacity:0.15,
+    shadowRadius:4,
+    elevation:3
+  },
+  subBadgeText: { color:'#fff', fontSize:10, fontWeight:'700', letterSpacing:1 },
   logoContainer: {
     marginLeft: 15,
   },

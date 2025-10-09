@@ -13,6 +13,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { api } from '../utils/api';
+import { saveToken } from '../utils/authStorage';
+import { saveUser } from '../utils/userStorage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -23,6 +26,33 @@ export default function RegisterScreen({ navigation }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+
+  const onRegister = async () => {
+    setError('');
+    if (!email || !password || !fullName) {
+      setError('Completează nume, email și parolă');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Parolele nu coincid');
+      return;
+    }
+    try {
+      setLoading(true);
+  const res = await api.register({ email, password, name: fullName });
+  if (res?.token) await saveToken(res.token);
+  if (res?.user) await saveUser(res.user);
+    // Show disclaimer modal before onboarding
+    setShowDisclaimer(true);
+    } catch (e) {
+      setError(e.message || 'Eroare la înregistrare');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -129,15 +159,17 @@ export default function RegisterScreen({ navigation }) {
                 </Text>
               </View>
 
+              {error ? (<Text style={styles.errorText}>{error}</Text>) : null}
               <TouchableOpacity 
-                style={styles.registerButton}
-                onPress={() => navigation.navigate('Onboarding')}
+                style={[styles.registerButton, loading && { opacity: 0.7 }]}
+                onPress={onRegister}
+                disabled={loading}
               >
                 <LinearGradient
                   colors={['#4a90e2', '#357abd']}
                   style={styles.buttonGradient}
                 >
-                  <Text style={styles.registerButtonText}>Create Account</Text>
+                  <Text style={styles.registerButtonText}>{loading ? 'Se creează...' : 'Create Account'}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -177,6 +209,29 @@ export default function RegisterScreen({ navigation }) {
           </ScrollView>
         </KeyboardAvoidingView>
       </LinearGradient>
+      {showDisclaimer && (
+        <View style={styles.disclaimerOverlay}>
+          <View style={styles.disclaimerBox}>
+            <ScrollView contentContainerStyle={styles.disclaimerScroll}>
+              <Text style={styles.disclaimerTitle}>Disclaimer</Text>
+              <Text style={styles.disclaimerText}>
+Sunt coach și autor de cărți despre anxietate și am trecut personal prin această experiență, dar nu sunt specialist medical sau psiholog. Această aplicație oferă suport și resurse informative și nu înlocuiește sfatul unui medic sau psiholog. Dacă simptomele persistă sau se agravează, te rog să consulți un specialist.
+              </Text>
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.disclaimerButton}
+              onPress={() => {
+                setShowDisclaimer(false);
+                navigation.navigate('Onboarding');
+              }}
+            >
+              <LinearGradient colors={['#4a90e2', '#357abd']} style={styles.disclaimerButtonGrad}>
+                <Text style={styles.disclaimerButtonText}>Am înțeles</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -346,6 +401,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
+  errorText: {
+    color: '#d9534f',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -408,6 +468,65 @@ const styles = StyleSheet.create({
   loginLink: {
     color: '#4a90e2',
     fontSize: 15,
+    fontWeight: '600',
+  },
+  // Disclaimer modal styles
+  disclaimerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  disclaimerBox: {
+    width: '100%',
+    maxHeight: '80%',
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: '#e6f3ff',
+  },
+  disclaimerScroll: {
+    paddingBottom: 8,
+  },
+  disclaimerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2c3e50',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  disclaimerText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#2c3e50',
+    textAlign: 'left',
+  },
+  disclaimerButton: {
+    marginTop: 16,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  disclaimerButtonGrad: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderRadius: 14,
+  },
+  disclaimerButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
     fontWeight: '600',
   },
 });

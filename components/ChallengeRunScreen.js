@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { api } from '../utils/api';
+import { getToken } from '../utils/authStorage';
+import { saveChallengeRun } from '../utils/challengeStorage';
 
 export default function ChallengeRunScreen({ route, navigation }) {
   const { level, challenge } = route.params || {};
@@ -16,6 +19,26 @@ export default function ChallengeRunScreen({ route, navigation }) {
   const handleFinish = () => setFinished(true);
 
   const canSubmit = finished && difficulty !== null;
+
+  const handleSubmit = async () => {
+    const payload = {
+      challenge_id: challenge?.id,
+      difficulty,
+      notes: notes || undefined,
+      date: new Date().toISOString(),
+    };
+    let id = null;
+    try {
+      const token = await getToken();
+      if (token) {
+        const res = await api.createChallengeRun(payload, token);
+        id = res?.id || null;
+      }
+    } catch {}
+    // Save locally regardless
+    const localId = await saveChallengeRun({ ...payload, id, levelId: level?.id });
+    navigation.navigate('Provocari');
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -73,7 +96,7 @@ export default function ChallengeRunScreen({ route, navigation }) {
                 style={styles.textarea}
                 multiline
               />
-              <TouchableOpacity style={[styles.primaryBtn, !canSubmit && {opacity: 0.6}]} disabled={!canSubmit} onPress={() => navigation.goBack()}>
+              <TouchableOpacity style={[styles.primaryBtn, !canSubmit && {opacity: 0.6}]} disabled={!canSubmit} onPress={handleSubmit}>
                 <LinearGradient colors={["#4a90e2", "#2e6bb8"]} style={styles.btnInner}>
                   <Text style={styles.primaryText}>Trimite review</Text>
                 </LinearGradient>

@@ -23,18 +23,25 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.acoomh.dananxiety"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      [
-        "expo-notifications",
-        {
-          "sounds": ["default"]
-        }
-      ]
-    ]
+      "expo-notifications"
+    ],
+    "extra": {
+      "EXPO_PUBLIC_API_URL": "https://dananxios.duckdns.org",
+      "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_51SAueh5HdBWSIBbHSm5jWYpxg0GAzQSEs3DhiSBD4Zi0jLTnq2QU8Ge2xE5cWZCD0utnc1c36fkiQt7BMeF1ul1X00ExoeFt6i",
+      "eas": {
+        "projectId": "8e49dae7-cb0c-4527-b50a-663e4c763f84"
+      }
+    },
+    "experiments": {
+      "typedRoutes": false
+    },
+    "owner": "acoomh"
   }
 }

@@ -10,6 +10,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { addEntry, getUnsyncedEntries, markEntrySynced, setBackendReady } from '../utils/progressStorage';
+import { getToken } from '../utils/authStorage';
+import { api } from '../utils/api';
 
 const { width } = Dimensions.get('window');
 
@@ -17,12 +20,27 @@ export default function ProgressScreen({ navigation }) {
   const [anxietyLevel, setAnxietyLevel] = useState(0);
   const [feelings, setFeelings] = useState('');
   const [recentActions, setRecentActions] = useState('');
+  // On mount, if token exists, attempt to sync any unsynced local entries
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const unsynced = await getUnsyncedEntries();
+        for (const e of unsynced) {
+          const res = await api.createProgress({ level: e.level, description: e.description, actions: e.actions, date: e.date }, token);
+          if (res?.id) await markEntrySynced(e.localId || e.id, res.id);
+        }
+        await setBackendReady(true);
+      } catch {}
+    })();
+  }, []);
 
   const handleAnxietyLevelPress = (level) => {
     setAnxietyLevel(level);
   };
 
-  const handleSendJournal = () => {
+  const handleSendJournal = async () => {
     if (anxietyLevel === 0) {
       alert('Te rog să selectezi nivelul de anxietate');
       return;
@@ -32,15 +50,24 @@ export default function ProgressScreen({ navigation }) {
       return;
     }
     
-    // Here you would typically send the data to a server or save locally
-    console.log('Sending journal:', {
-      anxietyLevel,
-      feelings,
-      recentActions,
-      timestamp: new Date().toISOString()
-    });
-    
-    alert('Jurnalul a fost trimis cu succes către Dan! 📝✨');
+    const entry = {
+      id: `${Date.now()}`,
+      date: new Date().toISOString(),
+      level: anxietyLevel,
+      description: feelings.trim(),
+      actions: recentActions.trim(),
+    };
+    try {
+      const token = await getToken();
+      if (token) {
+        await api.createProgress({ level: entry.level, description: entry.description, actions: entry.actions, date: entry.date }, token);
+      }
+      // Always keep local copy too
+      await addEntry(entry);
+      alert('Jurnalul a fost trimis cu succes către Dan! 📝✨');
+    } catch (e) {
+      alert(e?.message || 'Nu am reușit să trimit progresul.');
+    }
     
     // Reset form
     setAnxietyLevel(0);
@@ -83,6 +110,13 @@ export default function ProgressScreen({ navigation }) {
               <Text style={styles.title}>Progresul Meu</Text>
               <Text style={styles.subtitle}>Urmărește-ți evoluția zilnică</Text>
             </View>
+
+            <TouchableOpacity style={styles.headerAction} onPress={() => navigation.navigate('ProgressHistory')}>
+              <LinearGradient colors={['#ffffff', '#f5faff']} style={styles.headerActionInner}>
+                <Text style={styles.headerActionIcon}>🗂️</Text>
+                <Text style={styles.headerActionText}>Vezi istoric</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
 
           {/* Anxiety Level Section */}
@@ -282,25 +316,32 @@ const styles = StyleSheet.create({
     color: '#4a90e2',
     fontWeight: 'bold',
   },
-  headerContent: {
-    alignItems: 'center',
+  headerAction: {
+    position: 'absolute',
+    right: 0,
+    top: 10,
   },
-  headerIcon: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#ffffff',
-    justifyContent: 'center',
+  headerActionInner: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e8f4fd',
+    backgroundColor: '#ffffff',
     shadowColor: '#4a90e2',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  headerActionIcon: {
+    marginRight: 6,
+    fontSize: 14,
+  },
+  headerActionText: {
+    color: '#357abd',
+    fontWeight: '600',
   },
   headerIconText: {
     fontSize: 35,

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import HeadphonesDisclaimer from './HeadphonesDisclaimer';
 
 export default function AjutorScreen({ navigation }) {
   return (
@@ -13,10 +14,18 @@ export default function AjutorScreen({ navigation }) {
             <Text style={styles.subtitle}>Alege ce simți acum și intră în modul de intervenție rapidă.</Text>
           </View>
 
-          <TouchableOpacity style={styles.card}>
+          <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('AjutorAnxietateVideo')}>
             <LinearGradient colors={["#ffffff", "#f3fff3"]} style={styles.cardInner}>
               <Text style={styles.cardIcon}>😌</Text>
               <Text style={[styles.cardTitle, { color: '#2c3e50' }]}>AJUTOR - am anxietate acum</Text>
+              <Text style={styles.cardArrow}>→</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('AjutorRauVideo')}>
+            <LinearGradient colors={["#ffffff", "#f3fff3"]} style={styles.cardInner}>
+              <Text style={styles.cardIcon}>😌</Text>
+              <Text style={[styles.cardTitle, { color: '#2c3e50' }]}>AJUTOR - imi este rau acum</Text>
               <Text style={styles.cardArrow}>→</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -33,6 +42,7 @@ export default function AjutorScreen({ navigation }) {
             <Text style={styles.backText}>← Înapoi</Text>
           </TouchableOpacity>
         </ScrollView>
+        <HeadphonesDisclaimer />
       </LinearGradient>
     </SafeAreaView>
   );

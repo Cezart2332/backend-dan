@@ -2,25 +2,14 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { levels } from '../challenges';
 
 export default function LevelChallengesScreen({ route, navigation }) {
   const { level } = route.params || {};
 
   const challenges = useMemo(() => {
-    const base = [
-      { id: 'c1', title: 'Respirație HAI (5 minute)', est: '5 min' },
-      { id: 'c2', title: 'Observă 5-4-3-2-1', est: '7 min' },
-      { id: 'c3', title: 'Plimbare conștientă', est: '10 min' },
-      { id: 'c4', title: 'Jurnal: gând → fapt', est: '8 min' },
-    ];
-    if (!level) return base;
-    if (level.id === 2) {
-      return base.map((c, i) => ({ ...c, id: 'm' + (i+1), est: c.est, title: c.title.replace(/\(.*\)/, '(8-12 minute)') }));
-    }
-    if (level.id === 3) {
-      return base.map((c, i) => ({ ...c, id: 'a' + (i+1), est: c.est, title: c.title.replace(/\(.*\)/, '(12-20 minute)') }));
-    }
-    return base;
+    const lvl = levels.find(l => l.id === level?.id);
+    return lvl?.challenges || [];
   }, [level]);
 
   return (

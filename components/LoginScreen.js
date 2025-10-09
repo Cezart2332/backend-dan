@@ -13,6 +13,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { api } from '../utils/api';
+import { saveToken } from '../utils/authStorage';
+import { saveUser } from '../utils/userStorage';
+import { saveSubscription } from '../utils/subscriptionStorage';
 
 // Fallback component for icons
 const IconFallback = ({ name, size = 20, color = "#4a90e2" }) => {
@@ -40,6 +44,36 @@ export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const onLogin = async () => {
+    setError('');
+    if (!email || !password) {
+      setError('Introdu email și parolă');
+      return;
+    }
+    try {
+      setLoading(true);
+  const res = await api.login({ email, password });
+  if (res?.token) await saveToken(res.token);
+  if (res?.user) await saveUser(res.user);
+  // Fetch subscription (trial or active) and persist
+  try {
+    if (res?.token) {
+  const subResp = await api.getCurrentSubscription(res.token);
+  await saveSubscription({ ...(subResp.subscription || {}), _status: subResp.status });
+    }
+  } catch (e) {
+    console.log('Subscription fetch failed', e?.message);
+  }
+      navigation.navigate('Dashboard');
+    } catch (e) {
+      setError(e.message || 'Autentificare eșuată');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -102,15 +136,17 @@ export default function LoginScreen({ navigation }) {
                 <Text style={styles.forgotPasswordText}>Forgot your password?</Text>
               </TouchableOpacity>
 
+              {error ? (<Text style={styles.errorText}>{error}</Text>) : null}
               <TouchableOpacity 
-                style={styles.loginButton}
-                onPress={() => navigation.navigate('Dashboard')}
+                style={[styles.loginButton, loading && { opacity: 0.7 }]}
+                onPress={onLogin}
+                disabled={loading}
               >
                 <LinearGradient
                   colors={['#4a90e2', '#357abd']}
                   style={styles.buttonGradient}
                 >
-                  <Text style={styles.loginButtonText}>Sign In</Text>
+                  <Text style={styles.loginButtonText}>{loading ? 'Se conectează...' : 'Sign In'}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -286,6 +322,11 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 18,
     fontWeight: '600',
+  },
+  errorText: {
+    color: '#d9534f',
+    textAlign: 'center',
+    marginBottom: 8,
   },
   dividerContainer: {
     flexDirection: 'row',

@@ -11,8 +11,13 @@ export default function AboutDanScreen({ navigation }) {
   ];
 
   const openItem = (it) => {
-    // Placeholder: for now show a simple message; can be expanded to dedicated screens
-    navigation.navigate('AboutDanSection', { section: it });
+    if (it.id === 'intro') {
+      navigation.navigate('AboutDanIntro');
+    } else if (it.id === 'cine') {
+      navigation.navigate('AboutDanCineVideo');
+    } else {
+      navigation.navigate('AboutDanSection', { section: it });
+    }
   };
 
   return (
