@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -6,16 +6,19 @@ import {
   StyleSheet,
   ScrollView,
   Dimensions,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { getSubscription, clearSubscription } from '../utils/subscriptionStorage';
-import { clearToken } from '../utils/authStorage';
-import { clearUser } from '../utils/userStorage';
-import { clearEntries } from '../utils/progressStorage';
-import { replaceAllRuns } from '../utils/challengeStorage';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import {
+  getSubscription,
+  clearSubscription,
+} from "../utils/subscriptionStorage";
+import { clearToken } from "../utils/authStorage";
+import { clearUser } from "../utils/userStorage";
+import { clearEntries } from "../utils/progressStorage";
+import { replaceAllRuns } from "../utils/challengeStorage";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 export default function DashboardScreen({ navigation }) {
   const [subType, setSubType] = useState(null);
@@ -37,9 +40,9 @@ export default function DashboardScreen({ navigation }) {
       ]);
       setSubType(null);
     } catch (err) {
-      console.log('Logout cleanup failed', err);
+      console.log("Logout cleanup failed", err);
     } finally {
-      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+      navigation.reset({ index: 0, routes: [{ name: "Login" }] });
     }
   }, [navigation]);
   const menuItems = [
@@ -49,7 +52,7 @@ export default function DashboardScreen({ navigation }) {
       title: "Ajutor",
       subtitle: "Am nevoie acum",
       icon: "🆘",
-      color: "#6cc04a"
+      color: "#6cc04a",
     },
     // 2) Tehnici second
     {
@@ -57,7 +60,7 @@ export default function DashboardScreen({ navigation }) {
       title: "Tehnica HAI – metoda care elimină anxietatea",
       subtitle: "Descoperă pașii și aplicațiile",
       icon: "🧘",
-      color: "#2bbbad"
+      color: "#2bbbad",
     },
     // 3) About Dan
     {
@@ -65,7 +68,7 @@ export default function DashboardScreen({ navigation }) {
       title: "Eu sunt Dan fost anxios",
       subtitle: "Cunoaște-mă",
       icon: "�",
-      color: "#9b59b6"
+      color: "#9b59b6",
     },
     // Rest of items
     {
@@ -73,74 +76,84 @@ export default function DashboardScreen({ navigation }) {
       title: "Progresul meu",
       subtitle: "Urmărește-ți evoluția",
       icon: "📊",
-      color: "#4a90e2"
+      color: "#4a90e2",
     },
     {
       id: 2,
       title: "Gândul de azi de la Dan",
       subtitle: "Înțelepciune zilnică",
       icon: "�",
-      color: "#5cb85c"
+      color: "#5cb85c",
     },
     {
       id: 3,
       title: "Provocări",
       subtitle: "Depășește-ți limitele",
       icon: "🎯",
-      color: "#f0ad4e"
+      color: "#f0ad4e",
     },
     {
       id: 4,
-      title: "Intră în direct cu Dan sau trimite-i jurnalul lui Dan pentru analiza",
+      title:
+        "Intră în direct cu Dan sau trimite-i jurnalul lui Dan pentru analiza",
       subtitle: "Conectează-te direct",
       icon: "📹",
-      color: "#d9534f"
+      color: "#d9534f",
     },
     {
       id: 5,
       title: "Trimite-mi o întrebare",
       subtitle: "Pune-ți întrebările",
       icon: "❓",
-      color: "#5bc0de"
-    }
-    ,{
+      color: "#5bc0de",
+    },
+    {
       id: 9,
       title: "Abonamente & Acces",
       subtitle: "Planuri Basic / Premium / VIP",
       icon: "💎",
-      color: "#ff8c42"
+      color: "#ff8c42",
     },
     {
       id: 10,
       title: "Înțelege anxietatea",
       subtitle: "Audio-uri și video explicative",
       icon: "🎧",
-      color: "#8e44ad"
-    }
+      color: "#8e44ad",
+    },
   ];
 
   const handleMenuPress = (item) => {
     // Here you can navigate to different screens based on the item
-    if (item.id === 1) { // Progresul meu
-      navigation.navigate('Progress');
-    } else if (item.id === 2) { // Gândul de azi de la Dan
-      navigation.navigate('QuoteOfTheDay');
-    } else if (item.id === 3) { // Provocări
-      navigation.navigate('Provocari');
-    } else if (item.id === 4) { // Intra in direct cu Dan / trimite jurnal
-      navigation.navigate('Direct');
-    } else if (item.id === 5) { // Intrebari
-      navigation.navigate('Intrebari');
-    } else if (item.id === 6) { // Tehnici
-      navigation.navigate('Tehnici');
-    } else if (item.id === 7) { // Ajutor
-      navigation.navigate('Ajutor');
-    } else if (item.id === 8) { // Eu sunt Dan fost anxios
-      navigation.navigate('AboutDan');
-    } else if (item.id === 9) { // Subscriptions
-      navigation.navigate('Subscriptions');
+    if (item.id === 1) {
+      // Progresul meu
+      navigation.navigate("Progress");
+    } else if (item.id === 2) {
+      // Gândul de azi de la Dan
+      navigation.navigate("QuoteOfTheDay");
+    } else if (item.id === 3) {
+      // Provocări
+      navigation.navigate("Provocari");
+    } else if (item.id === 4) {
+      // Intra in direct cu Dan / trimite jurnal
+      navigation.navigate("Direct");
+    } else if (item.id === 5) {
+      // Intrebari
+      navigation.navigate("Intrebari");
+    } else if (item.id === 6) {
+      // Tehnici
+      navigation.navigate("Tehnici");
+    } else if (item.id === 7) {
+      // Ajutor
+      navigation.navigate("Ajutor");
+    } else if (item.id === 8) {
+      // Eu sunt Dan fost anxios
+      navigation.navigate("AboutDan");
+    } else if (item.id === 9) {
+      // Subscriptions
+      navigation.navigate("Subscriptions");
     } else if (item.id === 10) {
-      navigation.navigate('IntelegeAnxietate');
+      navigation.navigate("IntelegeAnxietate");
     } else {
       console.log(`Pressed: ${item.title}`);
     }
@@ -149,7 +162,7 @@ export default function DashboardScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={['#f0f8ff', '#e6f3ff', '#ffffff']}
+        colors={["#f0f8ff", "#e6f3ff", "#ffffff"]}
         style={styles.gradient}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -160,11 +173,13 @@ export default function DashboardScreen({ navigation }) {
               <Text style={styles.userName}>În spațiul tău sigur</Text>
               {subType && (
                 <View style={styles.subBadge}>
-                  <Text style={styles.subBadgeText}>{subType.toUpperCase()}</Text>
+                  <Text style={styles.subBadgeText}>
+                    {subType.toUpperCase()}
+                  </Text>
                 </View>
               )}
             </View>
-            
+
             <View style={styles.logoContainer}>
               <View style={styles.logoCircle}>
                 <Text style={styles.logoIcon}>🌿</Text>
@@ -175,30 +190,37 @@ export default function DashboardScreen({ navigation }) {
           {/* Menu Items */}
           <View style={styles.menuContainer}>
             <Text style={styles.menuTitle}>Ce vrei să faci astăzi?</Text>
-            
+
             {menuItems.map((item, index) => (
               <TouchableOpacity
                 key={item.id}
                 style={[
                   styles.menuItem,
-                  index === menuItems.length - 1 && styles.lastMenuItem
+                  index === menuItems.length - 1 && styles.lastMenuItem,
                 ]}
                 onPress={() => handleMenuPress(item)}
               >
                 <LinearGradient
-                  colors={['#ffffff', '#f8fdff']}
+                  colors={["#ffffff", "#f8fdff"]}
                   style={styles.menuItemGradient}
                 >
                   <View style={styles.menuItemContent}>
-                    <View style={[styles.iconContainer, { backgroundColor: item.color + '15' }]}>
+                    <View
+                      style={[
+                        styles.iconContainer,
+                        { backgroundColor: item.color + "15" },
+                      ]}
+                    >
                       <Text style={styles.menuIcon}>{item.icon}</Text>
                     </View>
-                    
+
                     <View style={styles.textContainer}>
                       <Text style={styles.menuItemTitle}>{item.title}</Text>
-                      <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
+                      <Text style={styles.menuItemSubtitle}>
+                        {item.subtitle}
+                      </Text>
                     </View>
-                    
+
                     <View style={styles.arrowContainer}>
                       <Text style={styles.arrow}>→</Text>
                     </View>
@@ -214,8 +236,8 @@ export default function DashboardScreen({ navigation }) {
               <Text style={styles.settingsIcon}>⚙️</Text>
               <Text style={styles.settingsText}>Setări</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.logoutButton}
               onPress={handleLogout}
             >
@@ -242,9 +264,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 25,
     paddingTop: 10,
   },
@@ -253,29 +275,34 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#2c3e50',
+    fontWeight: "700",
+    color: "#2c3e50",
     marginBottom: 4,
   },
   userName: {
     fontSize: 16,
-    color: '#6c7b84',
-    fontWeight: '400',
+    color: "#6c7b84",
+    fontWeight: "400",
   },
   subBadge: {
-    alignSelf:'flex-start',
-    backgroundColor:'#4a90e2',
-    paddingHorizontal:10,
-    paddingVertical:4,
-    borderRadius:12,
-    marginTop:6,
-    shadowColor:'#4a90e2',
-    shadowOffset:{ width:0, height:2 },
-    shadowOpacity:0.15,
-    shadowRadius:4,
-    elevation:3
+    alignSelf: "flex-start",
+    backgroundColor: "#4a90e2",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 6,
+    shadowColor: "#4a90e2",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  subBadgeText: { color:'#fff', fontSize:10, fontWeight:'700', letterSpacing:1 },
+  subBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1,
+  },
   logoContainer: {
     marginLeft: 15,
   },
@@ -283,10 +310,10 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#ffffff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#4a90e2',
+    backgroundColor: "#ffffff",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#4a90e2",
     shadowOffset: {
       width: 0,
       height: 3,
@@ -304,7 +331,7 @@ const styles = StyleSheet.create({
   quoteCard: {
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#4a90e2',
+    shadowColor: "#4a90e2",
     shadowOffset: {
       width: 0,
       height: 3,
@@ -313,47 +340,47 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
     borderWidth: 1,
-    borderColor: '#e8f4fd',
+    borderColor: "#e8f4fd",
   },
   quoteIcon: {
     fontSize: 24,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 12,
   },
   quoteText: {
     fontSize: 16,
-    fontStyle: 'italic',
-    color: '#2c3e50',
-    textAlign: 'center',
+    fontStyle: "italic",
+    color: "#2c3e50",
+    textAlign: "center",
     lineHeight: 24,
     marginBottom: 8,
   },
   quoteAuthor: {
     fontSize: 14,
-    color: '#4a90e2',
-    textAlign: 'center',
-    fontWeight: '600',
+    color: "#4a90e2",
+    textAlign: "center",
+    fontWeight: "600",
   },
   menuContainer: {
     marginBottom: 30,
   },
   menuTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#2c3e50',
+    fontWeight: "600",
+    color: "#2c3e50",
     marginBottom: 20,
-    textAlign: 'center',
+    textAlign: "center",
   },
   menuItem: {
     marginBottom: 16,
     borderRadius: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   lastMenuItem: {
     marginBottom: 0,
   },
   menuItemGradient: {
-    shadowColor: '#4a90e2',
+    shadowColor: "#4a90e2",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -362,20 +389,20 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     borderWidth: 1,
-    borderColor: '#e8f4fd',
+    borderColor: "#e8f4fd",
     borderRadius: 16,
   },
   menuItemContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
   },
   iconContainer: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 15,
   },
   menuIcon: {
@@ -387,42 +414,42 @@ const styles = StyleSheet.create({
   },
   menuItemTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#2c3e50',
+    fontWeight: "600",
+    color: "#2c3e50",
     marginBottom: 4,
     lineHeight: 22,
   },
   menuItemSubtitle: {
     fontSize: 14,
-    color: '#6c7b84',
-    fontWeight: '400',
+    color: "#6c7b84",
+    fontWeight: "400",
   },
   arrowContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     width: 30,
   },
   arrow: {
     fontSize: 18,
-    color: '#4a90e2',
-    fontWeight: 'bold',
+    color: "#4a90e2",
+    fontWeight: "bold",
   },
   bottomActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: '#e8f4fd',
-    marginTop: 'auto',
+    borderTopColor: "#e8f4fd",
+    marginTop: "auto",
   },
   settingsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ffffff",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 20,
-    shadowColor: '#4a90e2',
+    shadowColor: "#4a90e2",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -431,7 +458,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
     borderWidth: 1,
-    borderColor: '#e8f4fd',
+    borderColor: "#e8f4fd",
   },
   settingsIcon: {
     fontSize: 16,
@@ -439,17 +466,17 @@ const styles = StyleSheet.create({
   },
   settingsText: {
     fontSize: 14,
-    color: '#2c3e50',
-    fontWeight: '500',
+    color: "#2c3e50",
+    fontWeight: "500",
   },
   logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ffffff",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 20,
-    shadowColor: '#4a90e2',
+    shadowColor: "#4a90e2",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -458,7 +485,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
     borderWidth: 1,
-    borderColor: '#e8f4fd',
+    borderColor: "#e8f4fd",
   },
   logoutIcon: {
     fontSize: 16,
@@ -466,7 +493,7 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     fontSize: 14,
-    color: '#d9534f',
-    fontWeight: '500',
+    color: "#d9534f",
+    fontWeight: "500",
   },
 });

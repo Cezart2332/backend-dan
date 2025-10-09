@@ -29,9 +29,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-notifications"
-    ],
+    "plugins": ["expo-notifications"],
     "extra": {
       "EXPO_PUBLIC_API_URL": "https://dananxios.duckdns.org",
       "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_51SAueh5HdBWSIBbHSm5jWYpxg0GAzQSEs3DhiSBD4Zi0jLTnq2QU8Ge2xE5cWZCD0utnc1c36fkiQt7BMeF1ul1X00ExoeFt6i",

@@ -1,34 +1,53 @@
-import React, { useRef, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Video, ResizeMode } from 'expo-av';
-import Constants from 'expo-constants';
-import HeadphonesDisclaimer from './HeadphonesDisclaimer';
+import React, { useRef, useState, useMemo } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Dimensions,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import { Video, ResizeMode } from "expo-av";
+import Constants from "expo-constants";
+import HeadphonesDisclaimer from "./HeadphonesDisclaimer";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 const fromConstants =
-  Constants?.expoConfig?.extra?.EXPO_PUBLIC_API_URL || Constants?.manifest?.extra?.EXPO_PUBLIC_API_URL;
-const BASE_URL = fromConstants || process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+  Constants?.expoConfig?.extra?.EXPO_PUBLIC_API_URL ||
+  Constants?.manifest?.extra?.EXPO_PUBLIC_API_URL;
+const BASE_URL =
+  fromConstants || process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
 
 export default function IntelegeAnxietateVideoScreen({ navigation, route }) {
   const videoRef = useRef(null);
   const [status, setStatus] = useState({});
-  const title = route.params?.title || 'Resursă video';
-  const videoFile = route.params?.videoFile || 'Intro.mp4';
+  const title = route.params?.title || "Resursă video";
+  const videoFile = route.params?.videoFile || "Intro.mp4";
 
-  const source = useMemo(() => ({ uri: `${BASE_URL}/api/media/${videoFile}` }), [videoFile]);
+  const source = useMemo(
+    () => ({ uri: `${BASE_URL}/api/media/${videoFile}` }),
+    [videoFile]
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#f0f8ff', '#e6f3ff', '#ffffff']} style={styles.gradient}>
+      <LinearGradient
+        colors={["#f0f8ff", "#e6f3ff", "#ffffff"]}
+        style={styles.gradient}
+      >
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+          >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>Vizionare introductivă înainte de a asculta audio-urile</Text>
+          <Text style={styles.subtitle}>
+            Vizionare introductivă înainte de a asculta audio-urile
+          </Text>
         </View>
 
         <View style={styles.playerWrap}>
@@ -51,8 +70,13 @@ export default function IntelegeAnxietateVideoScreen({ navigation, route }) {
             else videoRef.current?.pauseAsync();
           }}
         >
-          <LinearGradient colors={['#4a90e2', '#357abd']} style={styles.btnInner}>
-            <Text style={styles.primaryText}>{status.isPlaying ? 'Pauză' : 'Redă video'}</Text>
+          <LinearGradient
+            colors={["#4a90e2", "#357abd"]}
+            style={styles.btnInner}
+          >
+            <Text style={styles.primaryText}>
+              {status.isPlaying ? "Pauză" : "Redă video"}
+            </Text>
           </LinearGradient>
         </TouchableOpacity>
         <HeadphonesDisclaimer />
@@ -64,27 +88,46 @@ export default function IntelegeAnxietateVideoScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   gradient: { flex: 1, padding: 20 },
-  header: { alignItems: 'center', marginBottom: 16 },
+  header: { alignItems: "center", marginBottom: 16 },
   backBtn: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     top: -2,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 20,
     width: 36,
     height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
-    borderColor: '#e8f4fd',
+    borderColor: "#e8f4fd",
     elevation: 3,
   },
-  backIcon: { fontSize: 18, color: '#4a90e2', fontWeight: '700' },
-  title: { fontSize: 22, fontWeight: '700', color: '#2c3e50', textAlign: 'center' },
-  subtitle: { fontSize: 14, color: '#6c7b84', textAlign: 'center', marginTop: 6 },
-  playerWrap: { alignItems: 'center', justifyContent: 'center', marginTop: 8, marginBottom: 16 },
-  video: { width: width - 40, height: ((width - 40) * 9) / 16, backgroundColor: '#000' },
-  primaryBtn: { borderRadius: 12, overflow: 'hidden' },
-  btnInner: { paddingVertical: 12, alignItems: 'center' },
-  primaryText: { color: '#fff', fontWeight: '700' },
+  backIcon: { fontSize: 18, color: "#4a90e2", fontWeight: "700" },
+  title: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#2c3e50",
+    textAlign: "center",
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "#6c7b84",
+    textAlign: "center",
+    marginTop: 6,
+  },
+  playerWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  video: {
+    width: width - 40,
+    height: ((width - 40) * 9) / 16,
+    backgroundColor: "#000",
+  },
+  primaryBtn: { borderRadius: 12, overflow: "hidden" },
+  btnInner: { paddingVertical: 12, alignItems: "center" },
+  primaryText: { color: "#fff", fontWeight: "700" },
 });

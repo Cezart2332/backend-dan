@@ -1,89 +1,96 @@
-import React from 'react';
-import { Text, TouchableOpacity, StyleSheet, ScrollView, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import HeadphonesDisclaimer from './HeadphonesDisclaimer';
+import React from "react";
+import {
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import HeadphonesDisclaimer from "./HeadphonesDisclaimer";
 
 const steps = [
   {
-    id: 'pas1',
-    title: 'Pasul 1 din tehnica HAI',
+    id: "pas1",
+    title: "Pasul 1 din tehnica HAI",
     description:
-      'Identifică semnalele anxietății și setează intenția corectă încă din primele secunde.',
-    emoji: '①',
+      "Identifică semnalele anxietății și setează intenția corectă încă din primele secunde.",
+    emoji: "①",
   },
   {
-    id: 'pas2',
-    title: 'Pasul 2 din tehnica HAI',
+    id: "pas2",
+    title: "Pasul 2 din tehnica HAI",
     description:
-      'Folosește respirația conștientă pentru a-ți calma corpul și a recăpăta ritmul interior.',
-    emoji: '②',
+      "Folosește respirația conștientă pentru a-ți calma corpul și a recăpăta ritmul interior.",
+    emoji: "②",
   },
   {
-    id: 'pas3',
-    title: 'Pasul 3 din tehnica HAI',
+    id: "pas3",
+    title: "Pasul 3 din tehnica HAI",
     description:
-      'Transformă dialogul intern și reorientează gândurile anxioase către perspective constructive.',
-    emoji: '③',
+      "Transformă dialogul intern și reorientează gândurile anxioase către perspective constructive.",
+    emoji: "③",
   },
   {
-    id: 'pas4',
-    title: 'Pasul 4 din tehnica HAI',
+    id: "pas4",
+    title: "Pasul 4 din tehnica HAI",
     description:
-      'Integrează acțiuni concrete care consolidează starea de calm pe termen lung.',
-    emoji: '④',
+      "Integrează acțiuni concrete care consolidează starea de calm pe termen lung.",
+    emoji: "④",
   },
   {
-    id: 'rezumat',
-    title: 'Rezumatul tehnicii HAI',
+    id: "rezumat",
+    title: "Rezumatul tehnicii HAI",
     description:
-      'Recapitulează rapid fiecare pas și păstrează un ghid mental la îndemână.',
-    emoji: '📝',
+      "Recapitulează rapid fiecare pas și păstrează un ghid mental la îndemână.",
+    emoji: "📝",
   },
   {
-    id: 'beneficii',
-    title: 'Beneficiile tehnicii HAI',
+    id: "beneficii",
+    title: "Beneficiile tehnicii HAI",
     description:
-      'Descoperă ce rezultate concrete poți obține aplicând constant tehnica.',
-    emoji: '✨',
+      "Descoperă ce rezultate concrete poți obține aplicând constant tehnica.",
+    emoji: "✨",
   },
   {
-    id: 'practica',
-    title: 'Practicarea tehnicii HAI',
+    id: "practica",
+    title: "Practicarea tehnicii HAI",
     description:
-      'Construiește o rutină zilnică astfel încât HAI să devină un reflex sănătos.',
-    emoji: '🔁',
+      "Construiește o rutină zilnică astfel încât HAI să devină un reflex sănătos.",
+    emoji: "🔁",
   },
   {
-    id: 'context',
-    title: 'Tehnica HAI în contexte reale',
+    id: "context",
+    title: "Tehnica HAI în contexte reale",
     description:
-      'Aplică metoda în situații reale: la job, acasă, în trafic sau în relații.',
-    emoji: '🌍',
+      "Aplică metoda în situații reale: la job, acasă, în trafic sau în relații.",
+    emoji: "🌍",
   },
 ];
 
 const audioPackages = [
   {
-    id: 'audio-psihologice',
-    title: 'Aplicarea tehnicii HAI în stările psihologice',
-    note:
-      'Ghidaje audio pentru gânduri intruzive, teamă de anticipare și anxietate socială.',
-    emoji: '🧠',
+    id: "audio-psihologice",
+    title: "Aplicarea tehnicii HAI în stările psihologice",
+    note: "Ghidaje audio pentru gânduri intruzive, teamă de anticipare și anxietate socială.",
+    emoji: "🧠",
   },
   {
-    id: 'audio-fizice',
-    title: 'Aplicarea tehnicii HAI în stările fizice',
-    note:
-      'Exerciții audio dedicate palpitațiilor, tensiunii musculare și senzațiilor corporale intense.',
-    emoji: '🫀',
+    id: "audio-fizice",
+    title: "Aplicarea tehnicii HAI în stările fizice",
+    note: "Exerciții audio dedicate palpitațiilor, tensiunii musculare și senzațiilor corporale intense.",
+    emoji: "🫀",
   },
 ];
 
 export default function TehniciScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#f0f8ff', '#e6f3ff', '#ffffff']} style={styles.gradient}>
+      <LinearGradient
+        colors={["#f0f8ff", "#e6f3ff", "#ffffff"]}
+        style={styles.gradient}
+      >
         <ScrollView contentContainerStyle={styles.content}>
           <Text style={styles.title}>Tehnica HAI – metoda completă</Text>
 
@@ -93,7 +100,7 @@ export default function TehniciScreen({ navigation }) {
               key={item.id}
               style={styles.card}
               onPress={() =>
-                navigation.navigate('TehnicaHAIDetail', {
+                navigation.navigate("TehnicaHAIDetail", {
                   title: item.title,
                   description: item.description,
                 })
@@ -114,10 +121,10 @@ export default function TehniciScreen({ navigation }) {
               key={item.id}
               style={styles.card}
               onPress={() =>
-                navigation.navigate('TehnicaHAIDetail', {
+                navigation.navigate("TehnicaHAIDetail", {
                   title: item.title,
                   description: item.note,
-                  note: 'Ascultă cu căști pentru a aprofunda experiența.',
+                  note: "Ascultă cu căști pentru a aprofunda experiența.",
                 })
               }
             >
@@ -130,7 +137,10 @@ export default function TehniciScreen({ navigation }) {
             </TouchableOpacity>
           ))}
 
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => navigation.goBack()}
+          >
             <Text style={styles.backText}>← Înapoi</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -146,46 +156,51 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 40 },
   title: {
     fontSize: 22,
-    fontWeight: '700',
-    color: '#2c3e50',
-    textAlign: 'center',
+    fontWeight: "700",
+    color: "#2c3e50",
+    textAlign: "center",
     marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#2c3e50',
+    fontWeight: "700",
+    color: "#2c3e50",
     marginBottom: 8,
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e8f4fd',
-    shadowColor: '#4a90e2',
+    borderColor: "#e8f4fd",
+    shadowColor: "#4a90e2",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
   },
   cardTextContainer: { flex: 1, paddingRight: 12 },
   emoji: { fontSize: 22, marginRight: 12, marginTop: 2 },
-  cardText: { fontSize: 15, color: '#2c3e50', fontWeight: '600', marginBottom: 4 },
-  cardSubtitle: { fontSize: 13, color: '#6c7b84', lineHeight: 18 },
-  arrow: { fontSize: 18, color: '#4a90e2', fontWeight: '700', marginTop: 4 },
+  cardText: {
+    fontSize: 15,
+    color: "#2c3e50",
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  cardSubtitle: { fontSize: 13, color: "#6c7b84", lineHeight: 18 },
+  arrow: { fontSize: 18, color: "#4a90e2", fontWeight: "700", marginTop: 4 },
   backBtn: {
-    alignSelf: 'center',
+    alignSelf: "center",
     marginTop: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: "#ffffff",
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#e8f4fd',
+    borderColor: "#e8f4fd",
   },
-  backText: { color: '#2c3e50', fontWeight: '600' },
+  backText: { color: "#2c3e50", fontWeight: "600" },
 });
