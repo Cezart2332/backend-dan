@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "f28c9aa7-ec02-45d3-8e5f-bc464d8c9a52"
+      }
+    },
+    "android": {
+      "package": "com.acoomh.dananxietyserver"
+    }
+  }
+}
