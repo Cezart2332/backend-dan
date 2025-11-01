@@ -16,10 +16,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
 import { saveToken } from '../utils/authStorage';
 import { saveUser } from '../utils/userStorage';
+import { saveSubscription } from '../utils/subscriptionStorage';
 
 const { width, height } = Dimensions.get('window');
 
-export default function RegisterScreen({ navigation }) {
+export default function RegisterScreen({ navigation, onAuthenticated }) {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,11 +43,24 @@ export default function RegisterScreen({ navigation }) {
     }
     try {
       setLoading(true);
-  const res = await api.register({ email, password, name: fullName });
-  if (res?.token) await saveToken(res.token);
-  if (res?.user) await saveUser(res.user);
-    // Show disclaimer modal before onboarding
-    setShowDisclaimer(true);
+      const res = await api.register({ email, password, name: fullName });
+      if (res?.token) await saveToken(res.token);
+      if (res?.user) await saveUser(res.user);
+      try {
+        if (res?.token) {
+          const subResp = await api.getCurrentSubscription(res.token);
+          await saveSubscription({
+            ...(subResp.subscription || {}),
+            _status: subResp.status,
+            _trialEligible: subResp.trialEligible,
+          });
+        }
+      } catch (err) {
+        console.log('Subscription fetch failed', err?.message);
+      }
+      if (typeof onAuthenticated === 'function') onAuthenticated();
+      // Show disclaimer modal before onboarding
+      setShowDisclaimer(true);
     } catch (e) {
       setError(e.message || 'Eroare la înregistrare');
     } finally {

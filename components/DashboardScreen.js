@@ -20,7 +20,7 @@ import { replaceAllRuns } from "../utils/challengeStorage";
 
 const { width } = Dimensions.get("window");
 
-export default function DashboardScreen({ navigation }) {
+export default function DashboardScreen({ navigation, onLogout }) {
   const [subType, setSubType] = useState(null);
   useEffect(() => {
     (async () => {
@@ -42,9 +42,10 @@ export default function DashboardScreen({ navigation }) {
     } catch (err) {
       console.log("Logout cleanup failed", err);
     } finally {
+      if (typeof onLogout === "function") onLogout();
       navigation.reset({ index: 0, routes: [{ name: "Login" }] });
     }
-  }, [navigation]);
+  }, [navigation, onLogout]);
   const menuItems = [
     // 1) SOS first
     {

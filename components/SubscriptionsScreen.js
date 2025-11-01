@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -14,10 +14,7 @@ import {
 import { useStripe } from "@stripe/stripe-react-native";
 import { api } from "../utils/api";
 import { getToken } from "../utils/authStorage";
-import {
-  saveSubscription,
-  getSubscription,
-} from "../utils/subscriptionStorage";
+import { useSubscription } from "../contexts/SubscriptionContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -29,10 +26,15 @@ export default function SubscriptionsScreen({ navigation }) {
   const [selectedPlan, setSelectedPlan] = useState(null); // basic | premium | vip
   const [showCompare, setShowCompare] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [currentSub, setCurrentSub] = useState(null);
-  const [status, setStatus] = useState("none");
-  const [trialUsed, setTrialUsed] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const {
+    subscription: contextSubscription,
+    status,
+    trialEligible,
+    refresh: refreshSubscription,
+  } = useSubscription();
+  const currentSub = contextSubscription;
+  const trialUsed = !trialEligible;
 
   // Animations for plan cards (staggered)
   const animValues = useRef(
@@ -52,30 +54,17 @@ export default function SubscriptionsScreen({ navigation }) {
     ).start();
   }, []);
 
-  const loadSubscription = async () => {
+  const loadSubscription = useCallback(async () => {
     try {
-      const cached = await getSubscription();
-      if (cached) {
-        setCurrentSub(cached);
-        if (cached._status) setStatus(cached._status);
-      }
-      const token = await getToken();
-      if (!token) return;
-      const res = await api.getCurrentSubscription(token);
-      setCurrentSub(res.subscription || null);
-      setStatus(res.status);
-      await saveSubscription({
-        ...(res.subscription || {}),
-        _status: res.status,
-      });
+      await refreshSubscription();
     } catch (e) {
       console.log("Load subscription failed", e?.message);
     }
-  };
+  }, [refreshSubscription]);
 
   useEffect(() => {
     loadSubscription();
-  }, []);
+  }, [loadSubscription]);
 
   useEffect(() => {
     if (!currentSub?.ends_at) return;
@@ -94,7 +83,7 @@ export default function SubscriptionsScreen({ navigation }) {
     return () => {
       sub.remove();
     };
-  }, []);
+  }, [loadSubscription]);
 
   const monthlyPlans = [
     {
@@ -192,24 +181,18 @@ export default function SubscriptionsScreen({ navigation }) {
       const token = await getToken();
       if (!token)
         return Alert.alert("Autentificare", "Trebuie să fii autentificat.");
-      const res = await api.startTrial(token);
-      setCurrentSub(res.subscription);
-      setStatus("active");
-      await saveSubscription({
-        ...(res.subscription || {}),
-        _status: "active",
-      });
+      await api.startTrial(token);
+      await refreshSubscription();
       Alert.alert("Trial", "Trial de 3 zile activat.");
     } catch (e) {
-      // Standardized code detection: backend returns code TRIAL_ALREADY_USED
+      const msg = e.message || "Nu s-a putut activa trialul";
+      Alert.alert("Eroare", msg);
       if (
-        e.message &&
-        (e.message.includes("TRIAL_ALREADY_USED") ||
-          e.message.includes("Trial deja folosit"))
+        msg.includes("TRIAL_ALREADY_USED") ||
+        msg.includes("Trial deja folosit")
       ) {
-        setTrialUsed(true);
+        refreshSubscription();
       }
-      Alert.alert("Eroare", e.message || "Nu s-a putut activa trialul");
     } finally {
       setLoading(false);
     }

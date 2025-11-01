@@ -40,7 +40,7 @@ const IconFallback = ({ name, size = 20, color = "#4a90e2" }) => {
 
 const { width, height } = Dimensions.get('window');
 
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen({ navigation, onAuthenticated }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -55,19 +55,24 @@ export default function LoginScreen({ navigation }) {
     }
     try {
       setLoading(true);
-  const res = await api.login({ email, password });
-  if (res?.token) await saveToken(res.token);
-  if (res?.user) await saveUser(res.user);
-  // Fetch subscription (trial or active) and persist
-  try {
-    if (res?.token) {
-  const subResp = await api.getCurrentSubscription(res.token);
-  await saveSubscription({ ...(subResp.subscription || {}), _status: subResp.status });
-    }
-  } catch (e) {
-    console.log('Subscription fetch failed', e?.message);
-  }
-      navigation.navigate('Dashboard');
+      const res = await api.login({ email, password });
+      if (res?.token) await saveToken(res.token);
+      if (res?.user) await saveUser(res.user);
+      // Fetch subscription (trial or active) and persist
+      try {
+        if (res?.token) {
+          const subResp = await api.getCurrentSubscription(res.token);
+          await saveSubscription({
+            ...(subResp.subscription || {}),
+            _status: subResp.status,
+            _trialEligible: subResp.trialEligible,
+          });
+        }
+      } catch (e) {
+        console.log("Subscription fetch failed", e?.message);
+      }
+  if (typeof onAuthenticated === 'function') onAuthenticated();
+  navigation.navigate('Dashboard');
     } catch (e) {
       setError(e.message || 'Autentificare eșuată');
     } finally {
