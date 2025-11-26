@@ -21,12 +21,12 @@ COPY --from=build /app/package*.json ./
 COPY --from=build /app/src ./src
 ## No SQLite file needed; using MySQL
 
-# Expose port
-EXPOSE 4000
+# Expose port (Coolify may override via PORT env)
+EXPOSE 3000
 
-# Healthcheck (optional) using Node's global fetch (Node 20)
+# Healthcheck using Node's global fetch (Node 20) - uses PORT env or defaults to 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD node -e "fetch('http://localhost:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "const p=process.env.PORT||3000;fetch('http://127.0.0.1:'+p+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 # Start server
 CMD ["node", "src/index.js"]
