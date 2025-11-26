@@ -95,9 +95,9 @@ export async function runMigrations() {
         CONSTRAINT fk_subscriptions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         INDEX idx_subscriptions_user (user_id),
         INDEX idx_subscriptions_active (user_id, ends_at),
-        INDEX idx_subscriptions_stripe_sub (stripe_subscription_id)
-        ),
+        INDEX idx_subscriptions_stripe_sub (stripe_subscription_id),
         INDEX idx_subscriptions_user_starts (user_id, starts_at DESC)
+      )
     `);
 
     console.log("[DB] Migrations ensured ✅");
