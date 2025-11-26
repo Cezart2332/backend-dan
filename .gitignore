@@ -40,3 +40,7 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# Google Cloud credentials
+dan-fost-anxios-c63c6c5b4d6a.json
+*-c63c6c5b4d6a.json

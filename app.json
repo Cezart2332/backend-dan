@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "dan-anxiety",
-    "slug": "dan-anxiety",
+    "name": "dan-fost-anxios",
+    "slug": "dan-fost-anxios",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -24,22 +24,24 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.acoomh.dananxiety"
+      "package": "com.cartealuidan.danfostanxios"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-notifications"],
+    "plugins": [
+      "expo-notifications"
+    ],
     "extra": {
-      "EXPO_PUBLIC_API_URL": "https://dananxios.duckdns.org",
+      "EXPO_PUBLIC_API_URL": "https://api.danfostanxios.ro/",
       "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_51SAueh5HdBWSIBbHSm5jWYpxg0GAzQSEs3DhiSBD4Zi0jLTnq2QU8Ge2xE5cWZCD0utnc1c36fkiQt7BMeF1ul1X00ExoeFt6i",
       "eas": {
-        "projectId": "8e49dae7-cb0c-4527-b50a-663e4c763f84"
+        "projectId": "d9f73843-db4d-441f-9a97-1cb350a7900b"
       }
     },
     "experiments": {
       "typedRoutes": false
     },
-    "owner": "acoomh"
+    "owner": "cartealuidan"
   }
 }
