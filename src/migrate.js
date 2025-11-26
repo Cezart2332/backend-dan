@@ -24,7 +24,7 @@ export async function runMigrations() {
       CREATE TABLE IF NOT EXISTS sessions (
         id BIGINT PRIMARY KEY AUTO_INCREMENT,
         user_id BIGINT NOT NULL,
-        token VARCHAR(1024) UNIQUE,
+        token VARCHAR(255) UNIQUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         expires_at TIMESTAMP NULL,
         CONSTRAINT fk_sessions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
