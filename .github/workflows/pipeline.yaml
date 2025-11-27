@@ -3,7 +3,7 @@ name: EAS Build & Submit Android
 on:
   push:
     branches:
-      - main   # sau branch-ul tău de producție
+      - master   # sau branch-ul tău de producție
 
 jobs:
   build-and-submit-android:
