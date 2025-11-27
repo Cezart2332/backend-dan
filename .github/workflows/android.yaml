@@ -1,0 +1,43 @@
+name: EAS Build & Submit Android
+
+on:
+  push:
+    branches:
+      - main   # sau branch-ul tău de producție
+
+jobs:
+  build-and-submit-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: EAS Build Android
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas build --platform android \
+            --profile production \
+            --non-interactive
+
+      - name: EAS Submit Android (Google Play)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas submit -p android \
+            --profile production \
+            --latest \
+            --non-interactive
