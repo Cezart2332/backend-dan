@@ -16,7 +16,7 @@ import { api } from "../utils/api";
 import { getToken } from "../utils/authStorage";
 
 const { width } = Dimensions.get("window");
-const EXCLUDED_ROUTES = new Set(["Login", "Register", "Subscriptions"]);
+const EXCLUDED_ROUTES = new Set(["Login", "Register", "Subscriptions", "Onboarding"]);
 
 export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRoute }) {
   const { status, trialEligible, refresh, initializing, hasToken } = useSubscription();
