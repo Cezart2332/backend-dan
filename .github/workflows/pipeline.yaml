@@ -36,11 +36,8 @@ jobs:
       - name: EAS Build Android
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          eas build --platform android \
-            --profile production \
-            --non-interactive
-
+        run: eas build --platform android 
+        
       - name: EAS Submit Android (Google Play)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
