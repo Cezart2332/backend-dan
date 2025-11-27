@@ -27,13 +27,23 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.cartealuidan.danfostanxios"
+      "package": "com.cartealuidan.danfostanxios",
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
     },
     "web": {
       "favicon": "./assets/logo.png"
     },
     "plugins": [
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Această aplicație nu folosește microfonul."
+        }
+      ]
     ],
     "extra": {
       "EXPO_PUBLIC_API_URL": "https://api.danfostanxios.ro",

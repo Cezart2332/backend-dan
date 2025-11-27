@@ -1,10 +1,12 @@
-import React, { useRef, useState, useMemo } from "react";
+import React, { useRef, useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -23,13 +25,38 @@ const BASE_URL =
 export default function IntelegeAnxietateVideoScreen({ navigation, route }) {
   const videoRef = useRef(null);
   const [status, setStatus] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const title = route.params?.title || "Resursă video";
   const videoFile = route.params?.videoFile || "Intro.mp4";
 
   const source = useMemo(
-    () => ({ uri: `${BASE_URL}/api/media/${videoFile}` }),
+    () => ({ uri: `${BASE_URL}/api/media/${encodeURIComponent(videoFile)}` }),
     [videoFile]
   );
+
+  const handlePlaybackStatusUpdate = useCallback((newStatus) => {
+    setStatus(newStatus);
+    if (newStatus.isLoaded) {
+      setIsLoading(false);
+      setError(null);
+    }
+    if (newStatus.error) {
+      setError(newStatus.error);
+      setIsLoading(false);
+    }
+  }, []);
+
+  const handleError = useCallback((err) => {
+    console.log("Video error:", err);
+    setError("Nu s-a putut încărca videoclipul");
+    setIsLoading(false);
+  }, []);
+
+  const handleLoad = useCallback(() => {
+    setIsLoading(false);
+    setError(null);
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -51,20 +78,46 @@ export default function IntelegeAnxietateVideoScreen({ navigation, route }) {
         </View>
 
         <View style={styles.playerWrap}>
+          {isLoading && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color="#4a90e2" />
+              <Text style={styles.loadingText}>Se încarcă...</Text>
+            </View>
+          )}
+          {error && (
+            <View style={styles.errorOverlay}>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity
+                style={styles.retryBtn}
+                onPress={() => {
+                  setError(null);
+                  setIsLoading(true);
+                  videoRef.current?.loadAsync(source, {}, false);
+                }}
+              >
+                <Text style={styles.retryText}>Reîncearcă</Text>
+              </TouchableOpacity>
+            </View>
+          )}
           <Video
             ref={videoRef}
             style={styles.video}
             source={source}
             useNativeControls
             resizeMode={ResizeMode.CONTAIN}
-            onPlaybackStatusUpdate={setStatus}
+            onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+            onError={handleError}
+            onLoad={handleLoad}
             shouldPlay={false}
             isLooping={false}
+            usePoster={Platform.OS === "android"}
+            posterStyle={styles.video}
           />
         </View>
 
         <TouchableOpacity
-          style={styles.primaryBtn}
+          style={[styles.primaryBtn, (isLoading || error) && styles.btnDisabled]}
+          disabled={isLoading || !!error}
           onPress={() => {
             if (!status.isPlaying) videoRef.current?.playAsync();
             else videoRef.current?.pauseAsync();
@@ -121,13 +174,52 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 8,
     marginBottom: 16,
+    position: "relative",
   },
   video: {
     width: width - 40,
     height: ((width - 40) * 9) / 16,
     backgroundColor: "#000",
   },
+  loadingOverlay: {
+    position: "absolute",
+    zIndex: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    color: "#4a90e2",
+    marginTop: 8,
+    fontSize: 14,
+  },
+  errorOverlay: {
+    position: "absolute",
+    zIndex: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.7)",
+    width: width - 40,
+    height: ((width - 40) * 9) / 16,
+    borderRadius: 8,
+  },
+  errorText: {
+    color: "#fff",
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  retryBtn: {
+    backgroundColor: "#4a90e2",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
   primaryBtn: { borderRadius: 12, overflow: "hidden" },
+  btnDisabled: { opacity: 0.6 },
   btnInner: { paddingVertical: 12, alignItems: "center" },
   primaryText: { color: "#fff", fontWeight: "700" },
 });
