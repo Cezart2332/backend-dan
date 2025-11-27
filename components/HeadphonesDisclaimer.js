@@ -44,7 +44,7 @@ export default function HeadphonesDisclaimer({ visibleInitially = true, onDismis
 
   return (
     <View style={styles.overlay} pointerEvents="box-none">
-      <View style={styles.box} accessibilityRole="dialog" accessibilityLabel="Recomandare">
+      <View style={styles.box} accessibilityRole="alert" accessibilityLabel="Recomandare">
         <Text style={styles.title}>Recomandare</Text>
         <Text style={styles.msg}>{text || 'Pentru cea mai bună experiență se recomandă folosirea căștilor!'}</Text>
         <TouchableOpacity

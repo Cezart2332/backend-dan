@@ -38,12 +38,8 @@
     },
     "plugins": [
       "expo-notifications",
-      [
-        "expo-av",
-        {
-          "microphonePermission": "Această aplicație nu folosește microfonul."
-        }
-      ]
+      "expo-video",
+      "expo-font"
     ],
     "extra": {
       "EXPO_PUBLIC_API_URL": "https://api.danfostanxios.ro",
