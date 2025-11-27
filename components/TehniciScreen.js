@@ -17,6 +17,7 @@ const steps = [
     description:
       "Identifică semnalele anxietății și setează intenția corectă încă din primele secunde.",
     emoji: "①",
+    video: "pasul_1_tehnica_HAI.mp4",
   },
   {
     id: "pas2",
@@ -24,6 +25,7 @@ const steps = [
     description:
       "Folosește respirația conștientă pentru a-ți calma corpul și a recăpăta ritmul interior.",
     emoji: "②",
+    video: "pasul_2_tehnica_HAI.mp4",
   },
   {
     id: "pas3",
@@ -31,6 +33,7 @@ const steps = [
     description:
       "Transformă dialogul intern și reorientează gândurile anxioase către perspective constructive.",
     emoji: "③",
+    video: "pasul_3_tehnica_HAI.mp4",
   },
   {
     id: "pas4",
@@ -38,6 +41,7 @@ const steps = [
     description:
       "Integrează acțiuni concrete care consolidează starea de calm pe termen lung.",
     emoji: "④",
+    video: "pasul_4_tehnica_HAI.mp4",
   },
   {
     id: "rezumat",
@@ -45,6 +49,7 @@ const steps = [
     description:
       "Recapitulează rapid fiecare pas și păstrează un ghid mental la îndemână.",
     emoji: "📝",
+    video: "rezumat_hai.mp4",
   },
   {
     id: "beneficii",
@@ -52,6 +57,7 @@ const steps = [
     description:
       "Descoperă ce rezultate concrete poți obține aplicând constant tehnica.",
     emoji: "✨",
+    video: "beneficii_hai.mp4",
   },
   {
     id: "practica",
@@ -59,6 +65,7 @@ const steps = [
     description:
       "Construiește o rutină zilnică astfel încât HAI să devină un reflex sănătos.",
     emoji: "🔁",
+    video: "practicarea_tehnica_hai.mp4",
   },
   {
     id: "context",
@@ -66,6 +73,7 @@ const steps = [
     description:
       "Aplică metoda în situații reale: la job, acasă, în trafic sau în relații.",
     emoji: "🌍",
+    video: "tehnica_hai_in_contexte_reale.mp4",
   },
 ];
 
@@ -100,9 +108,9 @@ export default function TehniciScreen({ navigation }) {
               key={item.id}
               style={styles.card}
               onPress={() =>
-                navigation.navigate("TehnicaHAIDetail", {
+                navigation.navigate("IntelegeAnxietateVideo", {
                   title: item.title,
-                  description: item.description,
+                  videoFile: item.video,
                 })
               }
             >

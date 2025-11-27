@@ -10,14 +10,14 @@ const options = [
     description:
       "Explicații și ghidaje pentru a înțelege anxietatea la nivel profund.",
     emoji: "🎙️",
-    video: "Intelege_Anxietate.mp4",
+    video: "beneficii_hai.mp4",
   },
   {
     id: "panica",
     title: "Audio-uri despre atacuri de panică",
     description: "Resurse audio dedicate gestionării atacurilor de panică.",
     emoji: "💬",
-    video: "Intelege_AtacuriDePanica.mp4",
+    video: "senzatia de capcana.mp4",
   },
 ];
 

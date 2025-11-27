@@ -12,7 +12,7 @@ const BASE_URL = fromConstants || process.env.EXPO_PUBLIC_API_URL || 'http://loc
 export default function AjutorAnxietateVideoScreen({ navigation }) {
   const videoRef = useRef(null);
   const [status, setStatus] = useState({});
-  const source = { uri: `${BASE_URL}/api/media/Ajutor_Anxietate.mp4` };
+  const source = { uri: `${BASE_URL}/api/media/Incurajare.mp4` };
 
   return (
     <SafeAreaView style={styles.container}>

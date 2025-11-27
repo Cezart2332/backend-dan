@@ -12,7 +12,7 @@ const BASE_URL = fromConstants || process.env.EXPO_PUBLIC_API_URL || 'http://loc
 export default function AboutDanIntroScreen({ navigation }) {
   const videoRef = useRef(null);
   const [status, setStatus] = useState({});
-  const source = { uri: `${BASE_URL}/api/media/Beneficii_Hai.mp4` };
+  const source = { uri: `${BASE_URL}/api/media/senzatia de capcana.mp4` };
 
   return (
     <SafeAreaView style={styles.container}>
