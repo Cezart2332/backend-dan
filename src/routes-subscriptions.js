@@ -108,7 +108,13 @@ export async function registerSubscriptionRoutes(app) {
         if (!ends || ends > now) status = 'active';
         else status = 'expired';
       }
-      reply.send({ subscription: sub || null, status });
+      // Check if user is eligible for trial (never had a trial before)
+      const [pastTrials] = await mysqlPool.query(
+        `SELECT id FROM subscriptions WHERE user_id = ? AND type = 'trial' LIMIT 1`,
+        [user.sub]
+      );
+      const trialEligible = !Array.isArray(pastTrials) || pastTrials.length === 0;
+      reply.send({ subscription: sub || null, status, trialEligible });
     } catch (e) {
       if (e.message === 'NO_AUTH' || e.message === 'BAD_TOKEN') return reply.code(401).send({ error: 'Neautorizat' });
       request.log.error(e);
