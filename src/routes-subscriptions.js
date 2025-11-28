@@ -54,7 +54,8 @@ function requireAuth(request) {
   const auth = request.headers.authorization || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
   if (!token) throw new Error('NO_AUTH');
-  const secret = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET || 'dev_change_me';
+  const secret = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
+  if (!secret) throw new Error('SERVER_CONFIG_ERROR');
   try {
     const decoded = jwt.verify(token, secret);
     return decoded;
@@ -96,7 +97,7 @@ export async function registerSubscriptionRoutes(app) {
                 `INSERT INTO subscriptions (user_id, type, starts_at, ends_at) VALUES (?, 'basic', NOW(), NULL)`,
                 [user.sub]
               );
-              console.log('[subscriptions] inserted fallback basic subscription', { userId: user.sub, source: 'auto-basic-fallback' });
+              request.log.info({ userId: user.sub, source: 'auto-basic-fallback' }, '[subscriptions] inserted fallback basic subscription');
               sub = await getActiveSubscription(user.sub);
             }
         }
@@ -143,7 +144,7 @@ export async function registerSubscriptionRoutes(app) {
         `INSERT INTO subscriptions (user_id, type, starts_at, ends_at) VALUES (?, 'trial', NOW(), DATE_ADD(NOW(), INTERVAL 3 DAY))`,
         [user.sub]
       );
-      console.log('[subscriptions] inserted trial subscription', { userId: user.sub, durationDays: 3 });
+      request.log.info({ userId: user.sub, durationDays: 3 }, '[subscriptions] inserted trial subscription');
       const created = await getActiveSubscription(user.sub);
       reply.send({ subscription: created, note: 'Trial started' });
     } catch (e) {
@@ -160,8 +161,6 @@ export async function registerSubscriptionRoutes(app) {
       const user = requireAuth(request);
       const { plan, mode = 'subscription', priceId: rawPriceId, quantity = 1 } = request.body || {};
       const normPlan = typeof plan === 'string' ? plan.toLowerCase().trim() : '';
-      // Log early request body for diagnostics (priceId may still be a placeholder in frontend code)
-      request.log.info({ body: request.body }, 'Incoming create-checkout payload');
 
       // Resolve price ID (explicit overrides plan mapping)
       const finalPriceId = await resolvePriceId(normPlan, rawPriceId);
@@ -234,19 +233,9 @@ export async function registerSubscriptionRoutes(app) {
       // Build line items for session
       const lineItems = [{ price: finalPriceId, quantity: Number(quantity) > 0 ? Number(quantity) : 1 }];
 
-      request.log.info({ plan: normPlan, finalPriceId, mode, rawMapValue }, 'Preparing checkout session');
+      request.log.info({ plan: normPlan, mode }, 'Preparing checkout session');
 
       const successBase = process.env.CLIENT_ORIGIN || 'http://localhost:19006';
-      // Debug mode (no session creation) if ?debug=1
-      if (request.query && (request.query.debug === '1' || request.query.debug === 'true')) {
-        return reply.send({
-          debug: true,
-          plan: normPlan,
-          resolvedPriceId: finalPriceId,
-          sourceValue: rawMapValue || null,
-          explicitPriceOverride: Boolean(rawPriceId),
-        });
-      }
 
       const session = await stripe.checkout.sessions.create({
         mode,
@@ -269,7 +258,7 @@ export async function registerSubscriptionRoutes(app) {
           hint: 'Verifică dacă folosești cheia sk_test cu un price_ test și nu amesteci cu live',
         });
       }
-      console.error('[checkout] error', e);
+      request.log.error({ err: e }, '[checkout] error');
       reply.code(500).send({ error: 'Eroare creare sesiune checkout', code: 'CHECKOUT_FAILED' });
     }
   });
@@ -337,209 +326,6 @@ export async function registerSubscriptionRoutes(app) {
     }
   });
 
-  // Diagnostic endpoint to view price/product mapping & resolution
-  app.get('/api/subscriptions/prices', async (request, reply) => {
-    const plans = Object.keys(priceMap);
-    const out = {};
-    for (const p of plans) {
-      const source = priceMap[p] || null;
-      let resolved = null;
-      let type = null;
-      let ok = false;
-      let reason = null;
-      if (!source) {
-        reason = 'no env var set';
-      } else if (source.startsWith('price_')) {
-        type = 'price';
-        resolved = source;
-        ok = true;
-      } else if (source.startsWith('prod_')) {
-        type = 'product';
-        if (!stripe) {
-          reason = 'stripe not configured';
-        } else {
-          resolved = await resolvePriceId(p, null);
-          ok = Boolean(resolved);
-          if (!ok) reason = 'could not resolve default/active price';
-        }
-      } else {
-        type = 'unknown';
-        reason = 'value not price_ or prod_';
-      }
-      out[p] = { source, type, resolvedPriceId: resolved, ok, reason };
-    }
-    reply.send({ prices: out, stripeConfigured: Boolean(stripe) });
-  });
-
-  // Inspect a single plan with deeper Stripe data (does NOT expose secrets)
-  app.get('/api/subscriptions/inspect', async (request, reply) => {
-    if (!stripe) return reply.code(500).send({ error: 'Stripe neconfigurat', code: 'STRIPE_NOT_CONFIGURED' });
-    const plan = (request.query.plan || '').toLowerCase();
-    if (!plan) return reply.code(400).send({ error: 'Parametru plan lipsă', code: 'PLAN_REQUIRED' });
-    const source = priceMap[plan];
-    if (!source) return reply.code(404).send({ error: 'Plan fără configurare', code: 'PLAN_NOT_CONFIGURED' });
-    const detail = { plan, source, type: null, resolvedPriceId: null, stripe: {}, notes: [] };
-    try {
-      if (source.startsWith('price_')) {
-        detail.type = 'price';
-        const priceObj = await stripe.prices.retrieve(source);
-        detail.resolvedPriceId = priceObj.id;
-        detail.stripe.price = {
-          id: priceObj.id,
-          active: priceObj.active,
-          currency: priceObj.currency,
-          unit_amount: priceObj.unit_amount,
-          recurring: priceObj.recurring || null,
-          product: priceObj.product,
-        };
-      } else if (source.startsWith('prod_')) {
-        detail.type = 'product';
-        const product = await stripe.products.retrieve(source);
-        detail.stripe.product = { id: product.id, name: product.name, active: product.active, default_price: product.default_price || null };
-        const priceId = await resolvePriceId(plan, null);
-        detail.resolvedPriceId = priceId;
-        if (priceId) {
-          const priceObj = await stripe.prices.retrieve(priceId);
-            detail.stripe.price = {
-              id: priceObj.id,
-              active: priceObj.active,
-              currency: priceObj.currency,
-              unit_amount: priceObj.unit_amount,
-              recurring: priceObj.recurring || null,
-            };
-        } else {
-          const prices = await stripe.prices.list({ product: source, active: true, limit: 5 });
-          detail.stripe.availablePrices = prices.data.map(p => ({ id: p.id, recurring: p.recurring || null, active: p.active, unit_amount: p.unit_amount }));
-          detail.notes.push('No default price resolved; see availablePrices');
-        }
-      } else {
-        detail.type = 'unknown';
-        detail.notes.push('Source value must start with price_ or prod_');
-      }
-      reply.send(detail);
-    } catch (err) {
-      reply.code(500).send({ error: 'Inspect failure', code: 'INSPECT_ERROR', message: err.message });
-    }
-  });
-
-  // Clear cached product->price resolutions
-  app.post('/api/subscriptions/refresh-price-cache', async (_request, reply) => {
-    const size = productDefaultPriceCache.size;
-    productDefaultPriceCache.clear();
-    reply.send({ cleared: size });
-  });
-
-  // Comprehensive debug endpoint for all plan price/product data
-  app.get('/api/subscriptions/debug/prices', async (request, reply) => {
-    if (!stripe) return reply.code(500).send({ error: 'Stripe neconfigurat', code: 'STRIPE_NOT_CONFIGURED' });
-    const includeRaw = request.query && (request.query.full === '1' || request.query.full === 'true');
-    const envMode = stripeSecret.includes('_test_') || stripeSecret.startsWith('sk_test') ? 'test' : 'live';
-    const plans = Object.keys(priceMap);
-    const result = { envMode, plans: {} };
-    for (const plan of plans) {
-      const entry = { source: priceMap[plan] || null, resolution: null, resolvedPriceId: null, product: null, price: null, error: null, notes: [] };
-      const source = entry.source;
-      if (!source) {
-        entry.error = 'NO_SOURCE';
-        result.plans[plan] = entry;
-        continue;
-      }
-      try {
-        if (source.startsWith('price_')) {
-            entry.resolution = 'direct-price';
-            entry.resolvedPriceId = source;
-            const p = await stripe.prices.retrieve(source);
-            entry.price = {
-              id: p.id,
-              active: p.active,
-              currency: p.currency,
-              unit_amount: p.unit_amount,
-              recurring: p.recurring || null,
-              product: typeof p.product === 'string' ? p.product : p.product?.id,
-            };
-            if (includeRaw) entry.priceRaw = p;
-            if (typeof p.product === 'string') {
-              try {
-                const prod = await stripe.products.retrieve(p.product);
-                entry.product = { id: prod.id, name: prod.name, active: prod.active, default_price: prod.default_price || null };
-                if (includeRaw) entry.productRaw = prod;
-              } catch (err) {
-                entry.notes.push('Failed to retrieve product for price');
-              }
-            }
-        } else if (source.startsWith('prod_')) {
-            entry.resolution = 'product->price';
-            const prod = await stripe.products.retrieve(source);
-            entry.product = { id: prod.id, name: prod.name, active: prod.active, default_price: prod.default_price || null };
-            if (includeRaw) entry.productRaw = prod;
-            const resolved = await resolvePriceId(plan, null);
-            entry.resolvedPriceId = resolved;
-            if (resolved) {
-              const p = await stripe.prices.retrieve(resolved);
-              entry.price = {
-                id: p.id,
-                active: p.active,
-                currency: p.currency,
-                unit_amount: p.unit_amount,
-                recurring: p.recurring || null,
-                product: typeof p.product === 'string' ? p.product : p.product?.id,
-              };
-              if (includeRaw) entry.priceRaw = p;
-            } else {
-              entry.error = 'NO_RESOLVED_PRICE';
-              const fallbackList = await stripe.prices.list({ product: source, active: true, limit: 5 });
-              entry.availablePrices = fallbackList.data.map(pp => ({ id: pp.id, recurring: pp.recurring || null, active: pp.active, unit_amount: pp.unit_amount }));
-            }
-        } else {
-          entry.error = 'UNSUPPORTED_SOURCE_FORMAT';
-        }
-      } catch (err) {
-        entry.error = 'LOOKUP_FAILED';
-        entry.notes.push(err.message);
-      }
-      result.plans[plan] = entry;
-    }
-    reply.send(result);
-  });
-
-  // Debug: fetch raw Stripe subscription (limited fields) for current user
-  app.get('/api/subscriptions/stripe/raw/:id', async (request, reply) => {
-    try {
-      if (!stripe) return reply.code(500).send({ error: 'Stripe neconfigurat', code: 'STRIPE_NOT_CONFIGURED' });
-      const user = requireAuth(request);
-      const subId = request.params.id;
-      if (!subId || !subId.startsWith('sub_')) return reply.code(400).send({ error: 'ID invalid', code: 'BAD_SUB_ID' });
-      // Verify ownership via local DB
-      const [rows] = await mysqlPool.query(
-        'SELECT * FROM subscriptions WHERE user_id = ? AND stripe_subscription_id = ? ORDER BY id DESC LIMIT 1',
-        [user.sub, subId]
-      );
-      if (!Array.isArray(rows) || !rows.length) return reply.code(404).send({ error: 'Subscription not found', code: 'NOT_FOUND' });
-      const stripeSub = await stripe.subscriptions.retrieve(subId, { expand: ['latest_invoice.payment_intent', 'pending_update'] });
-      const out = {
-        id: stripeSub.id,
-        status: stripeSub.status,
-        planPriceId: stripeSub.items?.data?.[0]?.price?.id || null,
-        current_period_start: stripeSub.current_period_start,
-        current_period_end: stripeSub.current_period_end,
-        cancel_at_period_end: stripeSub.cancel_at_period_end,
-        canceled_at: stripeSub.canceled_at,
-        latest_invoice_amount: stripeSub.latest_invoice && typeof stripeSub.latest_invoice === 'object' ? stripeSub.latest_invoice.amount_paid : null,
-        latest_invoice_status: stripeSub.latest_invoice && typeof stripeSub.latest_invoice === 'object' ? stripeSub.latest_invoice.status : null,
-        collection_method: stripeSub.collection_method,
-        default_payment_method: stripeSub.default_payment_method && typeof stripeSub.default_payment_method === 'object' ? {
-          id: stripeSub.default_payment_method.id,
-          type: stripeSub.default_payment_method.type,
-          card: stripeSub.default_payment_method.card ? { brand: stripeSub.default_payment_method.card.brand, last4: stripeSub.default_payment_method.card.last4 } : null,
-        } : null,
-      };
-      reply.send(out);
-    } catch (err) {
-      request.log.error({ err }, 'Stripe subscription debug fetch failed');
-      reply.code(500).send({ error: 'Debug fetch failed', code: 'STRIPE_SUB_DEBUG_FAILED' });
-    }
-  });
-
   // History endpoint – all subscription rows for the user (limited to last 50)
   app.get('/api/subscriptions/history', async (request, reply) => {
     try {
@@ -560,14 +346,19 @@ export async function registerSubscriptionRoutes(app) {
   app.post('/api/subscriptions/webhook', { config: { rawBody: true } }, async (request, reply) => {
     const sig = request.headers['stripe-signature'];
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    
+    // Require webhook secret in production
+    if (!webhookSecret) {
+      request.log.error('STRIPE_WEBHOOK_SECRET not configured');
+      return reply.code(500).send({ error: 'Webhook not configured' });
+    }
+    if (!stripe) {
+      return reply.code(500).send({ error: 'Stripe not configured' });
+    }
+    
     let event;
     try {
-      if (webhookSecret && stripe) {
-        event = stripe.webhooks.constructEvent(request.rawBody, sig, webhookSecret);
-      } else {
-        // Fallback insecure (dev only)
-        event = request.body;
-      }
+      event = stripe.webhooks.constructEvent(request.rawBody, sig, webhookSecret);
     } catch (err) {
       request.log.error({ err }, 'Webhook signature verification failed');
       return reply.code(400).send({ error: 'Invalid signature' });
@@ -606,14 +397,7 @@ export async function registerSubscriptionRoutes(app) {
                 `INSERT INTO subscriptions (user_id, type, starts_at, ends_at, stripe_customer_id, stripe_subscription_id, stripe_price_id) VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [userId, localType, periodStart, periodEnd, subObj.customer, subObj.id, priceId]
               );
-              console.log('[subscriptions] webhook insert new subscription', {
-                userId,
-                type: localType,
-                starts_at: periodStart,
-                ends_at: periodEnd,
-                stripe_subscription_id: subObj.id,
-                stripe_price_id: priceId,
-              });
+              request.log.info({ userId, type: localType, stripe_subscription_id: subObj.id }, '[subscriptions] webhook insert new subscription');
             } else {
               // If still same billing period (starts_at within 2 minutes of new periodStart) just update fields
               const existingStart = existing.starts_at ? new Date(existing.starts_at) : null;
@@ -632,14 +416,7 @@ export async function registerSubscriptionRoutes(app) {
                   `INSERT INTO subscriptions (user_id, type, starts_at, ends_at, stripe_customer_id, stripe_subscription_id, stripe_price_id) VALUES (?, ?, ?, ?, ?, ?, ?)`,
                   [userId, localType, periodStart, periodEnd, subObj.customer, subObj.id, priceId]
                 );
-                console.log('[subscriptions] webhook insert new billing period', {
-                  userId,
-                  type: localType,
-                  starts_at: periodStart,
-                  ends_at: periodEnd,
-                  stripe_subscription_id: subObj.id,
-                  stripe_price_id: priceId,
-                });
+                request.log.info({ userId, type: localType, stripe_subscription_id: subObj.id }, '[subscriptions] webhook insert new billing period');
               } else {
                 // Edge case: out-of-order event with earlier start -> ignore
               }

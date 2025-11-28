@@ -140,18 +140,7 @@ function resolveOptions() {
   const port = Number(process.env.MYSQL_PORT || process.env.DB_PORT || 3306);
   const password = process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD || "";
   if (!host || !database || !user) {
-    const present = {
-      DATABASE_URL: Boolean(process.env.DATABASE_URL),
-      MYSQL: Boolean(process.env.MYSQL || process.env.CORE_MYSQL),
-      MYSQL_HOST: Boolean(process.env.MYSQL_HOST),
-      MYSQL_DATABASE: Boolean(process.env.MYSQL_DATABASE),
-      MYSQL_USER: Boolean(process.env.MYSQL_USER),
-      DB_HOST: Boolean(process.env.DB_HOST),
-      DB_NAME: Boolean(process.env.DB_NAME),
-      DB_USER: Boolean(process.env.DB_USER),
-    };
-    console.error("[DB] Missing MySQL envs", present);
-    throw new Error("Missing MySQL env vars. Set DATABASE_URL or MYSQL_* variables.");
+    throw new Error("Missing MySQL env vars. Set DATABASE_URL, MYSQL/CORE_MYSQL, or MYSQL_HOST/MYSQL_DATABASE/MYSQL_USER variables.");
   }
   const poolOptions = { host, port, database, user, password };
   // Generic pool tunables (env-configurable)
@@ -203,11 +192,5 @@ export async function query(sql, params = [], options = {}) {
 
 // Optional: connection test helper (exported for server startup)
 export async function testDbConnection() {
-  try {
-    await mysqlPool.query("SELECT 1");
-    console.log("[DB] MySQL connection established ✅");
-  } catch (err) {
-    console.error("[DB] MySQL connection failed ❌", err);
-    throw err;
-  }
+  await mysqlPool.query("SELECT 1");
 }

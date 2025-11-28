@@ -166,10 +166,8 @@ try {
       .map((s) => s.trim())
       .filter(Boolean),
   });
-  console.log("[Auth] Better Auth initialized ✅");
 } catch (e) {
-  console.error("[Auth] Better Auth initialization failed ❌", e?.message, e?.cause ?? "no-cause");
-  throw e;
+  throw new Error(`Better Auth initialization failed: ${e?.message || 'unknown error'}`);
 }
 
 export const auth = authInstance;

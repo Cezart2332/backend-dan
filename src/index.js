@@ -3,7 +3,7 @@ import Fastify from "fastify";
 import fastifyCors from "@fastify/cors";
 import fastifyRawBody from "fastify-raw-body";
 import { auth } from "./auth.js";
-import { mysqlPool, testDbConnection, effectiveDbConfig } from "./mysql.js";
+import { mysqlPool, testDbConnection } from "./mysql.js";
 import { registerProgressRoutes } from "./routes-progress.js";
 import { registerQuestionRoutes } from "./routes-questions.js";
 import { registerChallengeRoutes } from "./routes-challenges.js";
@@ -68,17 +68,14 @@ await app.register(fastifyCors, {
 // Health check
 app.get("/health", async () => ({ ok: true }));
 
-// DB health to inspect current database and tables (always enabled)
+// DB health check (simple status only - no sensitive info)
 app.get("/health/db", async (request, reply) => {
   try {
-    const [dbNameRows] = await mysqlPool.query("SELECT DATABASE() as dbname");
-    const dbName = Array.isArray(dbNameRows) && dbNameRows[0] ? dbNameRows[0].dbname : null;
-    const [tablesRows] = await mysqlPool.query("SHOW TABLES");
-    const tables = Array.isArray(tablesRows) ? tablesRows.map((row) => Object.values(row)[0]) : [];
-    return { ok: true, database: dbName, tables, config: effectiveDbConfig };
+    await mysqlPool.query("SELECT 1");
+    return { ok: true };
   } catch (err) {
     request.log.error({ err }, "DB health check failed");
-    reply.status(500).send({ ok: false, error: err?.message || String(err) });
+    reply.status(500).send({ ok: false, error: "Database connection failed" });
   }
 });
 
@@ -131,7 +128,7 @@ try {
   } catch (e) {
     app.log.error({ err: e }, "DB migrations failed");
   }
-  console.log(`Auth server running on http://localhost:${port}`);
+  app.log.info(`Auth server running on port ${port}`);
 } catch (err) {
   app.log.error(err);
   process.exit(1);
