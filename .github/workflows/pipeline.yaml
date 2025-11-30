@@ -32,6 +32,14 @@ jobs:
           eas build --platform ios \
             --profile production \
             --non-interactive
+      - name: EAS Submit IOS (App Store)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas submit -p ios \
+            --profile production \
+            --latest \
+            --non-interactive
 
       - name: EAS Build Android
         env:

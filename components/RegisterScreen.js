@@ -30,6 +30,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const onRegister = async () => {
     setError('');
@@ -39,6 +40,10 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
     }
     if (password !== confirmPassword) {
       setError('Parolele nu coincid');
+      return;
+    }
+    if (!agreedToTerms) {
+      setError('Trebuie să fii de acord cu termenii și condițiile');
       return;
     }
     try {
@@ -56,7 +61,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
           });
         }
       } catch (err) {
-        console.log('Subscription fetch failed', err?.message);
+        // Subscription fetch failed silently - not critical for registration
       }
       if (typeof onAuthenticated === 'function') onAuthenticated();
       // Show disclaimer modal before onboarding
@@ -164,14 +169,28 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.agreementContainer}>
-                <Text style={styles.agreementText}>
-                  By creating an account, you agree to our{' '}
-                  <Text style={styles.linkText}>Terms of Service</Text>
-                  {' '}and{' '}
-                  <Text style={styles.linkText}>Privacy Policy</Text>
-                </Text>
-              </View>
+              <TouchableOpacity 
+                style={styles.agreementContainer}
+                onPress={() => setAgreedToTerms(!agreedToTerms)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.checkboxRow}>
+                  <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
+                    {agreedToTerms && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                  <Text style={styles.agreementText}>
+                    Sunt de acord cu{' '}
+                    <Text 
+                      style={styles.linkText}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        navigation.navigate('Terms');
+                      }}
+                    >termenii și condițiile</Text>
+                    {' '}aplicației
+                  </Text>
+                </View>
+              </TouchableOpacity>
 
               {error ? (<Text style={styles.errorText}>{error}</Text>) : null}
               <TouchableOpacity 
@@ -220,6 +239,14 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                 <Text style={styles.loginLink}>Sign In</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Terms Link */}
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Terms')}
+              style={styles.termsContainer}
+            >
+              <Text style={styles.termsText}>Termeni și Condiții</Text>
+            </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>
       </LinearGradient>
@@ -383,16 +410,40 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingHorizontal: 4,
   },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#4a90e2',
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  checkboxChecked: {
+    backgroundColor: '#4a90e2',
+  },
+  checkmark: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
   agreementText: {
-    fontSize: 13,
-    color: '#6c7b84',
-    lineHeight: 18,
-    textAlign: 'center',
+    fontSize: 14,
+    color: '#2c3e50',
+    lineHeight: 20,
+    flex: 1,
     fontWeight: '400',
   },
   linkText: {
     color: '#4a90e2',
-    fontWeight: '500',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   registerButton: {
     borderRadius: 16,
@@ -483,6 +534,16 @@ const styles = StyleSheet.create({
     color: '#4a90e2',
     fontSize: 15,
     fontWeight: '600',
+  },
+  termsContainer: {
+    alignItems: 'center',
+    marginTop: 16,
+    paddingBottom: 10,
+  },
+  termsText: {
+    color: '#6c7b84',
+    fontSize: 13,
+    textDecorationLine: 'underline',
   },
   // Disclaimer modal styles
   disclaimerOverlay: {

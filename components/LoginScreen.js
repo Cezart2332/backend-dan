@@ -69,7 +69,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
           });
         }
       } catch (e) {
-        console.log("Subscription fetch failed", e?.message);
+        // Subscription fetch failed silently - not critical for login
       }
   if (typeof onAuthenticated === 'function') onAuthenticated();
   navigation.navigate('Dashboard');
@@ -188,6 +188,14 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
                 <Text style={styles.registerLink}>Sign Up</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Terms Link */}
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Terms')}
+              style={styles.termsContainer}
+            >
+              <Text style={styles.termsText}>Termeni și Condiții</Text>
+            </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>
       </LinearGradient>
@@ -396,5 +404,15 @@ const styles = StyleSheet.create({
     color: '#4a90e2',
     fontSize: 15,
     fontWeight: '600',
+  },
+  termsContainer: {
+    alignItems: 'center',
+    marginTop: 16,
+    paddingBottom: 10,
+  },
+  termsText: {
+    color: '#6c7b84',
+    fontSize: 13,
+    textDecorationLine: 'underline',
   },
 });

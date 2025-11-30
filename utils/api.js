@@ -51,4 +51,7 @@ export const api = {
   startTrial: (token) => request('/api/subscriptions/start-trial', { method: 'POST', token }),
   createCheckout: (payload, token) => request('/api/subscriptions/create-checkout', { method: 'POST', body: payload, token }),
   createPaymentSheet: (payload, token) => request('/api/subscriptions/create-payment-sheet', { method: 'POST', body: payload, token }),
+  // Account management
+  deleteAccount: (token) => request('/api/custom-auth/account', { method: 'DELETE', token }),
+  reportBug: (payload, token) => request('/api/bug-report', { method: 'POST', body: payload, token }),
 };

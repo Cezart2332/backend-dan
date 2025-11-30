@@ -10,7 +10,7 @@ const options = [
     description:
       "Explicații și ghidaje pentru a înțelege anxietatea la nivel profund.",
     emoji: "🎙️",
-    video: "beneficii_hai.mp4",
+    screen: "AudioAnxietateList",
   },
   {
     id: "panica",
@@ -38,12 +38,16 @@ export default function IntelegeAnxietateScreen({ navigation }) {
             <TouchableOpacity
               key={item.id}
               style={styles.card}
-              onPress={() =>
-                navigation.navigate("IntelegeAnxietateVideo", {
-                  title: item.title,
-                  videoFile: item.video,
-                })
-              }
+              onPress={() => {
+                if (item.screen) {
+                  navigation.navigate(item.screen);
+                } else {
+                  navigation.navigate("IntelegeAnxietateVideo", {
+                    title: item.title,
+                    videoFile: item.video,
+                  });
+                }
+              }}
             >
               <Text style={styles.emoji}>{item.emoji}</Text>
               <Text style={styles.cardTitle}>{item.title}</Text>

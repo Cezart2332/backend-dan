@@ -39,7 +39,7 @@ export function SubscriptionProvider({ children, isAuthed }) {
         const cached = await getSubscription();
         if (mounted) applySnapshot(cached);
       } catch (err) {
-        console.log("Subscription cache hydrate failed", err?.message);
+        // Cache hydration failed - not critical
       } finally {
         if (mounted) setInitializing(false);
       }
@@ -92,11 +92,11 @@ export function SubscriptionProvider({ children, isAuthed }) {
             });
           }
         } catch (err) {
-          console.log("Subscription cache save failed", err?.message);
+          // Cache save failed - not critical
         }
         return { subscription: nextSub, status: nextStatus, trialEligible: nextTrialEligible };
       } catch (err) {
-        console.log("Subscription refresh failed", err?.message);
+        // Refresh failed
         throw err;
       } finally {
         setLoading(false);

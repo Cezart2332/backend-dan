@@ -15,6 +15,8 @@ export default function AboutDanScreen({ navigation }) {
       navigation.navigate('AboutDanIntro');
     } else if (it.id === 'cine') {
       navigation.navigate('AboutDanCineVideo');
+    } else if (it.id === 'experienta') {
+      navigation.navigate('DinExperientaMea');
     } else {
       navigation.navigate('AboutDanSection', { section: it });
     }

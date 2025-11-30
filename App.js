@@ -31,6 +31,18 @@ import AjutorRauVideoScreen from "./components/AjutorRau";
 import SubscriptionsScreen from "./components/SubscriptionsScreen";
 import IntelegeAnxietateScreen from "./components/IntelegeAnxietateScreen";
 import IntelegeAnxietateVideoScreen from "./components/IntelegeAnxietateVideoScreen";
+import TermsScreen from "./components/TermsScreen";
+import AjutorAnxietateListScreen from "./components/AjutorAnxietateListScreen";
+import AjutorAtacPanicaListScreen from "./components/AjutorAtacPanicaListScreen";
+import AjutorAtacPanicaVideoScreen from "./components/AjutorAtacPanicaVideoScreen";
+import DinExperientaMeaScreen from "./components/DinExperientaMeaScreen";
+import DinExperientaMeaVideoScreen from "./components/DinExperientaMeaVideoScreen";
+import AudioAnxietateListScreen from "./components/AudioAnxietateListScreen";
+import AudioAnxietateVideoScreen from "./components/AudioAnxietateVideoScreen";
+import TehnicaHAIPsihologiceScreen from "./components/TehnicaHAIPsihologiceScreen";
+import TehnicaHAIFiziceScreen from "./components/TehnicaHAIFiziceScreen";
+import TehnicaHAIVideoScreen from "./components/TehnicaHAIVideoScreen";
+import SettingsScreen from "./components/SettingsScreen";
 import { getToken } from "./utils/authStorage";
 import { getStripePublishableKey } from "./utils/stripe";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
@@ -201,6 +213,58 @@ export default function App() {
               name="IntelegeAnxietateVideo"
               component={IntelegeAnxietateVideoScreen}
             />
+            <Stack.Screen
+              name="Terms"
+              component={TermsScreen}
+            />
+            <Stack.Screen
+              name="AjutorAnxietateList"
+              component={AjutorAnxietateListScreen}
+            />
+            <Stack.Screen
+              name="AjutorAtacPanicaList"
+              component={AjutorAtacPanicaListScreen}
+            />
+            <Stack.Screen
+              name="AjutorAtacPanicaVideo"
+              component={AjutorAtacPanicaVideoScreen}
+            />
+            <Stack.Screen
+              name="DinExperientaMea"
+              component={DinExperientaMeaScreen}
+            />
+            <Stack.Screen
+              name="DinExperientaMeaVideo"
+              component={DinExperientaMeaVideoScreen}
+            />
+            <Stack.Screen
+              name="AudioAnxietateList"
+              component={AudioAnxietateListScreen}
+            />
+            <Stack.Screen
+              name="AudioAnxietateVideo"
+              component={AudioAnxietateVideoScreen}
+            />
+            <Stack.Screen
+              name="TehnicaHAIPsihologice"
+              component={TehnicaHAIPsihologiceScreen}
+            />
+            <Stack.Screen
+              name="TehnicaHAIFizice"
+              component={TehnicaHAIFiziceScreen}
+            />
+            <Stack.Screen
+              name="TehnicaHAIVideo"
+              component={TehnicaHAIVideoScreen}
+            />
+            <Stack.Screen name="Settings">
+              {(props) => (
+                <SettingsScreen
+                  {...props}
+                  onLogout={() => setIsAuthed(false)}
+                />
+              )}
+            </Stack.Screen>
           </Stack.Navigator>
         </NavigationContainer>
         <SubscriptionPaywall

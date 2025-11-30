@@ -14,7 +14,7 @@ export default function AjutorScreen({ navigation }) {
             <Text style={styles.subtitle}>Alege ce simți acum și intră în modul de intervenție rapidă.</Text>
           </View>
 
-          <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('AjutorAnxietateVideo')}>
+          <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('AjutorAnxietateList')}>
             <LinearGradient colors={["#ffffff", "#f3fff3"]} style={styles.cardInner}>
               <Text style={styles.cardIcon}>😌</Text>
               <Text style={[styles.cardTitle, { color: '#2c3e50' }]}>AJUTOR - am anxietate acum</Text>
@@ -30,7 +30,7 @@ export default function AjutorScreen({ navigation }) {
             </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.card}>
+          <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('AjutorAtacPanicaList')}>
             <LinearGradient colors={["#ffffff", "#f3fff3"]} style={styles.cardInner}>
               <Text style={styles.cardIcon}>🆘</Text>
               <Text style={[styles.cardTitle, { color: '#2c3e50' }]}>AJUTOR- am atac de panică acum</Text>

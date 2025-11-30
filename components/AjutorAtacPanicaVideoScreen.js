@@ -1,15 +1,15 @@
 import React from "react";
 import VideoPlayerScreen from "./VideoPlayerScreen";
 
-export default function AjutorAnxietateVideoScreen({ route, navigation }) {
+export default function AjutorAtacPanicaVideoScreen({ route, navigation }) {
   const { title, videoFile } = route.params || {};
 
   return (
     <VideoPlayerScreen
       navigation={navigation}
-      title={title || "Ajutor - anxietate"}
+      title={title || "Ajutor - atac de panică"}
       subtitle="Intervenție ghidată"
-      videoFile={videoFile || "ajutor_anxietate_ce_sa_ma_fac_cu_starile.mp4"}
+      videoFile={videoFile || "ajutor_atac_de_panica_esti_in_siguranta.mp4"}
       playButtonText="Redă video"
     />
   );

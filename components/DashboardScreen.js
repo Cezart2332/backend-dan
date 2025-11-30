@@ -40,7 +40,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
       ]);
       setSubType(null);
     } catch (err) {
-      console.log("Logout cleanup failed", err);
+      // Logout cleanup failed - proceed anyway
     } finally {
       if (typeof onLogout === "function") onLogout();
       navigation.reset({ index: 0, routes: [{ name: "Login" }] });
@@ -155,8 +155,6 @@ export default function DashboardScreen({ navigation, onLogout }) {
       navigation.navigate("Subscriptions");
     } else if (item.id === 10) {
       navigation.navigate("IntelegeAnxietate");
-    } else {
-      console.log(`Pressed: ${item.title}`);
     }
   };
 
@@ -233,7 +231,18 @@ export default function DashboardScreen({ navigation, onLogout }) {
 
           {/* Bottom Actions */}
           <View style={styles.bottomActions}>
-            <TouchableOpacity style={styles.settingsButton}>
+            <TouchableOpacity
+              style={styles.termsButton}
+              onPress={() => navigation.navigate("Terms")}
+            >
+              <Text style={styles.termsIcon}>📜</Text>
+              <Text style={styles.termsText}>Termeni</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => navigation.navigate("Settings")}
+            >
               <Text style={styles.settingsIcon}>⚙️</Text>
               <Text style={styles.settingsText}>Setări</Text>
             </TouchableOpacity>
@@ -495,6 +504,33 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 14,
     color: "#d9534f",
+    fontWeight: "500",
+  },
+  termsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
+    shadowColor: "#4a90e2",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#e8f4fd",
+  },
+  termsIcon: {
+    fontSize: 14,
+    marginRight: 6,
+  },
+  termsText: {
+    fontSize: 13,
+    color: "#6c7b84",
     fontWeight: "500",
   },
 });

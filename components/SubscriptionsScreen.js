@@ -58,7 +58,7 @@ export default function SubscriptionsScreen({ navigation }) {
     try {
       await refreshSubscription();
     } catch (e) {
-      console.log("Load subscription failed", e?.message);
+      // Subscription load failed silently
     }
   }, [refreshSubscription]);
 
@@ -198,12 +198,8 @@ export default function SubscriptionsScreen({ navigation }) {
     }
   };
 
-  const PLAN_PRICE_IDS = {
-    // Stripe TEST mode price IDs (replace with live ones when going live)
-    basic: "price_1SCKfw5HdBWSIBbHv3JqxCoU",
-    premium: "price_1SCKgC5HdBWSIBbHhQNBfhFk",
-    vip: "price_1SCKgX5HdBWSIBbHYzy6LJrb",
-  };
+  // Price IDs are resolved server-side based on plan name
+  // No client-side price IDs needed - server uses SUBSCRIPTION_PRICE_* env vars
 
   const handleCheckout = async (planKey) => {
     try {
@@ -211,13 +207,11 @@ export default function SubscriptionsScreen({ navigation }) {
       const token = await getToken();
       if (!token)
         return Alert.alert("Autentificare", "Trebuie să fii autentificat.");
-      const priceId = PLAN_PRICE_IDS[planKey];
-      if (!priceId) return Alert.alert("Config", "Price ID inexistent.");
 
       if (useInAppCheckout) {
         // In-app PaymentSheet flow
         const setupResp = await api.createPaymentSheet(
-          { plan: planKey, priceId },
+          { plan: planKey },
           token
         );
         if (!setupResp?.paymentIntentClientSecret)
@@ -249,7 +243,7 @@ export default function SubscriptionsScreen({ navigation }) {
       } else {
         // Hosted Checkout fallback
         const resp = await api.createCheckout(
-          { plan: planKey, priceId },
+          { plan: planKey },
           token
         );
         if (resp?.url) Linking.openURL(resp.url);

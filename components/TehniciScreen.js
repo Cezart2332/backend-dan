@@ -68,6 +68,22 @@ const steps = [
     video: "practicarea_tehnica_hai.mp4",
   },
   {
+    id: "practica_pas1",
+    title: "Practicarea pasului 1",
+    description:
+      "Exerciții detaliate pentru a stăpâni primul pas al tehnicii HAI.",
+    emoji: "🎯",
+    video: "tehnica_hai_practicarea_pasului_1.mp4",
+  },
+  {
+    id: "practica_pas2",
+    title: "Practicarea pasului 2",
+    description:
+      "Exerciții detaliate pentru a stăpâni al doilea pas al tehnicii HAI.",
+    emoji: "🎯",
+    video: "tehnica_hai_practicarea_pasului_2.mp4",
+  },
+  {
     id: "context",
     title: "Tehnica HAI în contexte reale",
     description:
@@ -83,12 +99,14 @@ const audioPackages = [
     title: "Aplicarea tehnicii HAI în stările psihologice",
     note: "Ghidaje audio pentru gânduri intruzive, teamă de anticipare și anxietate socială.",
     emoji: "🧠",
+    screen: "TehnicaHAIPsihologice",
   },
   {
     id: "audio-fizice",
     title: "Aplicarea tehnicii HAI în stările fizice",
     note: "Exerciții audio dedicate palpitațiilor, tensiunii musculare și senzațiilor corporale intense.",
     emoji: "🫀",
+    screen: "TehnicaHAIFizice",
   },
 ];
 
@@ -128,13 +146,7 @@ export default function TehniciScreen({ navigation }) {
             <TouchableOpacity
               key={item.id}
               style={styles.card}
-              onPress={() =>
-                navigation.navigate("TehnicaHAIDetail", {
-                  title: item.title,
-                  description: item.note,
-                  note: "Ascultă cu căști pentru a aprofunda experiența.",
-                })
-              }
+              onPress={() => navigation.navigate(item.screen)}
             >
               <Text style={styles.emoji}>{item.emoji}</Text>
               <View style={styles.cardTextContainer}>
