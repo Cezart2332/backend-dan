@@ -15,7 +15,7 @@ jobs:
 
       - name: Trigger Coolify deploy
         env:
-          COOLIFY_URL: ${{ secrets.COOLIFY_DOMAIN }}    # ex: http://89.41.182.64:8000 sau https://coolify.turliucezar.duckdns.org
+          COOLIFY_URL: ${{ secrets.COOLIFY_DOMAIN }}   
           COOLIFY_UUID: ${{ secrets.COOLIFY_UUID }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: |
