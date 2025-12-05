@@ -28,7 +28,7 @@ const BASE_URL =
  * @param {object} props.navigation - React Navigation object
  * @param {string} props.title - Screen title
  * @param {string} props.subtitle - Screen subtitle
- * @param {string} props.videoFile - Video filename to load from API
+ * @param {string} props.videoFile - Video filename to load from API (we will try HLS by id, fallback to this file)
  * @param {string} props.playButtonText - Text for play button (default: "Redă video")
  */
 export default function VideoPlayerScreen({
@@ -41,9 +41,12 @@ export default function VideoPlayerScreen({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const videoUri = `${BASE_URL}/api/media/${encodeURIComponent(videoFile)}`;
+  const fallbackUri = `${BASE_URL}/api/media/${encodeURIComponent(videoFile)}`;
+  const videoId = videoFile.replace(/\.[^.]+$/, "");
+  const [sourceUri, setSourceUri] = useState(fallbackUri);
 
-  const player = useVideoPlayer(videoUri, (player) => {
+  // Create player bound to the current source; it will update when sourceUri changes
+  const player = useVideoPlayer(sourceUri, (player) => {
     player.loop = false;
   });
 
@@ -67,6 +70,41 @@ export default function VideoPlayerScreen({
     }
   }, [status]);
 
+  // Try to use HLS if available; fallback to MP4
+  useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+    async function pickSource() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(
+          `${BASE_URL}/api/videos/${encodeURIComponent(videoId)}`,
+          { signal: controller.signal }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const maybeUrl = data?.hlsUrl;
+          if (maybeUrl) {
+            const absolute = maybeUrl.startsWith("http")
+              ? maybeUrl
+              : `${BASE_URL}${maybeUrl}`;
+            if (isMounted) setSourceUri(absolute);
+            return;
+          }
+        }
+      } catch (err) {
+        // ignore and fallback
+      }
+      if (isMounted) setSourceUri(fallbackUri);
+    }
+    pickSource();
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [videoId, fallbackUri]);
+
   const handlePlayPause = useCallback(() => {
     if (isPlaying) {
       player.pause();
@@ -78,8 +116,8 @@ export default function VideoPlayerScreen({
   const handleRetry = useCallback(() => {
     setError(null);
     setIsLoading(true);
-    player.replace(videoUri);
-  }, [player, videoUri]);
+    player.replace(sourceUri);
+  }, [player, sourceUri]);
 
   return (
     <SafeAreaView style={styles.container}>
