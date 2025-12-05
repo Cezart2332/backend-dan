@@ -9,6 +9,7 @@ import { registerQuestionRoutes } from "./routes-questions.js";
 import { registerChallengeRoutes } from "./routes-challenges.js";
 import { registerMediaRoutes } from "./routes-media.js";
 import { registerSubscriptionRoutes } from "./routes-subscriptions.js";
+import { registerVideoRoutes } from "./routes-videos.js";
 import { runMigrations } from "./migrate.js";
 import { registerAuthRoutes } from "./routes-auth.js";
 
@@ -113,6 +114,7 @@ await registerQuestionRoutes(app);
 await registerChallengeRoutes(app);
 await registerMediaRoutes(app);
 await registerSubscriptionRoutes(app);
+await registerVideoRoutes(app);
 
 const port = Number(process.env.CORE_PORT || process.env.PORT || 3000);
 try {
