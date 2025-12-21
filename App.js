@@ -27,7 +27,6 @@ import ChallengeDetailScreen from "./components/ChallengeDetailScreen";
 import AboutDanIntroScreen from "./components/AboutDanIntroScreen";
 import AboutDanCineVideoScreen from "./components/AboutDanCineVideoScreen";
 import AjutorAnxietateVideoScreen from "./components/AjutorAnxietateVideoScreen";
-import AjutorRauVideoScreen from "./components/AjutorRau";
 import SubscriptionsScreen from "./components/SubscriptionsScreen";
 import IntelegeAnxietateScreen from "./components/IntelegeAnxietateScreen";
 import IntelegeAnxietateVideoScreen from "./components/IntelegeAnxietateVideoScreen";
@@ -188,10 +187,6 @@ export default function App() {
             <Stack.Screen
               name="AboutDanIntro"
               component={AboutDanIntroScreen}
-            />
-            <Stack.Screen
-              name="AjutorRauVideo"
-              component={AjutorRauVideoScreen}
             />
             <Stack.Screen
               name="AboutDanCineVideo"

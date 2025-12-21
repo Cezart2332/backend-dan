@@ -22,14 +22,6 @@ export default function AjutorScreen({ navigation }) {
             </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('AjutorRauVideo')}>
-            <LinearGradient colors={["#ffffff", "#f3fff3"]} style={styles.cardInner}>
-              <Text style={styles.cardIcon}>😌</Text>
-              <Text style={[styles.cardTitle, { color: '#2c3e50' }]}>AJUTOR - imi este rau acum</Text>
-              <Text style={styles.cardArrow}>→</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
           <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('AjutorAtacPanicaList')}>
             <LinearGradient colors={["#ffffff", "#f3fff3"]} style={styles.cardInner}>
               <Text style={styles.cardIcon}>🆘</Text>
