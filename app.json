@@ -2,6 +2,7 @@
   "expo": {
     "name": "dan-fost-anxios",
     "slug": "dan-fost-anxios",
+    "scheme": "danfostanxios",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
@@ -15,6 +16,7 @@
     "ios": {
       "bundleIdentifier": "com.cartealuidan.danfostanxios",
       "supportsTablet": true,
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSUserNotificationUsageDescription": "Permite notificări pentru a primi gândul zilnic de la Dan.",
         "NSCameraUsageDescription": "Această aplicație nu folosește camera, dar unele biblioteci terțe pot solicita acest acces.",
@@ -40,7 +42,8 @@
     "plugins": [
       "expo-notifications",
       "expo-video",
-      "expo-font"
+      "expo-font",
+      "expo-apple-authentication"
     ],
     "extra": {
       "EXPO_PUBLIC_API_URL": "https://api.danfostanxios.ro",

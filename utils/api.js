@@ -33,7 +33,7 @@ export const api = {
   login: (payload) => request('/api/custom-auth/login', { method: 'POST', body: payload }),
   oauthGoogle: (id_token) => request('/api/custom-auth/oauth/google', { method: 'POST', body: { id_token } }),
   oauthFacebook: (payload) => request('/api/custom-auth/oauth/facebook', { method: 'POST', body: payload }),
-  oauthApple: (id_token) => request('/api/custom-auth/oauth/apple', { method: 'POST', body: { id_token } }),
+  oauthApple: (id_token, name) => request('/api/custom-auth/oauth/apple', { method: 'POST', body: { id_token, name } }),
   // Progress
   createProgress: (payload, token) => request('/api/progress', { method: 'POST', body: payload, token }),
   listProgress: (token) => request('/api/progress', { method: 'GET', token }),

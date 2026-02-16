@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { api } from '../utils/api';
 import { saveToken } from '../utils/authStorage';
 import { saveUser } from '../utils/userStorage';
 import { saveSubscription } from '../utils/subscriptionStorage';
+import { useGoogleAuth, handleGoogleResponse, signInWithApple } from '../utils/oauth';
 
 const { width, height } = Dimensions.get('window');
 
@@ -31,6 +32,45 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
   const [error, setError] = useState('');
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  // Google OAuth hook
+  const { request: googleRequest, response: googleResponse, promptAsync: googlePromptAsync } = useGoogleAuth();
+
+  // Handle Google OAuth response
+  useEffect(() => {
+    if (googleResponse) {
+      handleGoogleSignUp(googleResponse);
+    }
+  }, [googleResponse]);
+
+  const handleGoogleSignUp = async (response) => {
+    try {
+      setLoading(true);
+      setError('');
+      await handleGoogleResponse(response);
+      if (typeof onAuthenticated === 'function') onAuthenticated();
+      navigation.navigate('Dashboard');
+    } catch (e) {
+      setError(e.message || 'Autentificare Google eșuată');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAppleSignUp = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      await signInWithApple();
+      if (typeof onAuthenticated === 'function') onAuthenticated();
+      navigation.navigate('Dashboard');
+    } catch (e) {
+      if (e.code === 'ERR_CANCELED') return; // User cancelled
+      setError(e.message || 'Autentificare Apple eșuată');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const onRegister = async () => {
     setError('');
@@ -216,20 +256,25 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
 
             {/* Social Login */}
             <View style={styles.socialContainer}>
-              <TouchableOpacity style={styles.socialButton}>
+              <TouchableOpacity
+                style={[styles.socialButton, loading && { opacity: 0.6 }]}
+                onPress={() => googlePromptAsync()}
+                disabled={!googleRequest || loading}
+              >
                 <Text style={styles.socialIcon}>G</Text>
                 <Text style={styles.socialButtonText}>Google</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.socialButton}>
-                <Text style={styles.socialIcon}>🍎</Text>
-                <Text style={styles.socialButtonText}>Apple</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.socialButton}>
-                <Text style={styles.socialIcon}>f</Text>
-                <Text style={styles.socialButtonText}>Facebook</Text>
-              </TouchableOpacity>
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity
+                  style={[styles.socialButton, loading && { opacity: 0.6 }]}
+                  onPress={handleAppleSignUp}
+                  disabled={loading}
+                >
+                  <Text style={styles.socialIcon}>🍎</Text>
+                  <Text style={styles.socialButtonText}>Apple</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Login Link */}

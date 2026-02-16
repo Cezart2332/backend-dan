@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,8 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Platform,
-  ScrollView
+  ScrollView,
+  Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,6 +18,7 @@ import { api } from '../utils/api';
 import { saveToken } from '../utils/authStorage';
 import { saveUser } from '../utils/userStorage';
 import { saveSubscription } from '../utils/subscriptionStorage';
+import { useGoogleAuth, handleGoogleResponse, signInWithApple } from '../utils/oauth';
 
 // Fallback component for icons
 const IconFallback = ({ name, size = 20, color = "#4a90e2" }) => {
@@ -46,6 +48,45 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Google OAuth hook
+  const { request: googleRequest, response: googleResponse, promptAsync: googlePromptAsync } = useGoogleAuth();
+
+  // Handle Google OAuth response
+  useEffect(() => {
+    if (googleResponse) {
+      handleGoogleLogin(googleResponse);
+    }
+  }, [googleResponse]);
+
+  const handleGoogleLogin = async (response) => {
+    try {
+      setLoading(true);
+      setError('');
+      await handleGoogleResponse(response);
+      if (typeof onAuthenticated === 'function') onAuthenticated();
+      navigation.navigate('Dashboard');
+    } catch (e) {
+      setError(e.message || 'Autentificare Google eșuată');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAppleLogin = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      await signInWithApple();
+      if (typeof onAuthenticated === 'function') onAuthenticated();
+      navigation.navigate('Dashboard');
+    } catch (e) {
+      if (e.code === 'ERR_CANCELED') return; // User cancelled
+      setError(e.message || 'Autentificare Apple eșuată');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const onLogin = async () => {
     setError('');
@@ -165,20 +206,25 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
 
             {/* Social Login */}
             <View style={styles.socialContainer}>
-              <TouchableOpacity style={styles.socialButton}>
+              <TouchableOpacity
+                style={[styles.socialButton, loading && { opacity: 0.6 }]}
+                onPress={() => googlePromptAsync()}
+                disabled={!googleRequest || loading}
+              >
                 <Text style={styles.socialIcon}>G</Text>
                 <Text style={styles.socialButtonText}>Google</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.socialButton}>
-                <Text style={styles.socialIcon}>🍎</Text>
-                <Text style={styles.socialButtonText}>Apple</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.socialButton}>
-                <Text style={styles.socialIcon}>f</Text>
-                <Text style={styles.socialButtonText}>Facebook</Text>
-              </TouchableOpacity>
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity
+                  style={[styles.socialButton, loading && { opacity: 0.6 }]}
+                  onPress={handleAppleLogin}
+                  disabled={loading}
+                >
+                  <Text style={styles.socialIcon}>🍎</Text>
+                  <Text style={styles.socialButtonText}>Apple</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Register Link */}
