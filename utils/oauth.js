@@ -1,4 +1,5 @@
 import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Platform } from 'react-native';
 import { api } from './api';
@@ -6,18 +7,24 @@ import { saveToken } from './authStorage';
 import { saveUser } from './userStorage';
 import { saveSubscription } from './subscriptionStorage';
 
-// Google OAuth Client ID
-const GOOGLE_CLIENT_ID = '109371475889-q2keqvuk0ho5rqb1fqdtbh3fli03sc5u.apps.googleusercontent.com';
+// Ensure the browser auth session completes properly on Android/iOS
+WebBrowser.maybeCompleteAuthSession();
+
+// Google OAuth Client IDs
+// This is the WEB client ID – required for expo-auth-session on all platforms
+const GOOGLE_WEB_CLIENT_ID = '109371475889-q2keqvuk0ho5rqb1fqdtbh3fli03sc5u.apps.googleusercontent.com';
 
 /**
  * Hook for Google sign-in. Call this at the top level of a component.
- * Returns [request, response, promptAsync] from expo-auth-session.
+ * Uses the web client ID with expo-auth-session's built-in auth proxy.
  */
 export function useGoogleAuth() {
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: GOOGLE_CLIENT_ID,
-    // For Android, use the same web client ID with expo-auth-session proxy
-    // For iOS, use the same web client ID
+    clientId: GOOGLE_WEB_CLIENT_ID,
+    // For native iOS/Android builds, create platform-specific OAuth client IDs
+    // in Google Cloud Console and add them here:
+    // iosClientId: 'YOUR_IOS_CLIENT_ID',
+    // androidClientId: 'YOUR_ANDROID_CLIENT_ID',
   });
 
   return { request, response, promptAsync };
