@@ -25,17 +25,26 @@ async function verifyGoogleIdToken(idToken) {
     const res = await fetch(
       `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error("Google tokeninfo response not ok:", res.status);
+      return null;
+    }
     const payload = await res.json();
+    console.log("Google token audience (aud):", payload.aud);
+    console.log("Expected GOOGLE_CLIENT_ID:", GOOGLE_CLIENT_ID);
     // Verify audience matches our client ID
-    if (payload.aud !== GOOGLE_CLIENT_ID) return null;
+    if (payload.aud !== GOOGLE_CLIENT_ID) {
+      console.error("Google audience mismatch: got", payload.aud, "expected", GOOGLE_CLIENT_ID);
+      return null;
+    }
     return {
       sub: payload.sub,
       email: payload.email,
       name: payload.name || payload.given_name || null,
       email_verified: payload.email_verified === "true" || payload.email_verified === true,
     };
-  } catch {
+  } catch (err) {
+    console.error("Google token verification error:", err?.message || err);
     return null;
   }
 }
@@ -51,15 +60,26 @@ async function verifyAppleIdToken(idToken) {
 
     // Fetch Apple's public keys
     const keysRes = await fetch("https://appleid.apple.com/auth/keys");
-    if (!keysRes.ok) return null;
+    if (!keysRes.ok) {
+      console.error("Apple: Failed to fetch public keys, status:", keysRes.status);
+      return null;
+    }
     const { keys } = await keysRes.json();
     const key = keys.find((k) => k.kid === header.kid);
-    if (!key) return null;
+    if (!key) {
+      console.error("Apple: No matching key found for kid:", header.kid);
+      return null;
+    }
 
     // Convert JWK to PEM
     const pubKey = crypto.createPublicKey({ key, format: "jwk" });
 
-    // Verify and decode
+    // First decode without audience check to see what the token contains
+    const decoded = jwt.decode(idToken, { complete: true });
+    console.log("Apple token audience (aud):", decoded?.payload?.aud);
+    console.log("Expected APPLE_CLIENT_ID:", APPLE_CLIENT_ID);
+
+    // Verify and decode — audience is the bundle identifier
     const payload = jwt.verify(idToken, pubKey, {
       algorithms: ["RS256"],
       issuer: "https://appleid.apple.com",
@@ -72,7 +92,8 @@ async function verifyAppleIdToken(idToken) {
       name: null, // Apple only sends name on first auth
       email_verified: payload.email_verified === "true" || payload.email_verified === true,
     };
-  } catch {
+  } catch (err) {
+    console.error("Apple token verification failed:", err?.message || err);
     return null;
   }
 }
@@ -210,8 +231,12 @@ export async function registerAuthRoutes(app) {
     const { id_token } = request.body || {};
     if (!id_token) return reply.code(400).send({ error: "id_token necesar" });
 
+    request.log.info("Google OAuth: verifying token, GOOGLE_CLIENT_ID=%s", GOOGLE_CLIENT_ID);
     const googleUser = await verifyGoogleIdToken(id_token);
-    if (!googleUser) return reply.code(401).send({ error: "Token Google invalid" });
+    if (!googleUser) {
+      request.log.error("Google OAuth: token verification failed – check GOOGLE_CLIENT_ID matches token audience");
+      return reply.code(401).send({ error: "Token Google invalid" });
+    }
     if (!googleUser.email) return reply.code(400).send({ error: "Email nu este disponibil din contul Google" });
 
     try {
@@ -228,8 +253,12 @@ export async function registerAuthRoutes(app) {
     const { id_token, name } = request.body || {};
     if (!id_token) return reply.code(400).send({ error: "id_token necesar" });
 
+    request.log.info("Apple OAuth: verifying token, APPLE_CLIENT_ID=%s", APPLE_CLIENT_ID);
     const appleUser = await verifyAppleIdToken(id_token);
-    if (!appleUser) return reply.code(401).send({ error: "Token Apple invalid" });
+    if (!appleUser) {
+      request.log.error("Apple OAuth: token verification failed");
+      return reply.code(401).send({ error: "Token Apple invalid" });
+    }
 
     // Apple only sends the name on the very first sign-in, so we accept it from the client
     const userName = name || appleUser.name;
