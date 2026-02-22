@@ -21,7 +21,8 @@
         "NSUserNotificationUsageDescription": "Permite notificări pentru a primi gândul zilnic de la Dan.",
         "NSCameraUsageDescription": "Această aplicație nu folosește camera, dar unele biblioteci terțe pot solicita acest acces.",
         "NSPhotoLibraryUsageDescription": "Această aplicație nu folosește galeria foto, dar unele biblioteci terțe pot solicita acest acces.",
-        "NSMicrophoneUsageDescription": "Această aplicație nu folosește microfonul, dar unele biblioteci terțe pot solicita acest acces."
+        "NSMicrophoneUsageDescription": "Această aplicație nu folosește microfonul, dar unele biblioteci terțe pot solicita acest acces.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
