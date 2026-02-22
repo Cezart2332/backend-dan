@@ -12,6 +12,12 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 // --- Google OAuth config ---
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+// Accept tokens from platform-specific Google OAuth clients (iOS, Android) as well
+const GOOGLE_VALID_CLIENT_IDS = [
+  GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_IOS_CLIENT_ID,
+  process.env.GOOGLE_ANDROID_CLIENT_ID,
+].filter(Boolean);
 
 // --- Apple OAuth config ---
 const APPLE_CLIENT_ID = process.env.APPLE_CLIENT_ID || "com.cartealuidan.danfostanxios";
@@ -33,10 +39,10 @@ async function verifyGoogleIdToken(idToken) {
     }
     const payload = await res.json();
     console.log("Google token audience (aud):", payload.aud);
-    console.log("Expected GOOGLE_CLIENT_ID:", GOOGLE_CLIENT_ID);
-    // Verify audience matches our client ID
-    if (payload.aud !== GOOGLE_CLIENT_ID) {
-      console.error("Google audience mismatch: got", payload.aud, "expected", GOOGLE_CLIENT_ID);
+    console.log("Expected GOOGLE_CLIENT_IDS:", GOOGLE_VALID_CLIENT_IDS);
+    // Verify audience matches one of our client IDs (web, iOS, or Android)
+    if (!GOOGLE_VALID_CLIENT_IDS.includes(payload.aud)) {
+      console.error("Google audience mismatch: got", payload.aud, "expected one of", GOOGLE_VALID_CLIENT_IDS);
       return null;
     }
     return {
