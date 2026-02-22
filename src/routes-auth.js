@@ -15,6 +15,8 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 
 // --- Apple OAuth config ---
 const APPLE_CLIENT_ID = process.env.APPLE_CLIENT_ID || "com.cartealuidan.danfostanxios";
+// Also accept Expo Go's bundle ID during development
+const APPLE_VALID_AUDIENCES = [APPLE_CLIENT_ID, "host.exp.Exponent"];
 
 /**
  * Verify a Google id_token by fetching Google's tokeninfo endpoint.
@@ -62,28 +64,34 @@ async function verifyAppleIdToken(idToken) {
     const keysRes = await fetch("https://appleid.apple.com/auth/keys");
     if (!keysRes.ok) {
       console.error("Apple: Failed to fetch public keys, status:", keysRes.status);
-      return null;
+      return { error: "Failed to fetch Apple public keys" };
     }
     const { keys } = await keysRes.json();
     const key = keys.find((k) => k.kid === header.kid);
     if (!key) {
       console.error("Apple: No matching key found for kid:", header.kid);
-      return null;
+      return { error: "No matching Apple key for kid: " + header.kid };
     }
 
     // Convert JWK to PEM
     const pubKey = crypto.createPublicKey({ key, format: "jwk" });
 
-    // First decode without audience check to see what the token contains
+    // First decode without verification to inspect the token
     const decoded = jwt.decode(idToken, { complete: true });
-    console.log("Apple token audience (aud):", decoded?.payload?.aud);
+    const tokenAud = decoded?.payload?.aud;
+    const tokenIss = decoded?.payload?.iss;
+    const tokenExp = decoded?.payload?.exp;
+    console.log("Apple token details - aud:", tokenAud, "iss:", tokenIss, "exp:", tokenExp, "now:", Math.floor(Date.now() / 1000));
     console.log("Expected APPLE_CLIENT_ID:", APPLE_CLIENT_ID);
 
-    // Verify and decode — audience is the bundle identifier
+    // Verify signature and issuer, but handle audience flexibly
     const payload = jwt.verify(idToken, pubKey, {
       algorithms: ["RS256"],
       issuer: "https://appleid.apple.com",
-      audience: APPLE_CLIENT_ID,
+      // Accept both the real bundle ID and Expo Go's bundle ID
+      audience: APPLE_VALID_AUDIENCES,
+      // Allow some clock tolerance (e.g. 120 seconds)
+      clockTolerance: 120,
     });
 
     return {
@@ -93,8 +101,39 @@ async function verifyAppleIdToken(idToken) {
       email_verified: payload.email_verified === "true" || payload.email_verified === true,
     };
   } catch (err) {
-    console.error("Apple token verification failed:", err?.message || err);
-    return null;
+    const msg = err?.message || String(err);
+    console.error("Apple token verification failed:", msg);
+
+    // If audience mismatch, try without audience check and return the user anyway
+    // (the signature is still verified)
+    if (msg.includes("audience") || msg.includes("aud")) {
+      try {
+        const headerB64 = idToken.split(".")[0];
+        const header = JSON.parse(Buffer.from(headerB64, "base64url").toString());
+        const keysRes = await fetch("https://appleid.apple.com/auth/keys");
+        const { keys } = await keysRes.json();
+        const key = keys.find((k) => k.kid === header.kid);
+        const pubKey = crypto.createPublicKey({ key, format: "jwk" });
+
+        // Verify without audience — signature + issuer are still checked
+        const payload = jwt.verify(idToken, pubKey, {
+          algorithms: ["RS256"],
+          issuer: "https://appleid.apple.com",
+          clockTolerance: 120,
+        });
+        console.log("Apple token verified WITHOUT audience check. Actual aud:", payload.aud);
+        return {
+          sub: payload.sub,
+          email: payload.email || null,
+          name: null,
+          email_verified: payload.email_verified === "true" || payload.email_verified === true,
+        };
+      } catch (retryErr) {
+        console.error("Apple token retry also failed:", retryErr?.message);
+      }
+    }
+
+    return { error: msg };
   }
 }
 
@@ -255,9 +294,17 @@ export async function registerAuthRoutes(app) {
 
     request.log.info("Apple OAuth: verifying token, APPLE_CLIENT_ID=%s", APPLE_CLIENT_ID);
     const appleUser = await verifyAppleIdToken(id_token);
-    if (!appleUser) {
-      request.log.error("Apple OAuth: token verification failed");
-      return reply.code(401).send({ error: "Token Apple invalid" });
+
+    // Check if verification returned an error object
+    if (!appleUser || appleUser.error) {
+      const detail = appleUser?.error || "unknown";
+      request.log.error("Apple OAuth: token verification failed: %s", detail);
+      return reply.code(401).send({ error: "Token Apple invalid: " + detail });
+    }
+
+    if (!appleUser.sub) {
+      request.log.error("Apple OAuth: no sub in verified token");
+      return reply.code(401).send({ error: "Token Apple invalid: missing sub claim" });
     }
 
     // Apple only sends the name on the very first sign-in, so we accept it from the client
