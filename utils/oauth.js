@@ -11,20 +11,22 @@ import { saveSubscription } from './subscriptionStorage';
 WebBrowser.maybeCompleteAuthSession();
 
 // Google OAuth Client IDs
-// This is the WEB client ID – required for expo-auth-session on all platforms
+// Web client ID – used by expo-auth-session as the OAuth audience on all platforms
 const GOOGLE_WEB_CLIENT_ID = '109371475889-q2keqvuk0ho5rqb1fqdtbh3fli03sc5u.apps.googleusercontent.com';
+// Platform-specific client IDs created in Google Cloud Console
+// Replace these with your actual iOS and Android client IDs:
+const GOOGLE_IOS_CLIENT_ID = 'YOUR_IOS_CLIENT_ID_HERE.apps.googleusercontent.com';
+const GOOGLE_ANDROID_CLIENT_ID = 'YOUR_ANDROID_CLIENT_ID_HERE.apps.googleusercontent.com';
 
 /**
  * Hook for Google sign-in. Call this at the top level of a component.
- * Uses the web client ID with expo-auth-session's built-in auth proxy.
+ * Uses platform-specific client IDs for native builds and web client ID as fallback.
  */
 export function useGoogleAuth() {
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     clientId: GOOGLE_WEB_CLIENT_ID,
-    // For native iOS/Android builds, create platform-specific OAuth client IDs
-    // in Google Cloud Console and add them here:
-    // iosClientId: 'YOUR_IOS_CLIENT_ID',
-    // androidClientId: 'YOUR_ANDROID_CLIENT_ID',
+    iosClientId: GOOGLE_IOS_CLIENT_ID,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
   });
 
   return { request, response, promptAsync };
