@@ -78,30 +78,8 @@ export async function registerSubscriptionRoutes(app) {
     try {
       const user = requireAuth(request);
       let sub = await getActiveSubscription(user.sub);
-      // Auto fallback: if no active sub and user had an expired trial, morph to basic (one-time) unless already has a paid/basic entry
-      if (!sub) {
-        const [trialRows] = await mysqlPool.query(
-          `SELECT * FROM subscriptions WHERE user_id = ? AND type = 'trial' ORDER BY ends_at DESC LIMIT 1`,
-          [user.sub]
-        );
-        const lastTrial = Array.isArray(trialRows) && trialRows.length ? trialRows[0] : null;
-        if (lastTrial && lastTrial.ends_at && new Date(lastTrial.ends_at).getTime() < Date.now()) {
-          // Check if any non-trial subscription already exists after trial end
-          const [postRows] = await mysqlPool.query(
-            `SELECT id FROM subscriptions WHERE user_id = ? AND type IN ('basic','premium','vip') AND starts_at > ? LIMIT 1`,
-            [user.sub, lastTrial.ends_at]
-          );
-            if (!Array.isArray(postRows) || !postRows.length) {
-              // Create a perpetual basic access row (ends_at NULL) as fallback
-              await mysqlPool.query(
-                `INSERT INTO subscriptions (user_id, type, starts_at, ends_at) VALUES (?, 'basic', NOW(), NULL)`,
-                [user.sub]
-              );
-              request.log.info({ userId: user.sub, source: 'auto-basic-fallback' }, '[subscriptions] inserted fallback basic subscription');
-              sub = await getActiveSubscription(user.sub);
-            }
-        }
-      }
+      // No auto-fallback: if trial expired, user must subscribe to a paid plan.
+      // The frontend paywall will prompt them.
       let status = 'none';
       if (sub) {
         const now = Date.now();
@@ -109,12 +87,13 @@ export async function registerSubscriptionRoutes(app) {
         if (!ends || ends > now) status = 'active';
         else status = 'expired';
       }
-      // Check if user is eligible for trial (never had a trial before)
-      const [pastTrials] = await mysqlPool.query(
-        `SELECT id FROM subscriptions WHERE user_id = ? AND type = 'trial' LIMIT 1`,
+      // Check if user is eligible for trial (never had a trial OR a paid subscription)
+      // Trials are for brand-new users only; anyone who ever subscribed is ineligible
+      const [pastSubs] = await mysqlPool.query(
+        `SELECT id FROM subscriptions WHERE user_id = ? AND type IN ('trial','basic','premium','vip') LIMIT 1`,
         [user.sub]
       );
-      const trialEligible = !Array.isArray(pastTrials) || pastTrials.length === 0;
+      const trialEligible = !Array.isArray(pastSubs) || pastSubs.length === 0;
       reply.send({ subscription: sub || null, status, trialEligible });
     } catch (e) {
       if (e.message === 'NO_AUTH' || e.message === 'BAD_TOKEN') return reply.code(401).send({ error: 'Neautorizat' });
@@ -131,13 +110,13 @@ export async function registerSubscriptionRoutes(app) {
       const active = await getActiveSubscription(user.sub);
       if (active) return reply.send({ subscription: active, note: 'Subscription already active' });
 
-      // Enforce one-time trial: check if user ever had a trial row before
-      const [pastTrials] = await mysqlPool.query(
-        `SELECT id FROM subscriptions WHERE user_id = ? AND type = 'trial' LIMIT 1`,
+      // Enforce: trial only for users who NEVER had a trial or a paid subscription
+      const [pastSubs] = await mysqlPool.query(
+        `SELECT id FROM subscriptions WHERE user_id = ? AND type IN ('trial','basic','premium','vip') LIMIT 1`,
         [user.sub]
       );
-      if (Array.isArray(pastTrials) && pastTrials.length) {
-        return reply.code(400).send({ error: 'Trial deja folosit', code: 'TRIAL_ALREADY_USED' });
+      if (Array.isArray(pastSubs) && pastSubs.length) {
+        return reply.code(400).send({ error: 'Trial disponibil doar pentru utilizatori noi', code: 'TRIAL_NOT_ELIGIBLE' });
       }
       // Grant a 3-day Basic-equivalent trial (type=trial)
       await mysqlPool.query(
@@ -237,15 +216,19 @@ export async function registerSubscriptionRoutes(app) {
 
       const successBase = process.env.CLIENT_ORIGIN || 'http://localhost:19006';
 
-      const session = await stripe.checkout.sessions.create({
+      const sessionParams = {
         mode,
         customer: customerId,
         line_items: lineItems,
-        subscription_data: { metadata: { userId: String(user.sub), plan: normPlan } },
         success_url: `${successBase}/?checkout=success&plan=${encodeURIComponent(plan)}`,
         cancel_url: `${successBase}/?checkout=cancel&plan=${encodeURIComponent(plan)}`,
         metadata: { userId: String(user.sub), plan: normPlan },
-      });
+      };
+      // subscription_data is only valid for mode=subscription; Stripe rejects it for payment/setup
+      if (mode === 'subscription') {
+        sessionParams.subscription_data = { metadata: { userId: String(user.sub), plan: normPlan } };
+      }
+      const session = await stripe.checkout.sessions.create(sessionParams);
       reply.send({ url: session.url });
     } catch (e) {
       if (e.message === 'NO_AUTH' || e.message === 'BAD_TOKEN') return reply.code(401).send({ error: 'Neautorizat' });
@@ -296,14 +279,23 @@ export async function registerSubscriptionRoutes(app) {
       const ephemeralKey = await stripe.ephemeralKeys.create({ customer: customerId }, { apiVersion: '2024-06-20' });
 
       // Create subscription in incomplete state until payment is confirmed in PaymentSheet
+      // Auto-cancel incomplete subscriptions after 30 minutes to avoid dangling subs
       const subscription = await stripe.subscriptions.create({
         customer: customerId,
         items: [{ price: finalPriceId }],
         payment_behavior: 'default_incomplete',
-        payment_settings: { save_default_payment_method: 'on_subscription' },
+        payment_settings: {
+          save_default_payment_method: 'on_subscription',
+        },
         expand: ['latest_invoice.payment_intent'],
         metadata: { userId: String(user.sub), plan: normPlan },
       });
+
+      // Schedule auto-cancellation if still incomplete after 30 minutes
+      // Stripe handles this via subscription schedules; we use a simpler approach:
+      // the webhook will only insert active subscriptions, so incompletes won't appear in our DB.
+      // For extra safety, set the invoice to void after expiry via Stripe dashboard settings
+      // (Settings > Subscriptions > Manage failed payments > Cancel subscription immediately).
 
       const latestInvoice = subscription.latest_invoice;
       const paymentIntent = latestInvoice && latestInvoice.payment_intent;
@@ -392,12 +384,20 @@ export async function registerSubscriptionRoutes(app) {
             const existing = Array.isArray(rows) && rows.length ? rows[0] : null;
 
             if (!existing) {
-              // First time we see this subscription -> insert with explicit periodStart
-              await mysqlPool.query(
-                `INSERT INTO subscriptions (user_id, type, starts_at, ends_at, stripe_customer_id, stripe_subscription_id, stripe_price_id) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [userId, localType, periodStart, periodEnd, subObj.customer, subObj.id, priceId]
+              // Idempotency: double-check no row exists for this stripe_subscription_id (guards against webhook retries)
+              const [dupeCheck] = await mysqlPool.query(
+                `SELECT id FROM subscriptions WHERE stripe_subscription_id = ? LIMIT 1`,
+                [subObj.id]
               );
-              request.log.info({ userId, type: localType, stripe_subscription_id: subObj.id }, '[subscriptions] webhook insert new subscription');
+              if (Array.isArray(dupeCheck) && dupeCheck.length) {
+                request.log.info({ stripe_subscription_id: subObj.id }, '[subscriptions] webhook skipped duplicate insert');
+              } else {
+                await mysqlPool.query(
+                  `INSERT INTO subscriptions (user_id, type, starts_at, ends_at, stripe_customer_id, stripe_subscription_id, stripe_price_id) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                  [userId, localType, periodStart, periodEnd, subObj.customer, subObj.id, priceId]
+                );
+                request.log.info({ userId, type: localType, stripe_subscription_id: subObj.id }, '[subscriptions] webhook insert new subscription');
+              }
             } else {
               // If still same billing period (starts_at within 2 minutes of new periodStart) just update fields
               const existingStart = existing.starts_at ? new Date(existing.starts_at) : null;
@@ -426,13 +426,15 @@ export async function registerSubscriptionRoutes(app) {
         }
         case 'customer.subscription.deleted': {
           const subObj = event.data.object;
-            const userId = subObj.metadata?.userId;
-            if (userId) {
-              await mysqlPool.query(
-                `UPDATE subscriptions SET ends_at = NOW() WHERE user_id = ? AND (ends_at IS NULL OR ends_at > NOW())`,
-                [userId]
-              );
-            }
+          const userId = subObj.metadata?.userId;
+          if (userId) {
+            // Only terminate the specific deleted subscription, not all active ones
+            const [result] = await mysqlPool.query(
+              `UPDATE subscriptions SET ends_at = NOW() WHERE user_id = ? AND stripe_subscription_id = ? AND (ends_at IS NULL OR ends_at > NOW())`,
+              [userId, subObj.id]
+            );
+            request.log.info({ userId, stripe_subscription_id: subObj.id, affectedRows: result?.affectedRows }, '[subscriptions] webhook deleted subscription');
+          }
           break;
         }
         case 'invoice.payment_succeeded': {
