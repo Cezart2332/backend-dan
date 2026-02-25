@@ -72,7 +72,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
     } catch (err) {
       const msg = err?.message || "Nu am putut activa perioada de trial.";
       Alert.alert("Eroare", msg);
-      if (msg.includes("Trial deja folosit") || msg.includes("TRIAL_ALREADY_USED")) {
+      if (msg.includes("Trial deja folosit") || msg.includes("TRIAL_ALREADY_USED") || msg.includes("TRIAL_NOT_ELIGIBLE") || msg.includes("utilizatori noi")) {
         await refresh();
       }
     } finally {

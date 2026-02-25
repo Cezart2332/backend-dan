@@ -189,7 +189,9 @@ export default function SubscriptionsScreen({ navigation }) {
       Alert.alert("Eroare", msg);
       if (
         msg.includes("TRIAL_ALREADY_USED") ||
-        msg.includes("Trial deja folosit")
+        msg.includes("TRIAL_NOT_ELIGIBLE") ||
+        msg.includes("Trial deja folosit") ||
+        msg.includes("utilizatori noi")
       ) {
         refreshSubscription();
       }
@@ -235,11 +237,30 @@ export default function SubscriptionsScreen({ navigation }) {
           }
           throw new Error(presentRes.error.message || "Plata a eșuat");
         }
-        // Wait a moment then refresh subscription (webhook should insert new row)
-        setTimeout(() => {
-          loadSubscription();
-        }, 1500);
-        Alert.alert("Succes", "Abonament procesat. Se actualizează...");
+        // Poll for webhook to update subscription (retries up to ~15s)
+        Alert.alert("Succes", "Plată procesată! Se actualizează abonamentul...");
+        let confirmed = false;
+        for (let attempt = 0; attempt < 6; attempt++) {
+          await new Promise((r) => setTimeout(r, 2500));
+          try {
+            const freshToken = await getToken();
+            if (!freshToken) break;
+            const res = await api.getCurrentSubscription(freshToken);
+            if (res?.status === "active" && res?.subscription?.type !== "trial") {
+              confirmed = true;
+              break;
+            }
+          } catch {
+            // ignore polling errors
+          }
+        }
+        await loadSubscription();
+        if (!confirmed) {
+          Alert.alert(
+            "Procesare",
+            "Plata a fost trimisă. Dacă abonamentul nu apare imediat, apasă butonul de refresh."
+          );
+        }
       } else {
         // Hosted Checkout fallback
         const resp = await api.createCheckout(

@@ -22,7 +22,8 @@
         "NSCameraUsageDescription": "Această aplicație nu folosește camera, dar unele biblioteci terțe pot solicita acest acces.",
         "NSPhotoLibraryUsageDescription": "Această aplicație nu folosește galeria foto, dar unele biblioteci terțe pot solicita acest acces.",
         "NSMicrophoneUsageDescription": "Această aplicație nu folosește microfonul, dar unele biblioteci terțe pot solicita acest acces.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["audio"]
       }
     },
     "android": {
@@ -44,7 +45,13 @@
       "expo-notifications",
       "expo-video",
       "expo-font",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-av",
+        {
+          "microphonePermission": false
+        }
+      ]
     ],
     "extra": {
       "EXPO_PUBLIC_API_URL": "https://api.danfostanxios.ro",

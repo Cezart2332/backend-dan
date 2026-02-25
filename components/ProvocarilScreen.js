@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,15 +6,27 @@ import {
   StyleSheet,
   ScrollView,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { levels as levelDefs } from '../challenges';
+import { getSubscription } from '../utils/subscriptionStorage';
 
 const { width } = Dimensions.get('window');
 
 export default function ProvocarilScreen({ navigation }) {
   const [selectedLevel, setSelectedLevel] = useState(null);
+  const [subType, setSubType] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      const sub = await getSubscription();
+      if (sub && sub.type) setSubType(sub.type);
+    })();
+  }, []);
+
+  const isTrial = subType === 'trial';
 
   const challengeLevels = useMemo(() => levelDefs.map(l => ({
     id: l.id,
@@ -32,6 +44,18 @@ export default function ProvocarilScreen({ navigation }) {
   })), [levelDefs]);
 
   const handleLevelPress = (level) => {
+    // Block Medium and Hard challenges during trial
+    if (isTrial && level.id > 1) {
+      Alert.alert(
+        'Nivel restricționat',
+        'Provocările de nivel Moderat și Avansat sunt disponibile doar cu un abonament activ.',
+        [
+          { text: 'Vezi abonamente', onPress: () => navigation.navigate('Subscriptions') },
+          { text: 'OK', style: 'cancel' },
+        ]
+      );
+      return;
+    }
     setSelectedLevel(level.id === selectedLevel ? null : level.id);
   };
 
@@ -97,8 +121,10 @@ export default function ProvocarilScreen({ navigation }) {
 
           {/* Challenge Levels */}
           <View style={styles.levelsContainer}>
-            {challengeLevels.map((level) => (
-              <View key={level.id} style={styles.levelCard}>
+            {challengeLevels.map((level) => {
+              const locked = isTrial && level.id > 1;
+              return (
+              <View key={level.id} style={[styles.levelCard, locked && styles.lockedCard]}>
                 <TouchableOpacity
                   style={[
                     styles.levelHeader,
@@ -107,28 +133,30 @@ export default function ProvocarilScreen({ navigation }) {
                   onPress={() => handleLevelPress(level)}
                 >
                   <LinearGradient
-                    colors={['#ffffff', '#f8fdff']}
+                    colors={locked ? ['#f0f0f0', '#e8e8e8'] : ['#ffffff', '#f8fdff']}
                     style={styles.levelHeaderGradient}
                   >
                     <View style={styles.levelHeaderContent}>
-                      <View style={[styles.levelIconContainer, { backgroundColor: level.color + '15' }]}>
-                        <Text style={styles.levelIcon}>{level.icon}</Text>
+                      <View style={[styles.levelIconContainer, { backgroundColor: locked ? '#ddd' : level.color + '15' }]}>
+                        <Text style={[styles.levelIcon, locked && { opacity: 0.4 }]}>{level.icon}</Text>
                       </View>
                       
                       <View style={styles.levelInfo}>
                         <View style={styles.levelTitleRow}>
-                          <Text style={styles.levelNumber}>{level.level}</Text>
-                          <View style={[styles.difficultyBadge, { backgroundColor: level.color }]}>
-                            <Text style={styles.difficultyText}>{level.difficulty}</Text>
+                          <Text style={[styles.levelNumber, locked && styles.lockedText]}>{level.level}</Text>
+                          <View style={[styles.difficultyBadge, { backgroundColor: locked ? '#bbb' : level.color }]}>
+                            <Text style={styles.difficultyText}>{locked ? '🔒' : level.difficulty}</Text>
                           </View>
                         </View>
-                        <Text style={styles.levelTitle}>{level.title}</Text>
-                        <Text style={styles.levelSubtitle}>{level.subtitle}</Text>
+                        <Text style={[styles.levelTitle, locked && styles.lockedText]}>{level.title}</Text>
+                        <Text style={[styles.levelSubtitle, locked && styles.lockedText]}>
+                          {locked ? 'Disponibil cu abonament' : level.subtitle}
+                        </Text>
                       </View>
                       
                       <View style={styles.expandIcon}>
-                        <Text style={[styles.expandText, selectedLevel === level.id && styles.expandTextRotated]}>
-                          ▼
+                        <Text style={[styles.expandText, selectedLevel === level.id && styles.expandTextRotated, locked && { opacity: 0.3 }]}>
+                          {locked ? '🔒' : '▼'}
                         </Text>
                       </View>
                     </View>
@@ -167,7 +195,8 @@ export default function ProvocarilScreen({ navigation }) {
                   </View>
                 )}
               </View>
-            ))}
+              );
+            })}
           </View>
 
           {/* Tips Section */}
@@ -360,6 +389,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderRadius: 16,
     overflow: 'hidden',
+  },
+  lockedCard: {
+    opacity: 0.55,
+  },
+  lockedText: {
+    color: '#999',
   },
   levelHeader: {
     borderRadius: 16,

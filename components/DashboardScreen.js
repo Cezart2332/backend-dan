@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ScrollView,
   Dimensions,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -124,7 +125,24 @@ export default function DashboardScreen({ navigation, onLogout }) {
     },
   ];
 
+  // Items locked during free trial (only available with paid subscription)
+  const trialLockedIds = new Set([4, 5, 6, 7]);
+  const isTrial = subType === 'trial';
+
   const handleMenuPress = (item) => {
+    // Block locked items during trial
+    if (isTrial && trialLockedIds.has(item.id)) {
+      const { Alert } = require('react-native');
+      Alert.alert(
+        'Funcție restricționată',
+        'Această funcție este disponibilă doar cu un abonament activ. Alege un plan pentru acces complet.',
+        [
+          { text: 'Vezi abonamente', onPress: () => navigation.navigate('Subscriptions') },
+          { text: 'OK', style: 'cancel' },
+        ]
+      );
+      return;
+    }
     // Here you can navigate to different screens based on the item
     if (item.id === 1) {
       // Progresul meu
@@ -190,43 +208,72 @@ export default function DashboardScreen({ navigation, onLogout }) {
           <View style={styles.menuContainer}>
             <Text style={styles.menuTitle}>Ce vrei să faci astăzi?</Text>
 
-            {menuItems.map((item, index) => (
+            {menuItems.map((item, index) => {
+              const locked = isTrial && trialLockedIds.has(item.id);
+              return (
               <TouchableOpacity
                 key={item.id}
                 style={[
                   styles.menuItem,
                   index === menuItems.length - 1 && styles.lastMenuItem,
+                  locked && styles.lockedMenuItem,
                 ]}
                 onPress={() => handleMenuPress(item)}
               >
                 <LinearGradient
-                  colors={["#ffffff", "#f8fdff"]}
+                  colors={locked ? ['#f0f0f0', '#e8e8e8'] : ["#ffffff", "#f8fdff"]}
                   style={styles.menuItemGradient}
                 >
                   <View style={styles.menuItemContent}>
                     <View
                       style={[
                         styles.iconContainer,
-                        { backgroundColor: item.color + "15" },
+                        { backgroundColor: locked ? '#ddd' : item.color + "15" },
                       ]}
                     >
-                      <Text style={styles.menuIcon}>{item.icon}</Text>
+                      <Text style={[styles.menuIcon, locked && { opacity: 0.4 }]}>{item.icon}</Text>
                     </View>
 
                     <View style={styles.textContainer}>
-                      <Text style={styles.menuItemTitle}>{item.title}</Text>
-                      <Text style={styles.menuItemSubtitle}>
-                        {item.subtitle}
+                      <Text style={[styles.menuItemTitle, locked && styles.lockedText]}>{item.title}</Text>
+                      <Text style={[styles.menuItemSubtitle, locked && styles.lockedText]}>
+                        {locked ? '🔒 Disponibil cu abonament' : item.subtitle}
                       </Text>
                     </View>
 
                     <View style={styles.arrowContainer}>
-                      <Text style={styles.arrow}>→</Text>
+                      <Text style={[styles.arrow, locked && { opacity: 0.3 }]}>{locked ? '🔒' : '→'}</Text>
                     </View>
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
-            ))}
+              );
+            })}
+          </View>
+
+          {/* External Links */}
+          <View style={styles.externalLinks}>
+            <TouchableOpacity
+              style={styles.externalLinkBtn}
+              onPress={() => Linking.openURL('https://www.facebook.com/groups/820094195023604/')}
+            >
+              <LinearGradient colors={['#1877F2', '#145dbf']} style={styles.externalLinkGradient}>
+                <Text style={styles.externalLinkIcon}>👥</Text>
+                <Text style={styles.externalLinkText}>Comunitate</Text>
+                <Text style={styles.externalLinkArrow}>→</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.externalLinkBtn}
+              onPress={() => Linking.openURL('https://danfostanxios.ro/testimoniale-2/')}
+            >
+              <LinearGradient colors={['#6cc04a', '#5aad3e']} style={styles.externalLinkGradient}>
+                <Text style={styles.externalLinkIcon}>⭐</Text>
+                <Text style={styles.externalLinkText}>Testimoniale Dan</Text>
+                <Text style={styles.externalLinkArrow}>→</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
 
           {/* Bottom Actions */}
@@ -389,6 +436,12 @@ const styles = StyleSheet.create({
   lastMenuItem: {
     marginBottom: 0,
   },
+  lockedMenuItem: {
+    opacity: 0.55,
+  },
+  lockedText: {
+    color: '#999',
+  },
   menuItemGradient: {
     shadowColor: "#4a90e2",
     shadowOffset: {
@@ -443,6 +496,41 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#4a90e2",
     fontWeight: "bold",
+  },
+  externalLinks: {
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  externalLinkBtn: {
+    borderRadius: 14,
+    overflow: "hidden",
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  externalLinkGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  externalLinkIcon: {
+    fontSize: 20,
+    marginRight: 10,
+  },
+  externalLinkText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  externalLinkArrow: {
+    fontSize: 18,
+    color: "#fff",
+    fontWeight: "700",
   },
   bottomActions: {
     flexDirection: "row",

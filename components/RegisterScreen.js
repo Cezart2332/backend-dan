@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Dimensions,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   ScrollView
 } from 'react-native';
@@ -123,7 +124,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardAvoid}
         >
-          <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled" onScrollBeginDrag={Keyboard.dismiss}>
             {/* Header */}
             <View style={styles.header}>
               <TouchableOpacity

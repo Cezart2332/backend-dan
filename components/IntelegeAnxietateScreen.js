@@ -12,13 +12,7 @@ const options = [
     emoji: "🎙️",
     screen: "AudioAnxietateList",
   },
-  {
-    id: "panica",
-    title: "Audio-uri despre atacuri de panică",
-    description: "Resurse audio dedicate gestionării atacurilor de panică.",
-    emoji: "💬",
-    video: "senzatia de capcana.mp4",
-  },
+
 ];
 
 export default function IntelegeAnxietateScreen({ navigation }) {

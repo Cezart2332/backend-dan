@@ -8,6 +8,7 @@ import {
   TextInput,
   Alert,
   Modal,
+  Keyboard,
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -113,7 +114,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
         colors={["#f0f8ff", "#e6f3ff", "#ffffff"]}
         style={styles.gradient}
       >
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" onScrollBeginDrag={Keyboard.dismiss}>
           <View style={styles.header}>
             <TouchableOpacity
               onPress={() => navigation.goBack()}

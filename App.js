@@ -42,10 +42,15 @@ import TehnicaHAIPsihologiceScreen from "./components/TehnicaHAIPsihologiceScree
 import TehnicaHAIFiziceScreen from "./components/TehnicaHAIFiziceScreen";
 import TehnicaHAIVideoScreen from "./components/TehnicaHAIVideoScreen";
 import SettingsScreen from "./components/SettingsScreen";
-import { getToken } from "./utils/authStorage";
+import { getToken, clearToken } from "./utils/authStorage";
 import { getStripePublishableKey } from "./utils/stripe";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import SubscriptionPaywall from "./components/SubscriptionPaywall";
+import { clearSubscription } from "./utils/subscriptionStorage";
+import { clearUser } from "./utils/userStorage";
+import { clearEntries } from "./utils/progressStorage";
+import { replaceAllRuns } from "./utils/challengeStorage";
+import { api } from "./utils/api";
 
 const Stack = createStackNavigator();
 
@@ -60,8 +65,34 @@ export default function App() {
     (async () => {
       try {
         const token = await getToken();
-        if (mounted) setIsAuthed(!!token);
+        if (!token) {
+          if (mounted) setIsAuthed(false);
+          return;
+        }
+        // Validate token against server — if the account was deleted or
+        // the DB was wiped, the server returns 401 and we force logout.
+        try {
+          await api.getCurrentSubscription(token);
+          if (mounted) setIsAuthed(true);
+        } catch (err) {
+          const msg = err?.message || '';
+          // 401 / auth errors → account no longer exists, clear everything
+          if (msg.includes('Neautorizat') || msg.includes('401') || msg.includes('BAD_TOKEN') || msg.includes('NO_AUTH')) {
+            await Promise.allSettled([
+              clearToken(),
+              clearUser(),
+              clearSubscription(),
+              clearEntries(),
+              replaceAllRuns([]),
+            ]);
+            if (mounted) setIsAuthed(false);
+          } else {
+            // Network error / server down → let user in with cached data
+            if (mounted) setIsAuthed(true);
+          }
+        }
       } catch {
+        if (mounted) setIsAuthed(false);
       } finally {
         if (mounted) setBooting(false);
       }
