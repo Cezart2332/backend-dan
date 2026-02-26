@@ -77,6 +77,16 @@ export async function registerSubscriptionRoutes(app) {
   app.get('/api/subscriptions/current', async (request, reply) => {
     try {
       const user = requireAuth(request);
+
+      // Verify user still exists in DB (guards against wiped DB / deleted account)
+      const [userRows] = await mysqlPool.query(
+        `SELECT id FROM users WHERE id = ? LIMIT 1`,
+        [user.sub]
+      );
+      if (!Array.isArray(userRows) || !userRows.length) {
+        return reply.code(401).send({ error: 'Neautorizat', code: 'USER_NOT_FOUND' });
+      }
+
       let sub = await getActiveSubscription(user.sub);
       // No auto-fallback: if trial expired, user must subscribe to a paid plan.
       // The frontend paywall will prompt them.
