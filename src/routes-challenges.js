@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken';
 import { mysqlPool } from './mysql.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET || 'dev_change_me';
+const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
+if (!JWT_SECRET) throw new Error('CRITICAL: JWT_SECRET is required');
 
 function authMiddleware(request) {
   const auth = request.headers['authorization'] || request.headers['Authorization'];

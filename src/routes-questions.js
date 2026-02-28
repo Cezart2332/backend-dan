@@ -1,8 +1,8 @@
 import jwt from 'jsonwebtoken';
 import { mysqlPool } from './mysql.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET || 'dev_change_me';
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || process.env.CORE_ADMIN_TOKEN || null;
+const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
+if (!JWT_SECRET) throw new Error('CRITICAL: JWT_SECRET is required');
 
 function authMiddleware(request) {
   const auth = request.headers['authorization'] || request.headers['Authorization'];
@@ -52,18 +52,4 @@ export async function registerQuestionRoutes(app) {
     }
   });
 
-  // Admin list all (optional helper, protect via static ADMIN_TOKEN header X-Admin-Token)
-  app.get('/api/admin/questions', async (request, reply) => {
-    const token = request.headers['x-admin-token'];
-    if (!ADMIN_TOKEN || token !== ADMIN_TOKEN) return reply.code(403).send({ error: 'Forbidden' });
-    try {
-      const [rows] = await mysqlPool.query(
-        'SELECT id, user_id, name, email, question, consent, status, created_at FROM questions ORDER BY created_at DESC LIMIT 1000'
-      );
-      return reply.send({ items: rows });
-    } catch (e) {
-      request.log.error({ err: e }, 'Admin list questions failed');
-      return reply.code(500).send({ error: 'Eroare server' });
-    }
-  });
 }

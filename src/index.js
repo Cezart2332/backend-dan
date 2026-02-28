@@ -2,6 +2,7 @@ import "dotenv/config";
 import Fastify from "fastify";
 import fastifyCors from "@fastify/cors";
 import fastifyRawBody from "fastify-raw-body";
+import rateLimit from "@fastify/rate-limit";
 import { auth } from "./auth.js";
 import { mysqlPool, testDbConnection } from "./mysql.js";
 import { registerProgressRoutes } from "./routes-progress.js";
@@ -12,8 +13,9 @@ import { registerSubscriptionRoutes } from "./routes-subscriptions.js";
 import { registerVideoRoutes } from "./routes-videos.js";
 import { runMigrations } from "./migrate.js";
 import { registerAuthRoutes } from "./routes-auth.js";
+import { registerAdminRoutes } from "./routes-admin.js";
 
-const app = Fastify({ logger: true });
+const app = Fastify({ logger: true, bodyLimit: 1048576 }); // 1MB max body
 
 // Allow empty JSON bodies (treat as {}) instead of throwing parser errors
 app.removeContentTypeParser("application/json");
@@ -36,6 +38,24 @@ await app.register(fastifyRawBody, {
   global: false,         // only enabled per-route via config.rawBody
   encoding: 'utf8',
   runFirst: true,        // parse before any other body parsers
+});
+
+// Rate limiting — global default + stricter on auth routes
+await app.register(rateLimit, {
+  max: 100,
+  timeWindow: '1 minute',
+  keyGenerator: (request) => request.ip,
+});
+
+// Stricter rate limits on authentication endpoints
+app.after(() => {
+  const authRateLimit = { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } };
+  app.addHook('onRoute', (routeOptions) => {
+    const authPaths = ['/api/custom-auth/login', '/api/custom-auth/register', '/api/custom-auth/oauth/google', '/api/custom-auth/oauth/apple', '/api/admin/login'];
+    if (authPaths.includes(routeOptions.url) && routeOptions.method === 'POST') {
+      routeOptions.config = { ...routeOptions.config, rateLimit: { max: 10, timeWindow: '1 minute' } };
+    }
+  });
 });
 
 
@@ -61,7 +81,7 @@ await app.register(fastifyCors, {
     return cb(new Error("CORS origin not allowed"), false);
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-Admin-Token"],
   credentials: true,
   maxAge: 86400,
 });
@@ -115,6 +135,7 @@ await registerChallengeRoutes(app);
 await registerMediaRoutes(app);
 await registerSubscriptionRoutes(app);
 await registerVideoRoutes(app);
+await registerAdminRoutes(app);
 
 const port = Number(process.env.CORE_PORT || process.env.PORT || 3000);
 try {

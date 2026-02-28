@@ -109,37 +109,7 @@ async function verifyAppleIdToken(idToken) {
   } catch (err) {
     const msg = err?.message || String(err);
     console.error("Apple token verification failed:", msg);
-
-    // If audience mismatch, try without audience check and return the user anyway
-    // (the signature is still verified)
-    if (msg.includes("audience") || msg.includes("aud")) {
-      try {
-        const headerB64 = idToken.split(".")[0];
-        const header = JSON.parse(Buffer.from(headerB64, "base64url").toString());
-        const keysRes = await fetch("https://appleid.apple.com/auth/keys");
-        const { keys } = await keysRes.json();
-        const key = keys.find((k) => k.kid === header.kid);
-        const pubKey = crypto.createPublicKey({ key, format: "jwk" });
-
-        // Verify without audience — signature + issuer are still checked
-        const payload = jwt.verify(idToken, pubKey, {
-          algorithms: ["RS256"],
-          issuer: "https://appleid.apple.com",
-          clockTolerance: 120,
-        });
-        console.log("Apple token verified WITHOUT audience check. Actual aud:", payload.aud);
-        return {
-          sub: payload.sub,
-          email: payload.email || null,
-          name: null,
-          email_verified: payload.email_verified === "true" || payload.email_verified === true,
-        };
-      } catch (retryErr) {
-        console.error("Apple token retry also failed:", retryErr?.message);
-      }
-    }
-
-    return { error: msg };
+    return { error: "Token Apple invalid" };
   }
 }
 
@@ -159,18 +129,22 @@ async function findOrCreateOAuthUser(provider, providerId, email, name) {
   }
 
   // 2) Check if there's an existing user with the same email (local account)
+  //    Only link if OAuth provider reports email_verified to prevent account takeover
   if (email) {
     const [byEmail] = await mysqlPool.query(
-      "SELECT id, email, name FROM users WHERE email = ? LIMIT 1",
+      "SELECT id, email, name, provider, provider_id FROM users WHERE email = ? LIMIT 1",
       [email]
     );
     if (Array.isArray(byEmail) && byEmail.length > 0) {
-      // Link the OAuth provider to the existing local account
       const u = byEmail[0];
-      await mysqlPool.query(
-        "UPDATE users SET provider = ?, provider_id = ? WHERE id = ?",
-        [provider, providerId, u.id]
-      );
+      // If the existing account already has a different OAuth provider, do NOT overwrite it.
+      // Only link if the account has no provider_id yet (i.e. a local-only account).
+      if (!u.provider_id) {
+        await mysqlPool.query(
+          "UPDATE users SET provider = ?, provider_id = ? WHERE id = ?",
+          [provider, providerId, u.id]
+        );
+      }
       const token = signToken(u);
       return { token, user: { id: u.id, email: u.email, name: u.name } };
     }
@@ -208,7 +182,7 @@ export async function registerAuthRoutes(app) {
     const { email, password, name } = request.body || {};
     if (!email || !password) return reply.code(400).send({ error: "Email și parolă necesare" });
     if (!EMAIL_REGEX.test(email)) return reply.code(400).send({ error: "Format email invalid" });
-    if (password.length < 6) return reply.code(400).send({ error: "Parola trebuie să aibă cel puțin 6 caractere" });
+    if (password.length < 8) return reply.code(400).send({ error: "Parola trebuie să aibă cel puțin 8 caractere" });
     const [existing] = await mysqlPool.query("SELECT id FROM users WHERE email = ? LIMIT 1", [email]);
     if (Array.isArray(existing) && existing.length) return reply.code(409).send({ error: "Email deja folosit" });
     const hash = await bcrypt.hash(password, 10);
@@ -381,24 +355,9 @@ export async function registerAuthRoutes(app) {
     }
 
     try {
-      // Create bug_reports table if it doesn't exist
-      await mysqlPool.query(`
-        CREATE TABLE IF NOT EXISTS bug_reports (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          user_id INT NULL,
-          user_email VARCHAR(255) NULL,
-          contact_email VARCHAR(255) NULL,
-          description TEXT NOT NULL,
-          status ENUM('new', 'in_progress', 'resolved', 'closed') DEFAULT 'new',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-        )
-      `);
-
       await mysqlPool.query(
         "INSERT INTO bug_reports (user_id, user_email, contact_email, description) VALUES (?, ?, ?, ?)",
-        [userId, userEmail, contactEmail || null, description.trim()]
+        [userId, userEmail, contactEmail || null, description.trim().slice(0, 10000)]
       );
 
       return reply.send({ success: true, message: "Raport trimis cu succes" });

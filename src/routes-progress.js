@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken';
 import { mysqlPool } from './mysql.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET || 'dev_change_me';
+const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
+if (!JWT_SECRET) throw new Error('CRITICAL: JWT_SECRET is required');
 
 function authMiddleware(request) {
   const auth = request.headers['authorization'] || request.headers['Authorization'];
@@ -67,6 +68,27 @@ export async function registerProgressRoutes(app) {
       return reply.send(rows[0]);
     } catch (e) {
       request.log.error({ err: e }, 'Get progress failed');
+      return reply.code(500).send({ error: 'Eroare server' });
+    }
+  });
+
+  // One-time cleanup: delete mock/seed progress entries that were accidentally synced
+  app.delete('/api/progress/cleanup-mock', async (request, reply) => {
+    const user = authMiddleware(request);
+    if (!user) return reply.code(401).send({ error: 'Neautorizat' });
+    const mockDescriptions = [
+      'Am simțit presiune la muncă dar am respirat 4-7-8.',
+      'Zi liniștită, am meditat dimineața.',
+      'Am avut anxietate înainte de o prezentare.',
+    ];
+    try {
+      const [result] = await mysqlPool.query(
+        'DELETE FROM progress_entries WHERE user_id = ? AND description IN (?, ?, ?)',
+        [Number(user.sub), ...mockDescriptions]
+      );
+      return reply.send({ deleted: result.affectedRows });
+    } catch (e) {
+      request.log.error({ err: e }, 'Cleanup mock entries failed');
       return reply.code(500).send({ error: 'Eroare server' });
     }
   });

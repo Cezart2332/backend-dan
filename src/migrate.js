@@ -73,6 +73,31 @@ export async function runMigrations() {
     )
   `);
 
+  // meetings table
+  await mysqlPool.query(`
+    CREATE TABLE IF NOT EXISTS meetings (
+      id BIGINT PRIMARY KEY AUTO_INCREMENT,
+      user_id BIGINT NULL,
+      title VARCHAR(255) NOT NULL DEFAULT 'Ședință',
+      notes TEXT NULL,
+      scheduled_at DATETIME NOT NULL,
+      duration_min INT NOT NULL DEFAULT 60,
+      status ENUM('scheduled','completed','cancelled') NOT NULL DEFAULT 'scheduled',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT fk_meetings_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+      INDEX idx_meetings_scheduled (scheduled_at),
+      INDEX idx_meetings_user (user_id)
+    )
+  `);
+
+  // Add is_admin column to users if not present
+  try {
+    await mysqlPool.query(`ALTER TABLE users ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0`);
+  } catch {
+    // Column already exists
+  }
+
   // subscriptions table
   await mysqlPool.query(`
     CREATE TABLE IF NOT EXISTS subscriptions (
@@ -91,6 +116,21 @@ export async function runMigrations() {
       INDEX idx_subscriptions_active (user_id, ends_at),
       INDEX idx_subscriptions_stripe_sub (stripe_subscription_id),
       INDEX idx_subscriptions_user_starts (user_id, starts_at DESC)
+    )
+  `);
+
+  // bug_reports table
+  await mysqlPool.query(`
+    CREATE TABLE IF NOT EXISTS bug_reports (
+      id BIGINT PRIMARY KEY AUTO_INCREMENT,
+      user_id BIGINT NULL,
+      user_email VARCHAR(255) NULL,
+      contact_email VARCHAR(255) NULL,
+      description TEXT NOT NULL,
+      status ENUM('new', 'in_progress', 'resolved', 'closed') DEFAULT 'new',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT fk_bug_reports_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     )
   `);
 }
