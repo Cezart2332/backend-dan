@@ -21,26 +21,6 @@ import { saveUser } from '../utils/userStorage';
 import { saveSubscription } from '../utils/subscriptionStorage';
 import { useGoogleAuth, handleGoogleResponse, signInWithApple } from '../utils/oauth';
 
-// Fallback component for icons
-const IconFallback = ({ name, size = 20, color = "#4a90e2" }) => {
-  const iconMap = {
-    'leaf-outline': '🌿',
-    'mail-outline': '✉️',
-    'lock-closed-outline': '🔒',
-    'eye-outline': '👁️',
-    'eye-off-outline': '🙈',
-    'logo-google': 'G',
-    'logo-apple': '🍎',
-    'logo-facebook': 'f',
-  };
-  
-  return (
-    <Text style={{ fontSize: size * 0.8, color, textAlign: 'center', width: size }}>
-      {iconMap[name] || '•'}
-    </Text>
-  );
-};
-
 const { width, height } = Dimensions.get('window');
 
 export default function LoginScreen({ navigation, onAuthenticated }) {
@@ -123,9 +103,9 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={['#f0f8ff', '#e6f3ff', '#ffffff']}
+        colors={['#ddeeff', '#eaf4ff', '#f5f9ff']}
         style={styles.gradient}
       >
         <KeyboardAvoidingView
@@ -137,7 +117,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
             <View style={styles.header}>
               <View style={styles.logoContainer}>
                 <View style={styles.logoCircle}>
-                  <Text style={styles.logoIcon}>🌿</Text>
+                  <Ionicons name="leaf" size={40} color="#4a90e2" />
                 </View>
               </View>
               <Text style={styles.title}>Welcome Back</Text>
@@ -147,7 +127,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
             {/* Form */}
             <View style={styles.formContainer}>
               <View style={styles.inputContainer}>
-                <Text style={styles.inputIcon}>✉️</Text>
+                <Ionicons name="mail-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Email address"
@@ -160,7 +140,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.inputIcon}>🔒</Text>
+                <Ionicons name="lock-closed-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Password"
@@ -173,9 +153,11 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
                   onPress={() => setShowPassword(!showPassword)}
                   style={styles.eyeIcon}
                 >
-                  <Text style={styles.eyeIconText}>
-                    {showPassword ? "👁️" : "🙈"}
-                  </Text>
+                  <Ionicons
+                    name={showPassword ? "eye-outline" : "eye-off-outline"}
+                    size={20}
+                    color="#4a90e2"
+                  />
                 </TouchableOpacity>
               </View>
 
@@ -212,7 +194,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
                 onPress={() => googlePromptAsync()}
                 disabled={!googleRequest || loading}
               >
-                <Text style={styles.socialIcon}>G</Text>
+                <Ionicons name="logo-google" size={20} color="#4285F4" style={{ marginRight: 8 }} />
                 <Text style={styles.socialButtonText}>Google</Text>
               </TouchableOpacity>
 
@@ -222,7 +204,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
                   onPress={handleAppleLogin}
                   disabled={loading}
                 >
-                  <Text style={styles.socialIcon}>🍎</Text>
+                  <Ionicons name="logo-apple" size={20} color="#2c3e50" style={{ marginRight: 8 }} />
                   <Text style={styles.socialButtonText}>Apple</Text>
                 </TouchableOpacity>
               )}
@@ -251,9 +233,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  safeArea: { flex: 1, backgroundColor: '#ddeeff' },
   gradient: {
     flex: 1,
   },
@@ -274,74 +254,45 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#ffffff',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(74,144,226,0.15)',
     shadowColor: '#4a90e2',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15, shadowRadius: 8, elevation: 8,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#2c3e50',
-    marginBottom: 8,
-    textAlign: 'center',
+    fontSize: 28, fontWeight: '700',
+    color: '#1a2d45',
+    marginBottom: 8, textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6c7b84',
-    textAlign: 'center',
-    fontWeight: '400',
+    fontSize: 16, color: '#6c8096',
+    textAlign: 'center', fontWeight: '400',
   },
   formContainer: {
     marginBottom: 30,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 16, marginBottom: 16,
+    paddingHorizontal: 16, paddingVertical: 4,
     shadowColor: '#4a90e2',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#e8f4fd',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 8, elevation: 4,
+    borderWidth: 1, borderColor: 'rgba(200,220,240,0.6)',
   },
   inputIcon: {
     marginRight: 12,
-    fontSize: 16,
-    textAlign: 'center',
-    width: 20,
   },
   input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#2c3e50',
-    paddingVertical: 16,
-    fontWeight: '400',
+    flex: 1, fontSize: 16, color: '#1a2d45',
+    paddingVertical: 16, fontWeight: '400',
   },
   eyeIcon: {
     padding: 4,
-  },
-  eyeIconText: {
-    fontSize: 16,
   },
   logoIcon: {
     fontSize: 40,
@@ -399,10 +350,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#d1e7f5',
   },
   dividerText: {
-    marginHorizontal: 16,
-    color: '#6c7b84',
-    fontSize: 14,
-    fontWeight: '400',
+    marginHorizontal: 16, color: '#6c8096',
+    fontSize: 14, fontWeight: '400',
   },
   socialContainer: {
     flexDirection: 'row',

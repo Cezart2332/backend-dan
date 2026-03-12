@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform, Switch, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 
 // Configure handler so notifications show when app is foregrounded
@@ -104,13 +105,13 @@ export default function QuoteOfTheDayScreen({ navigation }) {
   const refreshQuote = () => setQuote(pickRandom(QUOTES));
 
   return (
-    <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#f0f8ff', '#e6f3ff', '#ffffff']} style={styles.gradient}>
+    <SafeAreaView style={styles.safeArea}>
+      <LinearGradient colors={['#ddeeff', '#eaf4ff', '#f5f9ff']} style={styles.background}>
         <ScrollView contentContainerStyle={styles.scroll}>
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Text style={styles.backButtonText}>←</Text>
+              <Ionicons name="chevron-back" size={22} color="#4a90e2" />
             </TouchableOpacity>
             <Text style={styles.title}>Gândul de azi de la Dan</Text>
             <Text style={styles.subtitle}>Un gând pentru liniște și acceptare</Text>
@@ -118,7 +119,7 @@ export default function QuoteOfTheDayScreen({ navigation }) {
 
           {/* Quote Card */}
           <View style={styles.card}>
-            <Text style={styles.quoteIcon}>💭</Text>
+            <Ionicons name="chatbubble-ellipses-outline" size={30} color="#4a90e2" style={{ marginBottom: 14, alignSelf: 'center' }} />
             <Text style={styles.quoteText}>{quote}</Text>
             <TouchableOpacity style={styles.refreshBtn} onPress={refreshQuote}>
               <Text style={styles.refreshText}>Alt gând</Text>
@@ -141,7 +142,8 @@ export default function QuoteOfTheDayScreen({ navigation }) {
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Ești în siguranță. Respirația ta e ancora ta. 🌿</Text>
+            <Ionicons name="leaf-outline" size={14} color="#6c8096" style={{ marginRight: 5 }} />
+            <Text style={styles.footerText}>Ești în siguranță. Respirația ta e ancora ta.</Text>
           </View>
         </ScrollView>
       </LinearGradient>
@@ -150,43 +152,46 @@ export default function QuoteOfTheDayScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  gradient: { flex: 1 },
+  safeArea: { flex: 1, backgroundColor: '#ddeeff' },
+  background: { flex: 1 },
   scroll: { padding: 20 },
   header: { alignItems: 'center', marginBottom: 10 },
   backButton: {
-    position: 'absolute', left: 0, top: -2, padding: 8, borderRadius: 20, backgroundColor: '#fff',
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 4,
+    position: 'absolute', left: 0, top: -2,
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderWidth: 1, borderColor: 'rgba(74,144,226,0.15)',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
   },
-  backButtonText: { fontSize: 18, color: '#4a90e2', fontWeight: 'bold' },
-  title: { fontSize: 24, fontWeight: '700', color: '#2c3e50', marginTop: 10, textAlign: 'center' },
-  subtitle: { fontSize: 14, color: '#6c7b84', marginTop: 6, marginBottom: 8, textAlign: 'center' },
+  title: { fontSize: 22, fontWeight: '700', color: '#1a2d45', marginTop: 10, textAlign: 'center' },
+  subtitle: { fontSize: 14, color: '#6c8096', marginTop: 6, marginBottom: 8, textAlign: 'center' },
   card: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 20, marginVertical: 12,
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 5,
-    borderWidth: 1, borderColor: '#e8f4fd', alignItems: 'center'
+    backgroundColor: 'rgba(255,255,255,0.72)', borderRadius: 18, padding: 22, marginVertical: 12,
+    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 5,
+    borderWidth: 1, borderColor: 'rgba(200,220,240,0.6)', alignItems: 'center',
   },
-  quoteIcon: { fontSize: 30, marginBottom: 12 },
-  quoteText: { fontSize: 18, color: '#2c3e50', textAlign: 'center', lineHeight: 26 },
+  quoteText: { fontSize: 17, color: '#1a2d45', textAlign: 'center', lineHeight: 26 },
   refreshBtn: {
-    marginTop: 14, borderRadius: 12, overflow: 'hidden', alignSelf: 'center',
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 4,
+    marginTop: 16, borderRadius: 12, alignSelf: 'center',
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderWidth: 1, borderColor: 'rgba(74,144,226,0.2)',
+    paddingVertical: 10, paddingHorizontal: 20,
   },
-  refreshText: { paddingVertical: 12, paddingHorizontal: 18, color: '#4a90e2', fontWeight: '600' },
+  refreshText: { color: '#4a90e2', fontWeight: '600', fontSize: 14 },
   notifyCard: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 16, marginTop: 8,
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 4,
-    borderWidth: 1, borderColor: '#e8f4fd'
+    backgroundColor: 'rgba(255,255,255,0.72)', borderRadius: 18, padding: 18, marginTop: 8,
+    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
+    borderWidth: 1, borderColor: 'rgba(200,220,240,0.6)',
   },
   notifyRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  notifyTitle: { fontSize: 16, fontWeight: '600', color: '#2c3e50' },
-  notifyDesc: { fontSize: 13, color: '#6c7b84', marginTop: 4 },
+  notifyTitle: { fontSize: 15, fontWeight: '600', color: '#1a2d45' },
+  notifyDesc: { fontSize: 13, color: '#6c8096', marginTop: 4 },
   testBtn: {
-    marginTop: 12, borderRadius: 12, overflow: 'hidden', alignSelf: 'flex-start',
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 4,
-    backgroundColor: '#4a90e2'
+    marginTop: 14, borderRadius: 12, alignSelf: 'flex-start',
+    backgroundColor: '#4a90e2', paddingVertical: 10, paddingHorizontal: 18,
   },
-  testBtnText: { paddingVertical: 12, paddingHorizontal: 18, color: '#fff', fontWeight: '600' },
-  footer: { marginTop: 20, alignItems: 'center' },
-  footerText: { fontSize: 13, color: '#6c7b84' },
+  testBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  footer: { marginTop: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  footerText: { fontSize: 13, color: '#6c8096' },
 });

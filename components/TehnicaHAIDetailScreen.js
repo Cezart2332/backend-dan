@@ -8,16 +8,17 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 import HeadphonesDisclaimer from "./HeadphonesDisclaimer";
 
 export default function TehnicaHAIDetailScreen({ navigation, route }) {
   const { title, description, note } = route.params || {};
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={["#f0f8ff", "#e6f3ff", "#ffffff"]}
-        style={styles.gradient}
+        colors={["#ddeeff", "#eaf4ff", "#f5f9ff"]}
+        style={styles.background}
       >
         <ScrollView contentContainerStyle={styles.content}>
           <Text style={styles.title}>{title || "Tehnica HAI"}</Text>
@@ -40,7 +41,8 @@ export default function TehnicaHAIDetailScreen({ navigation, route }) {
             style={styles.backBtn}
             onPress={() => navigation.goBack()}
           >
-            <Text style={styles.backText}>← Înapoi</Text>
+            <Ionicons name="chevron-back" size={20} color="#4a90e2" />
+            <Text style={styles.backText}>Înapoi</Text>
           </TouchableOpacity>
         </ScrollView>
         <HeadphonesDisclaimer visibleInitially={false} />
@@ -50,19 +52,19 @@ export default function TehnicaHAIDetailScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  gradient: { flex: 1 },
+  safeArea: { flex: 1, backgroundColor: '#ddeeff' },
+  background: { flex: 1 },
   content: { padding: 20 },
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#2c3e50",
+    color: "#1a2d45",
     textAlign: "center",
     marginBottom: 16,
   },
   paragraph: {
     fontSize: 15,
-    color: "#2c3e50",
+    color: "#1a2d45",
     lineHeight: 22,
     marginBottom: 12,
     textAlign: "center",
@@ -72,14 +74,16 @@ const styles = StyleSheet.create({
     color: "#4a90e2",
   },
   backBtn: {
+    flexDirection: 'row',
     alignSelf: "center",
     marginTop: 20,
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 18,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#e8f4fd",
+    borderColor: 'rgba(74,144,226,0.15)',
+    alignItems: 'center',
   },
-  backText: { color: "#2c3e50", fontWeight: "600" },
+  backText: { color: "#4a90e2", fontWeight: "600", marginLeft: 2 },
 });

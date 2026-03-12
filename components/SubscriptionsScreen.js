@@ -17,6 +17,7 @@ import { getToken } from "../utils/authStorage";
 import { useSubscription } from "../contexts/SubscriptionContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function SubscriptionsScreen({ navigation }) {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
@@ -92,7 +93,7 @@ export default function SubscriptionsScreen({ navigation }) {
       price: "29 lei/lună",
       subPrice: "9 lei/săptămână (≈ 1 leu/zi)",
       tagline:
-        "„Doar ~1 leu pe zi pentru liniștea ta interioară – mai puțin decât o cafea pe săptămână ☕”",
+        '„Doar ~1 leu pe zi pentru liniștea ta interioară – mai puțin decât o cafea pe săptămână"',
       features: [
         { text: "Acces la biblioteca audio", included: true },
         { text: "Provocări zilnice/săptămânale", included: true },
@@ -109,11 +110,10 @@ export default function SubscriptionsScreen({ navigation }) {
     {
       key: "premium",
       title: "Plan Premium",
-      badge: "🔸",
       price: "59 lei/lună",
       subPrice: "18 lei/săptămână (≈ 2,6 lei/zi)",
       tagline:
-        "„Sub 3 lei pe zi pentru acces complet la resurse și feedback personalizat – mult mai ieftin decât o ședință la psiholog 🧠”",
+        '„Sub 3 lei pe zi pentru acces complet la resurse și feedback personalizat – mult mai ieftin decât o ședință la psiholog"',
       features: [
         { text: "Tot ce include Basic", included: true },
         {
@@ -131,11 +131,10 @@ export default function SubscriptionsScreen({ navigation }) {
     {
       key: "vip",
       title: "Plan VIP",
-      badge: "🔱",
       price: "180 lei/lună",
       subPrice: "≈ 45 lei/săptămână (≈ 6,5 lei/zi)",
       tagline:
-        "„Mai puțin de 50 lei pe săptămână pentru acces direct, feedback extins și suport exclusiv – experiență completă pentru mintea ta”",
+        '„Mai puțin de 50 lei pe săptămână pentru acces direct, feedback extins și suport exclusiv – experiență completă pentru mintea ta"',
       features: [
         { text: "Tot ce include Premium", included: true },
         { text: "Feedback extins la jurnale (2–3/săptămână)", included: true },
@@ -321,7 +320,7 @@ export default function SubscriptionsScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={["#f0f8ff", "#e6f3ff", "#ffffff"]}
+        colors={["#ddeeff", "#eaf4ff", "#f5f9ff"]}
         style={styles.gradient}
       >
         <ScrollView contentContainerStyle={styles.content}>
@@ -330,7 +329,7 @@ export default function SubscriptionsScreen({ navigation }) {
               onPress={() => navigation.goBack()}
               style={styles.backBtn}
             >
-              <Text style={styles.backIcon}>←</Text>
+              <Ionicons name="chevron-back" size={22} color="#4a90e2" />
             </TouchableOpacity>
             <Text style={styles.title}>Abonamente & Acces</Text>
             <Text style={styles.subtitle}>
@@ -371,7 +370,7 @@ export default function SubscriptionsScreen({ navigation }) {
               onPress={loadSubscription}
               style={styles.refreshBtn}
             >
-              <Text style={styles.refreshText}>↻</Text>
+              <Ionicons name="refresh-outline" size={20} color="#4a90e2" />
             </TouchableOpacity>
           </View>
 
@@ -401,10 +400,10 @@ export default function SubscriptionsScreen({ navigation }) {
                   selected && styles.planCardSelected,
                 ]}
               >
-                <LinearGradient colors={plan.gradient} style={styles.planInner}>
+                <View style={styles.planInner}>
                   <View style={styles.planHeaderRow}>
                     <Text style={styles.planTitle}>
-                      {plan.badge ? `${plan.badge} ${plan.title}` : plan.title}
+                      {plan.title}
                     </Text>
                     {selected && (
                       <Text style={styles.selectedBadge}>SELECTAT</Text>
@@ -416,14 +415,12 @@ export default function SubscriptionsScreen({ navigation }) {
                   <View style={styles.featuresWrap}>
                     {plan.features.map((f, i2) => (
                       <View key={i2} style={styles.featureRow}>
-                        <Text
-                          style={[
-                            styles.featureIcon,
-                            { opacity: f.included ? 1 : 0.35 },
-                          ]}
-                        >
-                          {f.included ? "✅" : "❌"}
-                        </Text>
+                        <Ionicons
+                          name={f.included ? "checkmark-circle" : "close-circle"}
+                          size={16}
+                          color={f.included ? "#4a90e2" : "#c8d8e8"}
+                          style={{ width: 22 }}
+                        />
                         <Text
                           style={[
                             styles.featureText,
@@ -457,10 +454,7 @@ export default function SubscriptionsScreen({ navigation }) {
                       style={styles.ctaBtn}
                       disabled={loading}
                     >
-                      <LinearGradient
-                        colors={["#4a90e2", "#357abd"]}
-                        style={styles.ctaGrad}
-                      >
+                      <View style={styles.ctaGrad}>
                         <Text style={styles.ctaText}>
                           {loading && selectedPlan === plan.key
                             ? "..."
@@ -468,10 +462,10 @@ export default function SubscriptionsScreen({ navigation }) {
                             ? "Plătește în aplicație"
                             : plan.cta}
                         </Text>
-                      </LinearGradient>
+                      </View>
                     </TouchableOpacity>
                   </View>
-                </LinearGradient>
+                </View>
               </Animated.View>
             );
           })}
@@ -519,10 +513,7 @@ export default function SubscriptionsScreen({ navigation }) {
                 onPress={handleStartTrial}
                 disabled={loading || trialUsed}
               >
-                <LinearGradient
-                  colors={["#6cc04a", "#4a9d2c"]}
-                  style={styles.trialCtaGrad}
-                >
+                <View style={styles.trialCtaGrad}>
                   <Text style={styles.trialCtaText}>
                     {trialUsed
                       ? "Trial folosit"
@@ -530,7 +521,7 @@ export default function SubscriptionsScreen({ navigation }) {
                       ? "..."
                       : "Începe trial de 3 zile"}
                   </Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             ) : (
               <View
@@ -571,7 +562,10 @@ export default function SubscriptionsScreen({ navigation }) {
             onPress={() => setShowCompare(true)}
             style={styles.compareBtn}
           >
-            <Text style={styles.compareBtnText}>Compară planurile →</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={styles.compareBtnText}>Compară planurile</Text>
+              <Ionicons name="chevron-forward" size={14} color="#4a90e2" />
+            </View>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setUseInAppCheckout((v) => !v)}
@@ -606,15 +600,15 @@ export default function SubscriptionsScreen({ navigation }) {
                 </Text>
               </View>
               {[
-                ["Bibliotecă audio", "✅", "✅", "✅"],
-                ["Provocări", "✅", "✅", "✅"],
-                ["Jurnal personal", "✅", "✅", "✅"],
-                ["Feedback jurnal", "❌", "✅ 1/săpt.", "✅ extins"],
-                ["Webinarii live + arhivă", "❌", "✅", "✅"],
-                ["Audio-uri exclusive", "❌", "✅", "✅"],
-                ["Reducere ședințe 1:1", "❌", "20%", "40%"],
-                ["Întrebări directe", "❌", "❌", "✅"],
-                ["Webinar VIP lunar", "❌", "❌", "✅"],
+                ["Bibliotecă audio", "✓", "✓", "✓"],
+                ["Provocări", "✓", "✓", "✓"],
+                ["Jurnal personal", "✓", "✓", "✓"],
+                ["Feedback jurnal", "✗", "✓ 1/săpt.", "✓ extins"],
+                ["Webinarii live + arhivă", "✗", "✓", "✓"],
+                ["Audio-uri exclusive", "✗", "✓", "✓"],
+                ["Reducere ședințe 1:1", "✗", "20%", "40%"],
+                ["Întrebări directe", "✗", "✗", "✓"],
+                ["Webinar VIP lunar", "✗", "✗", "✓"],
               ].map((row, i) => (
                 <View
                   style={[
@@ -640,12 +634,9 @@ export default function SubscriptionsScreen({ navigation }) {
                 style={styles.closeCompareBtn}
                 onPress={() => setShowCompare(false)}
               >
-                <LinearGradient
-                  colors={["#4a90e2", "#357abd"]}
-                  style={styles.closeCompareGrad}
-                >
+                <View style={styles.closeCompareGrad}>
                   <Text style={styles.closeCompareText}>Închide</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </View>
           </View>
@@ -656,7 +647,7 @@ export default function SubscriptionsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: "#ddeeff" },
   gradient: { flex: 1 },
   content: { padding: 20 },
   header: { alignItems: "center", marginBottom: 16 },
@@ -679,52 +670,50 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 46,
     top: -2,
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255,255,255,0.75)",
     borderRadius: 18,
     width: 32,
     height: 32,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#e8f4fd",
+    borderColor: "rgba(74,144,226,0.15)",
     elevation: 2,
   },
-  refreshText: { fontSize: 16, color: "#4a90e2", fontWeight: "700" },
   backBtn: {
     position: "absolute",
     left: 0,
     top: -2,
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    width: 36,
-    height: 36,
+    backgroundColor: "rgba(255,255,255,0.75)",
+    borderRadius: 19,
+    width: 38,
+    height: 38,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#e8f4fd",
+    borderColor: "rgba(74,144,226,0.15)",
     elevation: 3,
   },
-  backIcon: { fontSize: 18, color: "#4a90e2", fontWeight: "700" },
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#2c3e50",
+    color: "#1a2d45",
     textAlign: "center",
   },
   subtitle: {
     fontSize: 13,
-    color: "#6c7b84",
+    color: "#6c8096",
     textAlign: "center",
     marginTop: 4,
   },
   expiryBox: {
     marginTop: 10,
-    backgroundColor: "#ffffff",
+    backgroundColor: "rgba(255,255,255,0.72)",
     borderRadius: 14,
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: "#e8f4fd",
+    borderColor: "rgba(200,220,240,0.6)",
     alignItems: "center",
     shadowColor: "#4a90e2",
     shadowOffset: { width: 0, height: 2 },
@@ -733,7 +722,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   expiryBoxExpired: { backgroundColor: "#fff4f2", borderColor: "#f5d0ca" },
-  expiryLabel: { fontSize: 12, color: "#2c3e50", fontWeight: "600" },
+  expiryLabel: { fontSize: 12, color: "#1a2d45", fontWeight: "600" },
   expiryRemaining: {
     fontSize: 12,
     color: "#4a90e2",
@@ -748,10 +737,10 @@ const styles = StyleSheet.create({
     shadowColor: "#4a90e2",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
-    shadowRadius: 10,
+    shadowRadius: 12,
     elevation: 4,
     overflow: "hidden",
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255,255,255,0.72)",
   },
   planCardSelected: { borderWidth: 2, shadowOpacity: 0.18 },
   planInner: { padding: 18 },
@@ -760,50 +749,55 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  planTitle: { fontSize: 18, fontWeight: "800", color: "#2c3e50" },
+  planTitle: { fontSize: 18, fontWeight: "800", color: "#1a2d45" },
   planPrice: {
     fontSize: 20,
     fontWeight: "700",
     marginTop: 4,
     color: "#4a90e2",
   },
-  planSubPrice: { fontSize: 13, color: "#6c7b84", marginTop: 2 },
+  planSubPrice: { fontSize: 13, color: "#6c8096", marginTop: 2 },
   planTagline: {
     fontSize: 13,
     fontStyle: "italic",
-    color: "#2c3e50",
+    color: "#1a2d45",
     marginTop: 8,
     lineHeight: 18,
   },
   featuresWrap: { marginTop: 10, marginBottom: 8 },
   featureRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     marginBottom: 6,
   },
   featureIcon: { width: 22 },
-  featureText: { flex: 1, fontSize: 14, color: "#2c3e50", lineHeight: 20 },
-  featureTextDim: { color: "#8ea4b4" },
+  featureText: { flex: 1, fontSize: 14, color: "#1a2d45", lineHeight: 20 },
+  featureTextDim: { color: "#8ca8c4" },
   ctaRow: { flexDirection: "row", marginTop: 8, alignItems: "center" },
   selectBtn: {
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 14,
-    backgroundColor: "#e6f2fc",
+    backgroundColor: "rgba(74,144,226,0.1)",
     marginRight: 10,
   },
   selectBtnActive: { backgroundColor: "#4a90e2" },
-  selectBtnText: { color: "#2c3e50", fontWeight: "600", fontSize: 13 },
+  selectBtnText: { color: "#1a2d45", fontWeight: "600", fontSize: 13 },
   selectBtnTextActive: { color: "#ffffff" },
   ctaBtn: { flex: 1, borderRadius: 14, overflow: "hidden" },
-  ctaGrad: { paddingVertical: 14, alignItems: "center" },
+  ctaGrad: {
+    paddingVertical: 14,
+    alignItems: "center",
+    backgroundColor: "#4a90e2",
+    borderRadius: 14,
+  },
   ctaText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   sectionBlock: {
     marginTop: 8,
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255,255,255,0.72)",
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "#e8f4fd",
+    borderColor: "rgba(200,220,240,0.6)",
     padding: 16,
     shadowColor: "#4a90e2",
     shadowOffset: { width: 0, height: 2 },
@@ -815,34 +809,34 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#2c3e50",
+    color: "#1a2d45",
     marginBottom: 10,
     textAlign: "center",
   },
   annualRow: { marginBottom: 6 },
-  annualPlan: { fontWeight: "700", color: "#2c3e50", fontSize: 14 },
-  annualPrice: { fontSize: 14, color: "#2c3e50", marginTop: 2 },
-  annualNote: { fontSize: 12, color: "#6c7b84" },
-  trialIntro: { fontSize: 14, color: "#2c3e50", marginBottom: 8 },
+  annualPlan: { fontWeight: "700", color: "#1a2d45", fontSize: 14 },
+  annualPrice: { fontSize: 14, color: "#1a2d45", marginTop: 2 },
+  annualNote: { fontSize: 12, color: "#6c8096" },
+  trialIntro: { fontSize: 14, color: "#1a2d45", marginBottom: 8 },
   trialSubtitle: {
     fontSize: 13,
-    color: "#6c7b84",
+    color: "#6c8096",
     marginBottom: 6,
     fontWeight: "600",
   },
-  trialItem: { flex: 1, fontSize: 14, color: "#2c3e50", lineHeight: 20 },
+  trialItem: { flex: 1, fontSize: 14, color: "#1a2d45", lineHeight: 20 },
   noticeBox: {
     marginTop: 12,
-    backgroundColor: "#f0f8ff",
+    backgroundColor: "rgba(74,144,226,0.07)",
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: "#d6ebfa",
+    borderColor: "rgba(74,144,226,0.18)",
   },
-  noticeText: { fontSize: 13, color: "#2c3e50", lineHeight: 18 },
+  noticeText: { fontSize: 13, color: "#1a2d45", lineHeight: 18 },
   toggleWrap: {
     flexDirection: "row",
-    backgroundColor: "#e6f2fc",
+    backgroundColor: "rgba(74,144,226,0.08)",
     borderRadius: 30,
     padding: 4,
     marginBottom: 18,
@@ -858,7 +852,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   toggleText: { fontSize: 13, fontWeight: "600", color: "#4a90e2" },
-  toggleTextActive: { color: "#2c3e50" },
+  toggleTextActive: { color: "#1a2d45" },
   selectedBadge: {
     backgroundColor: "#4a90e2",
     color: "#ffffff",
@@ -875,7 +869,12 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     minWidth: 220,
   },
-  trialCtaGrad: { paddingVertical: 14, alignItems: "center" },
+  trialCtaGrad: {
+    paddingVertical: 14,
+    alignItems: "center",
+    backgroundColor: "#4a9d2c",
+    borderRadius: 16,
+  },
   trialCtaText: { color: "#fff", fontSize: 15, fontWeight: "700" },
   compareBtn: { alignSelf: "center", marginTop: -4, marginBottom: 24 },
   compareBtnText: { color: "#4a90e2", fontWeight: "700" },
@@ -890,22 +889,22 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   compareBox: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "rgba(255,255,255,0.95)",
     borderRadius: 24,
     padding: 16,
     maxHeight: "80%",
     borderWidth: 1,
-    borderColor: "#d6ebfa",
+    borderColor: "rgba(200,220,240,0.6)",
   },
   compareTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#2c3e50",
+    color: "#1a2d45",
     textAlign: "center",
     marginBottom: 12,
   },
   compareHeaderRow: { flexDirection: "row", paddingVertical: 6 },
-  compareCell: { flex: 1, fontSize: 11, color: "#2c3e50", textAlign: "center" },
+  compareCell: { flex: 1, fontSize: 11, color: "#1a2d45", textAlign: "center" },
   compareCellHead: { fontWeight: "700", fontSize: 11, color: "#1f3e60" },
   compareCellFirst: { textAlign: "left", paddingLeft: 4 },
   closeCompareBtn: {
@@ -915,6 +914,11 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     minWidth: 140,
   },
-  closeCompareGrad: { paddingVertical: 12, alignItems: "center" },
+  closeCompareGrad: {
+    paddingVertical: 12,
+    alignItems: "center",
+    backgroundColor: "#4a90e2",
+    borderRadius: 16,
+  },
   closeCompareText: { color: "#ffffff", fontWeight: "700" },
 });

@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 import { useSubscription } from "../contexts/SubscriptionContext";
 import { api } from "../utils/api";
 import { getToken } from "../utils/authStorage";
@@ -119,14 +119,9 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
             },
           ]}
         >
-          <LinearGradient
-            colors={["#ffecd2", "#fcb69f", "#f6d365"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.gradient}
-          >
+          <View style={styles.gradient}>
             <View style={styles.headerIcon}>
-              <Text style={styles.iconText}>✨</Text>
+              <Ionicons name="star-outline" size={32} color="#4a90e2" />
             </View>
             <Text style={styles.title}>Subscribe sau Free Trial</Text>
             <Text style={styles.subtitle}>
@@ -145,18 +140,13 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
                 onPress={handleStartTrial}
                 disabled={pendingAction === "trial"}
               >
-                <LinearGradient
-                  colors={["#4a90e2", "#577fff"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.primaryGradient}
-                >
+                <View style={styles.primaryGradient}>
                   {pendingAction === "trial" ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
                     <Text style={styles.primaryText}>Începe perioada de trial</Text>
                   )}
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             ) : (
               <View style={styles.infoBox}>
@@ -185,7 +175,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
                 <Text style={styles.refreshText}>Am deja abonament activ</Text>
               )}
             </TouchableOpacity>
-          </LinearGradient>
+          </View>
         </Animated.View>
       </View>
     </Modal>
@@ -195,7 +185,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(12, 24, 44, 0.7)",
+    backgroundColor: "rgba(12, 24, 44, 0.65)",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
@@ -204,51 +194,53 @@ const styles = StyleSheet.create({
     width: Math.min(width - 32, 360),
     borderRadius: 24,
     overflow: "hidden",
-    shadowColor: "#000",
+    shadowColor: "#4a90e2",
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.15,
     shadowRadius: 24,
     elevation: 18,
   },
   gradient: {
     padding: 24,
     alignItems: "center",
+    backgroundColor: "rgba(241,247,255,0.97)",
+    borderWidth: 1,
+    borderColor: "rgba(200,220,240,0.6)",
   },
   headerIcon: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: "rgba(255, 255, 255, 0.35)",
+    backgroundColor: "rgba(74,144,226,0.1)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
   },
-  iconText: {
-    fontSize: 34,
-  },
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#102349",
+    color: "#1a2d45",
     textAlign: "center",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 14,
-    color: "#284064",
+    color: "#6c8096",
     textAlign: "center",
     marginBottom: 16,
     lineHeight: 20,
   },
   statusPill: {
-    backgroundColor: "rgba(16, 35, 73, 0.12)",
+    backgroundColor: "rgba(74,144,226,0.1)",
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 999,
     marginBottom: 22,
+    borderWidth: 1,
+    borderColor: "rgba(74,144,226,0.2)",
   },
   statusText: {
-    color: "#102349",
+    color: "#1a2d45",
     fontSize: 13,
     fontWeight: "600",
   },
@@ -261,6 +253,8 @@ const styles = StyleSheet.create({
   primaryGradient: {
     paddingVertical: 14,
     alignItems: "center",
+    backgroundColor: "#4a90e2",
+    borderRadius: 16,
   },
   primaryText: {
     color: "#ffffff",
@@ -271,25 +265,27 @@ const styles = StyleSheet.create({
     width: "100%",
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: "rgba(16, 35, 73, 0.3)",
+    borderColor: "rgba(74,144,226,0.3)",
     paddingVertical: 14,
     alignItems: "center",
     marginBottom: 12,
     backgroundColor: "rgba(255,255,255,0.65)",
   },
   secondaryText: {
-    color: "#102349",
+    color: "#1a2d45",
     fontSize: 16,
     fontWeight: "600",
   },
   infoBox: {
-    backgroundColor: "rgba(16,35,73,0.12)",
+    backgroundColor: "rgba(74,144,226,0.08)",
     borderRadius: 14,
     padding: 12,
     marginBottom: 14,
+    borderWidth: 1,
+    borderColor: "rgba(74,144,226,0.15)",
   },
   infoText: {
-    color: "#102349",
+    color: "#1a2d45",
     fontSize: 13,
     textAlign: "center",
   },
@@ -298,7 +294,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   refreshText: {
-    color: "#102349",
+    color: "#6c8096",
     fontSize: 13,
     fontWeight: "500",
     textDecorationLine: "underline",

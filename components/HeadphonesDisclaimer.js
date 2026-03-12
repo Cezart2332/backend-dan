@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Simple reusable modal overlay for headphones recommendation
@@ -53,7 +54,7 @@ export default function HeadphonesDisclaimer({ visibleInitially = true, onDismis
           accessibilityRole="checkbox"
           accessibilityState={{ checked: dontShow }}
         >
-          <Text style={styles.checkbox}>{dontShow ? '☑' : '☐'}</Text>
+          <Ionicons name={dontShow ? 'checkbox-outline' : 'square-outline'} size={20} color="#4a90e2" style={{ marginRight: 8 }} />
           <Text style={styles.rowText}>Nu mai afișa din nou</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -85,18 +86,17 @@ const styles = StyleSheet.create({
   },
   box: {
     width: '100%', maxWidth: 420,
-    backgroundColor: '#ffffff', borderRadius: 22,
+    backgroundColor: 'rgba(245,250,255,0.97)', borderRadius: 26,
     paddingHorizontal: 22, paddingTop: 20, paddingBottom: 18,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 12,
+    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 20,
     elevation: 10,
-    borderWidth: 1, borderColor: '#e6f3ff'
+    borderWidth: 1, borderColor: 'rgba(200,220,240,0.7)'
   },
-  title: { fontSize: 18, fontWeight: '700', color: '#2c3e50', marginBottom: 10, textAlign: 'center' },
-  msg: { fontSize: 14, lineHeight: 20, color: '#2c3e50', textAlign: 'center' },
+  title: { fontSize: 18, fontWeight: '700', color: '#1a2d45', marginBottom: 10, textAlign: 'center' },
+  msg: { fontSize: 14, lineHeight: 20, color: '#6c8096', textAlign: 'center' },
   btn: { marginTop: 18, borderRadius: 16, overflow: 'hidden' },
   btnGrad: { paddingVertical: 14, alignItems: 'center' },
   btnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   row: { flexDirection: 'row', alignItems: 'center', marginTop: 14, justifyContent: 'center' },
-  checkbox: { fontSize: 18, marginRight: 8 },
-  rowText: { fontSize: 14, color: '#2c3e50' },
+  rowText: { fontSize: 14, color: '#1a2d45' },
 });

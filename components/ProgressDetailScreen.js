@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { getEntryById, isBackendReady } from '../utils/progressStorage';
 import { getToken } from '../utils/authStorage';
 import { api } from '../utils/api';
@@ -34,11 +35,11 @@ export default function ProgressDetailScreen({ route, navigation }) {
 
   if (!entry) {
     return (
-      <SafeAreaView style={styles.container}>
-        <LinearGradient colors={['#f0f8ff', '#e6f3ff', '#ffffff']} style={styles.gradient}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Text style={styles.backButtonText}>←</Text>
+      <SafeAreaView style={styles.safeArea}>
+        <LinearGradient colors={['#ddeeff', '#eaf4ff', '#f5f9ff']} style={styles.background}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="chevron-back" size={22} color="#4a90e2" />
             </TouchableOpacity>
             <Text style={styles.title}>Detaliu Progres</Text>
           </View>
@@ -52,28 +53,28 @@ export default function ProgressDetailScreen({ route, navigation }) {
   const dateStr = `${dateObj.toLocaleDateString()} ${dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#f0f8ff', '#e6f3ff', '#ffffff']} style={styles.gradient}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>←</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <LinearGradient colors={['#ddeeff', '#eaf4ff', '#f5f9ff']} style={styles.background}>
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={22} color="#4a90e2" />
           </TouchableOpacity>
           <Text style={styles.title}>Detaliu Progres</Text>
         </View>
         <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.section}>
+          <View style={styles.card}>
             <Text style={styles.label}>Data</Text>
             <Text style={styles.value}>{dateStr}</Text>
           </View>
-          <View style={styles.section}>
+          <View style={styles.card}>
             <Text style={styles.label}>Nivel anxietate</Text>
             <Text style={styles.value}>{entry.level}/10</Text>
           </View>
-          <View style={styles.section}>
+          <View style={styles.card}>
             <Text style={styles.label}>Descriere</Text>
             <Text style={styles.value}>{entry.description || '—'}</Text>
           </View>
-          <View style={styles.section}>
+          <View style={styles.card}>
             <Text style={styles.label}>Acțiuni recente</Text>
             <Text style={styles.value}>{entry.actions || '—'}</Text>
           </View>
@@ -84,19 +85,31 @@ export default function ProgressDetailScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  gradient: { flex: 1 },
-  header: { position: 'relative', alignItems: 'center', paddingVertical: 12 },
-  backButton: {
-    position: 'absolute', left: 16, top: 8, padding: 8, borderRadius: 20,
-    backgroundColor: '#ffffff', elevation: 3, shadowColor: '#4a90e2', shadowOpacity: 0.1, shadowRadius: 4
+  safeArea: { flex: 1, backgroundColor: '#ddeeff' },
+  background: { flex: 1 },
+  headerRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 12,
   },
-  backButtonText: { fontSize: 18, color: '#4a90e2', fontWeight: 'bold' },
-  title: { fontSize: 22, fontWeight: '700', color: '#2c3e50' },
+  backBtn: {
+    width: 38, height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderWidth: 1, borderColor: 'rgba(74,144,226,0.15)',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
+    marginRight: 14,
+  },
+  title: { fontSize: 22, fontWeight: '700', color: '#1a2d45' },
   content: { padding: 16 },
-  section: { marginBottom: 12, backgroundColor: '#fff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e8f4fd' },
-  label: { color: '#6c7b84', marginBottom: 4 },
-  value: { color: '#2c3e50', fontWeight: '600' },
+  card: {
+    marginBottom: 12,
+    backgroundColor: 'rgba(255,255,255,0.72)', borderRadius: 18, padding: 16,
+    borderWidth: 1, borderColor: 'rgba(200,220,240,0.6)',
+    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
+  },
+  label: { color: '#8ca8c4', fontSize: 11, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6 },
+  value: { color: '#1a2d45', fontWeight: '600', fontSize: 15 },
   loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loading: { color: '#6c7b84' }
+  loading: { color: '#6c8096' },
 });

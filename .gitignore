@@ -12,6 +12,7 @@ backend-dan/
 backend/
 server/
 videos/
+paneldan
 
 # Native
 .kotlin/

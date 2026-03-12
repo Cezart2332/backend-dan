@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { levels as levelDefs } from '../challenges';
 import { getSubscription } from '../utils/subscriptionStorage';
 
@@ -35,7 +36,8 @@ export default function ProvocarilScreen({ navigation }) {
     subtitle: l.duration,
     goal: l.goal,
     description: l.goal,
-    icon: l.id === 1 ? '🌱' : l.id === 2 ? '🌿' : '🔥',
+    iconName: l.id === 1 ? 'leaf-outline' : l.id === 2 ? 'flash-outline' : 'flame-outline',
+    iconColor: l.id === 1 ? '#5cb85c' : l.id === 2 ? '#f0a500' : '#d9534f',
     color: l.color,
     gradientColors: l.gradientColors,
     difficulty: l.difficulty,
@@ -64,10 +66,10 @@ export default function ProvocarilScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={['#f0f8ff', '#e6f3ff', '#ffffff']}
-        style={styles.gradient}
+        colors={['#ddeeff', '#eaf4ff', '#f5f9ff']}
+        style={styles.background}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {/* Header */}
@@ -76,12 +78,12 @@ export default function ProvocarilScreen({ navigation }) {
               onPress={() => navigation.goBack()}
               style={styles.backButton}
             >
-              <Text style={styles.backButtonText}>←</Text>
+              <Ionicons name="chevron-back" size={22} color="#4a90e2" />
             </TouchableOpacity>
 
             <View style={styles.headerContent}>
               <View style={styles.headerIcon}>
-                <Text style={styles.headerIconText}>🎯</Text>
+                <Ionicons name="trophy-outline" size={34} color="#4a90e2" />
               </View>
               <Text style={styles.title}>Provocări</Text>
               <Text style={styles.subtitle}>Alege-ți nivelul de provocare</Text>
@@ -89,10 +91,8 @@ export default function ProvocarilScreen({ navigation }) {
 
             <View style={styles.historyWrap}>
               <TouchableOpacity onPress={() => navigation.navigate('ChallengeHistory')} style={styles.historyButton}>
-                <LinearGradient colors={["#4a90e2", "#357abd"]} style={styles.historyButtonGradient}>
-                  <Text style={styles.historyIcon}>⏱</Text>
-                  <Text style={styles.historyButtonText}>Vezi istoric</Text>
-                </LinearGradient>
+                <Ionicons name="time-outline" size={16} color="#4a90e2" style={{ marginRight: 5 }} />
+                <Text style={styles.historyButtonText}>Istoric</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -100,7 +100,7 @@ export default function ProvocarilScreen({ navigation }) {
 
           {/* Progress Overview */}
           <View style={styles.progressSection}>
-            <Text style={styles.progressTitle}>Progresul tău</Text>
+            <Text style={styles.progressTitle}>PROGRESUL TĂU</Text>
             <View style={styles.progressStats}>
               <View style={styles.statItem}>
                 <Text style={styles.statNumber}>0</Text>
@@ -132,20 +132,16 @@ export default function ProvocarilScreen({ navigation }) {
                   ]}
                   onPress={() => handleLevelPress(level)}
                 >
-                  <LinearGradient
-                    colors={locked ? ['#f0f0f0', '#e8e8e8'] : ['#ffffff', '#f8fdff']}
-                    style={styles.levelHeaderGradient}
-                  >
-                    <View style={styles.levelHeaderContent}>
-                      <View style={[styles.levelIconContainer, { backgroundColor: locked ? '#ddd' : level.color + '15' }]}>
-                        <Text style={[styles.levelIcon, locked && { opacity: 0.4 }]}>{level.icon}</Text>
+                  <View style={styles.levelHeaderInner}>
+                      <View style={[styles.levelIconContainer, { backgroundColor: locked ? 'rgba(200,220,240,0.3)' : level.iconColor + '18' }]}>
+                        <Ionicons name={locked ? 'lock-closed-outline' : level.iconName} size={26} color={locked ? '#bbb' : level.iconColor} />
                       </View>
                       
                       <View style={styles.levelInfo}>
                         <View style={styles.levelTitleRow}>
                           <Text style={[styles.levelNumber, locked && styles.lockedText]}>{level.level}</Text>
                           <View style={[styles.difficultyBadge, { backgroundColor: locked ? '#bbb' : level.color }]}>
-                            <Text style={styles.difficultyText}>{locked ? '🔒' : level.difficulty}</Text>
+                            <Text style={styles.difficultyText}>{level.difficulty}</Text>
                           </View>
                         </View>
                         <Text style={[styles.levelTitle, locked && styles.lockedText]}>{level.title}</Text>
@@ -154,28 +150,26 @@ export default function ProvocarilScreen({ navigation }) {
                         </Text>
                       </View>
                       
-                      <View style={styles.expandIcon}>
-                        <Text style={[styles.expandText, selectedLevel === level.id && styles.expandTextRotated, locked && { opacity: 0.3 }]}>
-                          {locked ? '🔒' : '▼'}
-                        </Text>
-                      </View>
-                    </View>
-                  </LinearGradient>
+                      <Ionicons
+                        name={selectedLevel === level.id ? 'chevron-up' : 'chevron-down'}
+                        size={18}
+                        color={locked ? '#ccc' : '#4a90e2'}
+                      />
+                  </View>
                 </TouchableOpacity>
 
                 {/* Expanded Content */}
                 {selectedLevel === level.id && (
                   <View style={styles.expandedContent}>
                     <Text style={styles.levelGoal}>{level.goal}</Text>
-                    <Text style={styles.levelDescription}>{level.description}</Text>
                     
                     <View style={styles.levelDetails}>
                       <View style={styles.detailItem}>
-                        <Text style={styles.detailIcon}>⏱️</Text>
+                        <Ionicons name="time-outline" size={15} color="#6c8096" style={{ marginRight: 5 }} />
                         <Text style={styles.detailText}>Durată: {level.duration}</Text>
                       </View>
                       <View style={styles.detailItem}>
-                        <Text style={styles.detailIcon}>📝</Text>
+                        <Ionicons name="list-outline" size={15} color="#6c8096" style={{ marginRight: 5 }} />
                         <Text style={styles.detailText}>{level.exercises} exerciții</Text>
                       </View>
                     </View>
@@ -184,13 +178,10 @@ export default function ProvocarilScreen({ navigation }) {
                       style={styles.startButton}
                       onPress={() => handleStartChallenge(level)}
                     >
-                      <LinearGradient
-                        colors={level.gradientColors}
-                        style={styles.startButtonGradient}
-                      >
+                      <View style={styles.startButtonInner}>
                         <Text style={styles.startButtonText}>Începe Provocarea</Text>
-                        <Text style={styles.startButtonIcon}>🚀</Text>
-                      </LinearGradient>
+                        <Ionicons name="arrow-forward-outline" size={18} color="#fff" style={{ marginLeft: 8 }} />
+                      </View>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -201,7 +192,10 @@ export default function ProvocarilScreen({ navigation }) {
 
           {/* Tips Section */}
           <View style={styles.tipsSection}>
-            <Text style={styles.tipsTitle}>💡 Sfaturi pentru succes</Text>
+            <View style={styles.tipsTitleRow}>
+              <Ionicons name="bulb-outline" size={18} color="#4a90e2" style={{ marginRight: 7 }} />
+              <Text style={styles.tipsTitle}>Sfaturi pentru succes</Text>
+            </View>
             <View style={styles.tipsList}>
               <Text style={styles.tipItem}>• Începe întotdeauna cu nivelul 1</Text>
               <Text style={styles.tipItem}>• Fii răbdător cu tine însuți</Text>
@@ -216,10 +210,11 @@ export default function ProvocarilScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
+    backgroundColor: '#ddeeff',
   },
-  gradient: {
+  background: {
     flex: 1,
   },
   scrollContainer: {
@@ -237,32 +232,32 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     top: 10,
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: '#ffffff',
-    shadowColor: '#4a90e2',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(74,144,226,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 18,
-    color: '#4a90e2',
-    fontWeight: 'bold',
+    shadowColor: '#4a90e2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
   },
   historyWrap: { position: 'absolute', right: 0, top: 10 },
-  historyButton: { borderRadius: 20, overflow: 'hidden' },
-  historyButtonGradient: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20 },
-  historyIcon: { color: '#fff', marginRight: 6 },
-  historyButtonText: { color: '#fff', fontWeight: '700' },
+  historyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(74,144,226,0.15)',
+  },
+  historyButtonText: { color: '#4a90e2', fontWeight: '700', fontSize: 13 },
   headerContent: {
     alignItems: 'center',
   },
@@ -270,97 +265,55 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(74,144,226,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 15,
     shadowColor: '#4a90e2',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  headerIconText: {
-    fontSize: 35,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 6,
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#2c3e50',
+    color: '#1a2d45',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#6c7b84',
+    color: '#6c8096',
     textAlign: 'center',
     fontWeight: '400',
-  },
-  motivationSection: {
-    marginBottom: 25,
-  },
-  motivationCard: {
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#4a90e2',
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: '#e8f4fd',
-  },
-  motivationIcon: {
-    fontSize: 24,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  motivationText: {
-    fontSize: 15,
-    fontStyle: 'italic',
-    color: '#2c3e50',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 8,
-  },
-  motivationAuthor: {
-    fontSize: 14,
-    color: '#4a90e2',
-    textAlign: 'center',
-    fontWeight: '600',
   },
   progressSection: {
     marginBottom: 25,
   },
   progressTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#2c3e50',
-    marginBottom: 15,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    color: '#8ca8c4',
+    marginBottom: 10,
     textAlign: 'center',
   },
   progressStats: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    borderRadius: 18,
     padding: 20,
     justifyContent: 'space-around',
     shadowColor: '#4a90e2',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowRadius: 12,
     elevation: 4,
     borderWidth: 1,
-    borderColor: '#e8f4fd',
+    borderColor: 'rgba(200,220,240,0.6)',
   },
   statItem: {
     alignItems: 'center',
@@ -373,22 +326,26 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: 14,
-    color: '#6c7b84',
+    fontSize: 12,
+    color: '#6c8096',
     fontWeight: '500',
   },
   statDivider: {
     width: 1,
-    backgroundColor: '#e8f4fd',
-    marginHorizontal: 15,
+    backgroundColor: 'rgba(200,220,240,0.5)',
+    marginHorizontal: 10,
   },
   levelsContainer: {
     marginBottom: 25,
   },
   levelCard: {
-    marginBottom: 16,
-    borderRadius: 16,
-    overflow: 'hidden',
+    marginBottom: 14,
+    borderRadius: 18,
+    shadowColor: '#4a90e2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   lockedCard: {
     opacity: 0.55,
@@ -397,41 +354,29 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   levelHeader: {
-    borderRadius: 16,
+    borderRadius: 18,
     overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(200,220,240,0.6)',
   },
   levelHeaderExpanded: {
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
+    borderBottomWidth: 0,
   },
-  levelHeaderGradient: {
-    shadowColor: '#4a90e2',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#e8f4fd',
-    borderRadius: 16,
-  },
-  levelHeaderContent: {
+  levelHeaderInner: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 18,
   },
   levelIconContainer: {
-    width: 55,
-    height: 55,
-    borderRadius: 27.5,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 15,
-  },
-  levelIcon: {
-    fontSize: 26,
+    marginRight: 14,
   },
   levelInfo: {
     flex: 1,
@@ -440,13 +385,15 @@ const styles = StyleSheet.create({
   levelTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 5,
   },
   levelNumber: {
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#4a90e2',
+    letterSpacing: 1.0,
+    color: '#8ca8c4',
     marginRight: 10,
+    textTransform: 'uppercase',
   },
   difficultyBadge: {
     paddingHorizontal: 8,
@@ -461,117 +408,91 @@ const styles = StyleSheet.create({
   levelTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#2c3e50',
-    marginBottom: 4,
+    color: '#1a2d45',
+    marginBottom: 3,
   },
   levelSubtitle: {
-    fontSize: 14,
-    color: '#6c7b84',
+    fontSize: 13,
+    color: '#6c8096',
     fontWeight: '400',
   },
-  expandIcon: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 30,
-  },
-  expandText: {
-    fontSize: 12,
-    color: '#4a90e2',
-    fontWeight: 'bold',
-    transform: [{ rotate: '0deg' }],
-  },
-  expandTextRotated: {
-    transform: [{ rotate: '180deg' }],
-  },
   expandedContent: {
-    backgroundColor: '#f8fdff',
-    padding: 20,
+    backgroundColor: 'rgba(245,250,255,0.95)',
+    padding: 18,
     borderWidth: 1,
-    borderColor: '#e8f4fd',
     borderTopWidth: 0,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    borderColor: 'rgba(200,220,240,0.6)',
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
   },
   levelGoal: {
     fontSize: 14,
-    color: '#2c3e50',
+    color: '#1a2d45',
     lineHeight: 20,
-    marginBottom: 10,
-    fontWeight: '600',
-  },
-  levelDescription: {
-    fontSize: 14,
-    color: '#2c3e50',
-    lineHeight: 20,
-    marginBottom: 15,
+    marginBottom: 14,
+    fontWeight: '500',
   },
   levelDetails: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20,
+    gap: 20,
+    marginBottom: 16,
   },
   detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  detailIcon: {
-    fontSize: 16,
-    marginRight: 6,
-  },
   detailText: {
     fontSize: 13,
-    color: '#6c7b84',
+    color: '#6c8096',
     fontWeight: '500',
   },
   startButton: {
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
   },
-  startButtonGradient: {
+  startButtonInner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
     paddingHorizontal: 20,
+    backgroundColor: '#4a90e2',
+    borderRadius: 14,
   },
   startButtonText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
-    marginRight: 8,
-  },
-  startButtonIcon: {
-    fontSize: 16,
   },
   tipsSection: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    borderRadius: 18,
     padding: 20,
     shadowColor: '#4a90e2',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowRadius: 12,
     elevation: 4,
     borderWidth: 1,
-    borderColor: '#e8f4fd',
+    borderColor: 'rgba(200,220,240,0.6)',
     marginBottom: 20,
   },
-  tipsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2c3e50',
+  tipsTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 12,
+  },
+  tipsTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1a2d45',
   },
   tipsList: {
     paddingLeft: 5,
   },
   tipItem: {
     fontSize: 14,
-    color: '#6c7b84',
-    lineHeight: 22,
-    marginBottom: 6,
+    color: '#6c8096',
+    lineHeight: 24,
   },
 });

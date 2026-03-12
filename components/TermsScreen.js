@@ -8,20 +8,22 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function TermsScreen({ navigation }) {
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={["#f0f8ff", "#e6f3ff", "#ffffff"]}
-        style={styles.gradient}
+        colors={["#ddeeff", "#eaf4ff", "#f5f9ff"]}
+        style={styles.background}
       >
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backBtn}
+            activeOpacity={0.75}
           >
-            <Text style={styles.backIcon}>←</Text>
+            <Ionicons name="chevron-back" size={22} color="#4a90e2" />
           </TouchableOpacity>
           <Text style={styles.title}>Termeni și Condiții</Text>
         </View>
@@ -31,7 +33,10 @@ export default function TermsScreen({ navigation }) {
           showsVerticalScrollIndicator={true}
         >
           <View style={styles.warningBox}>
-            <Text style={styles.warningTitle}>⚠️ ATENȚIE!</Text>
+            <View style={styles.warningTitleRow}>
+              <Ionicons name="warning-outline" size={18} color="#b64a3a" style={{ marginRight: 6 }} />
+              <Text style={styles.warningTitle}>ATENȚIE!</Text>
+            </View>
             <Text style={styles.warningText}>
               <Text style={styles.bold}>Declinare de responsabilitate:</Text>{" "}
               Informațiile din aplicația „Dan fost Anxios" NU sunt destinate să
@@ -189,7 +194,10 @@ export default function TermsScreen({ navigation }) {
           </Text>
 
           <View style={styles.contactBox}>
-            <Text style={styles.contactTitle}>📞 Contact</Text>
+            <View style={styles.contactTitleRow}>
+              <Ionicons name="call-outline" size={16} color="#1a2d45" style={{ marginRight: 6 }} />
+              <Text style={styles.contactTitle}>Contact</Text>
+            </View>
             <Text style={styles.contactText}>
               O.DAN VALERIU PFA{"\n"}
               Dumbravița, str. Gării, nr. 1251{"\n"}
@@ -211,130 +219,54 @@ export default function TermsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  gradient: {
-    flex: 1,
-  },
+  safeArea: { flex: 1, backgroundColor: '#ddeeff' },
+  background: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#e8f4fd",
+    borderBottomColor: "rgba(200,220,240,0.5)",
   },
   backBtn: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#e8f4fd",
-    elevation: 3,
-    shadowColor: "#4a90e2",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  backIcon: {
-    fontSize: 18,
-    color: "#4a90e2",
-    fontWeight: "700",
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.75)",
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: "rgba(74,144,226,0.15)",
+    shadowColor: "#4a90e2", shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12, shadowRadius: 6, elevation: 3, marginRight: 12,
   },
   title: {
     flex: 1,
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#2c3e50",
+    fontSize: 20, fontWeight: "700",
+    color: "#1a2d45",
     textAlign: "center",
-    marginRight: 36,
+    marginRight: 38,
   },
-  content: {
-    padding: 20,
-  },
+  content: { padding: 20 },
   warningBox: {
-    backgroundColor: "#fff4f2",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#f5d0ca",
+    backgroundColor: "#fff4f2", borderRadius: 16, padding: 16, marginBottom: 16,
+    borderWidth: 1, borderColor: "#f5d0ca",
   },
-  warningTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#b64a3a",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  warningText: {
-    fontSize: 14,
-    color: "#8b3a2e",
-    lineHeight: 22,
-  },
+  warningTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 8 },
+  warningTitle: { fontSize: 16, fontWeight: "700", color: "#b64a3a" },
+  warningText: { fontSize: 14, color: "#8b3a2e", lineHeight: 22 },
   infoBox: {
-    backgroundColor: "#e6f3ff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "#b8d9f5",
+    backgroundColor: "#eaf3ff", borderRadius: 16, padding: 16, marginBottom: 20,
+    borderWidth: 1, borderColor: "rgba(200,220,240,0.8)",
   },
-  infoText: {
-    fontSize: 14,
-    color: "#2c5282",
-    lineHeight: 22,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#2c3e50",
-    marginTop: 20,
-    marginBottom: 12,
-  },
-  paragraph: {
-    fontSize: 14,
-    color: "#4a5568",
-    lineHeight: 22,
-    textAlign: "justify",
-  },
-  bold: {
-    fontWeight: "700",
-    color: "#2c3e50",
-  },
+  infoText: { fontSize: 14, color: "#2c5282", lineHeight: 22 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: "#1a2d45", marginTop: 20, marginBottom: 12 },
+  paragraph: { fontSize: 14, color: "#4a5568", lineHeight: 22, textAlign: "justify" },
+  bold: { fontWeight: "700", color: "#1a2d45" },
   contactBox: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 24,
-    borderWidth: 1,
-    borderColor: "#e8f4fd",
-    shadowColor: "#4a90e2",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    backgroundColor: "rgba(255,255,255,0.72)", borderRadius: 18, padding: 16, marginTop: 24,
+    borderWidth: 1, borderColor: "rgba(200,220,240,0.6)",
+    shadowColor: "#4a90e2", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
   },
-  contactTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#2c3e50",
-    marginBottom: 8,
-  },
-  contactText: {
-    fontSize: 14,
-    color: "#4a5568",
-    lineHeight: 22,
-  },
-  lastUpdated: {
-    fontSize: 12,
-    color: "#718096",
-    textAlign: "center",
-    marginTop: 24,
-    fontStyle: "italic",
-  },
+  contactTitleRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
+  contactTitle: { fontSize: 16, fontWeight: "700", color: "#1a2d45" },
+  contactText: { fontSize: 14, color: "#4a5568", lineHeight: 22 },
+  lastUpdated: { fontSize: 12, color: "#8ca8c4", textAlign: "center", marginTop: 24, fontStyle: "italic" },
 });

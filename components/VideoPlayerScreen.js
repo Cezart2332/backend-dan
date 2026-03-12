@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEvent } from "expo";
 import { Audio } from "expo-av";
@@ -299,9 +300,9 @@ export default function VideoPlayerScreen({
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={["#f0f8ff", "#e6f3ff", "#ffffff"]}
+        colors={["#ddeeff", "#eaf4ff", "#f5f9ff"]}
         style={styles.gradient}
       >
         <View style={styles.header}>
@@ -314,8 +315,9 @@ export default function VideoPlayerScreen({
               navigation.goBack();
             }}
             style={styles.backBtn}
+            activeOpacity={0.75}
           >
-            <Text style={styles.backIcon}>←</Text>
+            <Ionicons name="chevron-back" size={22} color="#4a90e2" />
           </TouchableOpacity>
           <Text style={styles.title}>{title}</Text>
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
@@ -368,9 +370,11 @@ export default function VideoPlayerScreen({
             {!isLoading && !error && (
               <>
                 <View style={styles.audioIconWrap}>
-                  <Text style={styles.audioIcon}>
-                    {audioIsPlaying ? "🎵" : "🎧"}
-                  </Text>
+                  <Ionicons
+                    name={audioIsPlaying ? "musical-notes-outline" : "headset-outline"}
+                    size={36}
+                    color="#4a90e2"
+                  />
                 </View>
                 <Text style={styles.audioLabel}>Mod audio – ecranul poate fi blocat</Text>
                 <Text style={styles.audioTime}>
@@ -417,12 +421,15 @@ export default function VideoPlayerScreen({
           onPress={toggleAudioOnly}
         >
           <LinearGradient
-            colors={audioOnly ? ["#6cc04a", "#5aad3e"] : ["#ffffff", "#f5faff"]}
+            colors={audioOnly ? ["#4a90e2", "#357abd"] : ["rgba(255,255,255,0.9)", "rgba(240,248,255,0.9)"]}
             style={styles.audioToggleInner}
           >
-            <Text style={styles.audioToggleIcon}>
-              {audioOnly ? "🎵" : "🎧"}
-            </Text>
+            <Ionicons
+              name={audioOnly ? "musical-notes-outline" : "headset-outline"}
+              size={18}
+              color={audioOnly ? "#fff" : "#4a90e2"}
+              style={{ marginRight: 8 }}
+            />
             <Text
               style={[
                 styles.audioToggleText,
@@ -441,34 +448,26 @@ export default function VideoPlayerScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  safeArea: { flex: 1, backgroundColor: "#ddeeff" },
   gradient: { flex: 1, padding: 20 },
-  header: { alignItems: "center", marginBottom: 16 },
+  header: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
   backBtn: {
-    position: "absolute",
-    left: 0,
-    top: -2,
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#e8f4fd",
-    elevation: 3,
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.75)",
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: "rgba(74,144,226,0.15)",
+    shadowColor: "#4a90e2", shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12, shadowRadius: 6, elevation: 3, marginRight: 14,
   },
-  backIcon: { fontSize: 18, color: "#4a90e2", fontWeight: "700" },
   title: {
-    fontSize: 22,
+    flex: 1,
+    fontSize: 20,
     fontWeight: "700",
-    color: "#2c3e50",
-    textAlign: "center",
+    color: "#1a2d45",
   },
   subtitle: {
     fontSize: 14,
-    color: "#6c7b84",
-    textAlign: "center",
+    color: "#6c8096",
     marginTop: 6,
   },
   /* ── video ── */
@@ -529,17 +528,17 @@ const styles = StyleSheet.create({
   audioWrap: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
-    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.72)",
+    borderRadius: 18,
     padding: 24,
     marginTop: 8,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#e8f4fd",
+    borderColor: "rgba(200,220,240,0.6)",
     shadowColor: "#4a90e2",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowRadius: 12,
     elevation: 4,
     minHeight: 180,
   },
@@ -563,13 +562,13 @@ const styles = StyleSheet.create({
   audioIcon: { fontSize: 32 },
   audioLabel: {
     fontSize: 14,
-    color: "#6c7b84",
+    color: "#6c8096",
     textAlign: "center",
     marginBottom: 8,
   },
   audioTime: {
     fontSize: 13,
-    color: "#2c3e50",
+    color: "#1a2d45",
     fontWeight: "600",
     marginBottom: 8,
   },
@@ -605,6 +604,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   audioToggleIcon: { fontSize: 18, marginRight: 8 },
-  audioToggleText: { fontSize: 14, fontWeight: "600", color: "#2c3e50" },
+  audioToggleText: { fontSize: 14, fontWeight: "600", color: "#1a2d45" },
   audioToggleTextActive: { color: "#fff" },
 });

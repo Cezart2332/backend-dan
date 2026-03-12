@@ -115,9 +115,9 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={['#f0f8ff', '#e6f3ff', '#ffffff']}
+        colors={['#ddeeff', '#eaf4ff', '#f5f9ff']}
         style={styles.gradient}
       >
         <KeyboardAvoidingView
@@ -131,12 +131,12 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                 onPress={() => navigation.goBack()}
                 style={styles.backButton}
               >
-                <Text style={styles.backButtonText}>←</Text>
+                <Ionicons name="chevron-back" size={24} color="#4a90e2" />
               </TouchableOpacity>
 
               <View style={styles.logoContainer}>
                 <View style={styles.logoCircle}>
-                  <Text style={styles.logoIcon}>🌿</Text>
+                  <Ionicons name="leaf" size={40} color="#4a90e2" />
                 </View>
               </View>
               <Text style={styles.title}>Create Account</Text>
@@ -146,7 +146,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
             {/* Form */}
             <View style={styles.formContainer}>
               <View style={styles.inputContainer}>
-                <Text style={styles.inputIcon}>👤</Text>
+                <Ionicons name="person-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Full name"
@@ -158,7 +158,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.inputIcon}>✉️</Text>
+                <Ionicons name="mail-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Email address"
@@ -171,7 +171,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.inputIcon}>🔒</Text>
+                <Ionicons name="lock-closed-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Password"
@@ -184,14 +184,16 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                   onPress={() => setShowPassword(!showPassword)}
                   style={styles.eyeIcon}
                 >
-                  <Text style={styles.eyeIconText}>
-                    {showPassword ? "👁️" : "🙈"}
-                  </Text>
+                  <Ionicons
+                    name={showPassword ? "eye-outline" : "eye-off-outline"}
+                    size={20}
+                    color="#4a90e2"
+                  />
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputIcon}>🔒</Text>
+              <View style={[styles.inputContainer, { marginBottom: 0 }]}>
+                <Ionicons name="lock-closed-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Confirm password"
@@ -204,9 +206,11 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                   style={styles.eyeIcon}
                 >
-                  <Text style={styles.eyeIconText}>
-                    {showConfirmPassword ? "👁️" : "🙈"}
-                  </Text>
+                  <Ionicons
+                    name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
+                    size={20}
+                    color="#4a90e2"
+                  />
                 </TouchableOpacity>
               </View>
 
@@ -217,7 +221,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
               >
                 <View style={styles.checkboxRow}>
                   <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
-                    {agreedToTerms && <Text style={styles.checkmark}>✓</Text>}
+                    {agreedToTerms && <Ionicons name="checkmark" size={14} color="#fff" />}
                   </View>
                   <Text style={styles.agreementText}>
                     Sunt de acord cu{' '}
@@ -262,7 +266,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                 onPress={() => googlePromptAsync()}
                 disabled={!googleRequest || loading}
               >
-                <Text style={styles.socialIcon}>G</Text>
+                <Ionicons name="logo-google" size={20} color="#4285F4" style={{ marginRight: 8 }} />
                 <Text style={styles.socialButtonText}>Google</Text>
               </TouchableOpacity>
 
@@ -272,7 +276,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                   onPress={handleAppleSignUp}
                   disabled={loading}
                 >
-                  <Text style={styles.socialIcon}>🍎</Text>
+                  <Ionicons name="logo-apple" size={20} color="#2c3e50" style={{ marginRight: 8 }} />
                   <Text style={styles.socialButtonText}>Apple</Text>
                 </TouchableOpacity>
               )}
@@ -324,12 +328,8 @@ Sunt coach și autor de cărți despre anxietate și am trecut personal prin ace
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  gradient: {
-    flex: 1,
-  },
+  safeArea: { flex: 1, backgroundColor: '#ddeeff' },
+  gradient: { flex: 1 },
   keyboardAvoid: {
     flex: 1,
   },
@@ -345,24 +345,13 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   backButton: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: '#ffffff',
-    shadowColor: '#4a90e2',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    position: 'absolute', left: 0, top: 0,
+    padding: 8, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderWidth: 1, borderColor: 'rgba(74,144,226,0.15)',
+    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, shadowRadius: 4, elevation: 4,
+    width: 40, height: 40, justifyContent: 'center', alignItems: 'center',
   },
   backButtonText: {
     fontSize: 18,
@@ -373,20 +362,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#ffffff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#4a90e2',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(74,144,226,0.15)',
+    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15, shadowRadius: 8, elevation: 8,
   },
   title: {
     fontSize: 28,
@@ -425,9 +406,6 @@ const styles = StyleSheet.create({
   },
   inputIcon: {
     marginRight: 12,
-    fontSize: 16,
-    textAlign: 'center',
-    width: 20,
   },
   input: {
     flex: 1,
@@ -438,19 +416,6 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     padding: 4,
-  },
-  eyeIconText: {
-    fontSize: 16,
-  },
-  logoIcon: {
-    fontSize: 40,
-  },
-  socialIcon: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginRight: 8,
-    textAlign: 'center',
-    width: 24,
   },
   agreementContainer: {
     marginBottom: 24,
@@ -473,11 +438,6 @@ const styles = StyleSheet.create({
   },
   checkboxChecked: {
     backgroundColor: '#4a90e2',
-  },
-  checkmark: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: 'bold',
   },
   agreementText: {
     fontSize: 14,

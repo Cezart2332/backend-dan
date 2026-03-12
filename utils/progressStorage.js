@@ -34,15 +34,7 @@ export async function getEntries() {
       const list = JSON.parse(raw);
       return Array.isArray(list) ? list.map(normalizeEntry) : [];
     }
-    // Seed mock data on first run
-    const now = Date.now();
-    const mock = [
-      normalizeEntry({ id: String(now - 1000 * 60 * 60 * 24 * 1), date: new Date(now - 86400000).toISOString(), level: 6, description: 'Am simțit presiune la muncă dar am respirat 4-7-8.', actions: 'Respirație 4-7-8, plimbare scurtă' }),
-      normalizeEntry({ id: String(now - 1000 * 60 * 60 * 24 * 2), date: new Date(now - 2 * 86400000).toISOString(), level: 3, description: 'Zi liniștită, am meditat dimineața.', actions: 'Meditație 10 min' }),
-      normalizeEntry({ id: String(now - 1000 * 60 * 60 * 24 * 3), date: new Date(now - 3 * 86400000).toISOString(), level: 8, description: 'Am avut anxietate înainte de o prezentare.', actions: 'Jurnalizare, discuție cu un prieten' }),
-    ];
-    await AsyncStorage.setItem(KEY, JSON.stringify(mock));
-    return mock;
+    return [];
   } catch {
     return [];
   }
@@ -95,7 +87,10 @@ export async function getEntryById(id) {
 }
 
 export async function clearEntries() {
-  try { await AsyncStorage.removeItem(KEY); } catch {}
+  try {
+    await AsyncStorage.removeItem(KEY);
+    await AsyncStorage.removeItem(READY_KEY);
+  } catch {}
 }
 
 export async function setBackendReady(flag) {

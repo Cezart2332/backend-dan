@@ -10,9 +10,11 @@ import {
   Modal,
   Keyboard,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../utils/api";
 import { getToken, removeToken } from "../utils/authStorage";
 import { removeUser } from "../utils/userStorage";
@@ -109,63 +111,66 @@ export default function SettingsScreen({ navigation, onLogout }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={["#f0f8ff", "#e6f3ff", "#ffffff"]}
-        style={styles.gradient}
+        colors={["#ddeeff", "#eaf4ff", "#f5f9ff"]}
+        style={styles.background}
       >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" onScrollBeginDrag={Keyboard.dismiss}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          onScrollBeginDrag={Keyboard.dismiss}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity
               onPress={() => navigation.goBack()}
               style={styles.backBtn}
+              activeOpacity={0.75}
             >
-              <Text style={styles.backIcon}>←</Text>
+              <Ionicons name="chevron-back" size={22} color="#4a90e2" />
             </TouchableOpacity>
-            <Text style={styles.title}>Setări</Text>
+            <Text style={styles.headerTitle}>Setări</Text>
           </View>
 
-          {/* Report Bug Button */}
-          <TouchableOpacity
-            style={styles.optionCard}
-            onPress={() => setShowBugModal(true)}
-          >
-            <LinearGradient
-              colors={["#ffffff", "#f8fdff"]}
-              style={styles.optionCardInner}
+          {/* Section: Suport */}
+          <Text style={styles.sectionLabel}>SUPORT</Text>
+          <View style={styles.group}>
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() => setShowBugModal(true)}
+              activeOpacity={0.7}
             >
-              <Text style={styles.optionIcon}>🐛</Text>
-              <View style={styles.optionTextContainer}>
-                <Text style={styles.optionTitle}>Raportează un bug</Text>
-                <Text style={styles.optionSubtitle}>
-                  Ajută-ne să îmbunătățim aplicația
-                </Text>
+              <View style={[styles.iconWrap, { backgroundColor: "#fff7e6" }]}>
+                <Ionicons name="bug-outline" size={20} color="#f0a500" />
               </View>
-              <Text style={styles.optionArrow}>→</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+              <View style={styles.rowTextWrap}>
+                <Text style={styles.rowTitle}>Raportează un bug</Text>
+                <Text style={styles.rowSubtitle}>Ajută-ne să îmbunătățim aplicația</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#c8d8e8" />
+            </TouchableOpacity>
+          </View>
 
-          {/* Delete Account Button */}
-          <TouchableOpacity
-            style={[styles.optionCard, styles.dangerCard]}
-            onPress={() => setShowDeleteModal(true)}
-          >
-            <LinearGradient
-              colors={["#ffffff", "#fff5f5"]}
-              style={styles.optionCardInner}
+          {/* Section: Cont */}
+          <Text style={styles.sectionLabel}>CONT</Text>
+          <View style={styles.group}>
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() => setShowDeleteModal(true)}
+              activeOpacity={0.7}
             >
-              <Text style={styles.optionIcon}>🗑️</Text>
-              <View style={styles.optionTextContainer}>
-                <Text style={[styles.optionTitle, styles.dangerText]}>
-                  Șterge acest cont
-                </Text>
-                <Text style={styles.optionSubtitle}>
-                  Această acțiune este permanentă
-                </Text>
+              <View style={[styles.iconWrap, { backgroundColor: "#fff0f0" }]}>
+                <Ionicons name="trash-outline" size={20} color="#d9534f" />
               </View>
-              <Text style={[styles.optionArrow, styles.dangerText]}>→</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+              <View style={styles.rowTextWrap}>
+                <Text style={[styles.rowTitle, { color: "#d9534f" }]}>Șterge contul</Text>
+                <Text style={styles.rowSubtitle}>Această acțiune este permanentă</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#e8c8c8" />
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </LinearGradient>
 
@@ -176,48 +181,56 @@ export default function SettingsScreen({ navigation, onLogout }) {
         animationType="fade"
         onRequestClose={() => setShowDeleteModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>⚠️ Șterge contul</Text>
-            <Text style={styles.modalText}>
+        <View style={styles.overlay}>
+          <View style={styles.sheet}>
+            <View style={styles.sheetIconRow}>
+              <View style={[styles.sheetIconWrap, { backgroundColor: "#fff0f0" }]}>
+                <Ionicons name="trash-outline" size={26} color="#d9534f" />
+              </View>
+            </View>
+            <Text style={styles.sheetTitle}>Șterge contul</Text>
+            <Text style={styles.sheetBody}>
               Această acțiune este permanentă și nu poate fi anulată. Toate
               datele tale, inclusiv progresul și abonamentul, vor fi șterse.
             </Text>
-            <Text style={styles.modalText}>
-              Pentru a confirma, scrie{" "}
-              <Text style={styles.boldText}>STERGE</Text> mai jos:
+            <Text style={styles.sheetBody}>
+              Scrie{" "}
+              <Text style={styles.confirmWord}>STERGE</Text>
+              {" "}pentru a confirma:
             </Text>
             <TextInput
-              style={styles.modalInput}
+              style={styles.input}
               value={deleteConfirmText}
               onChangeText={setDeleteConfirmText}
-              placeholder="Scrie STERGE pentru a confirma"
-              placeholderTextColor="#a0a0a0"
+              placeholder="STERGE"
+              placeholderTextColor="#c0c8d0"
               autoCapitalize="characters"
             />
-            <View style={styles.modalButtons}>
+            <View style={styles.sheetActions}>
               <TouchableOpacity
-                style={styles.modalCancelBtn}
+                style={styles.cancelBtn}
                 onPress={() => {
                   setShowDeleteModal(false);
                   setDeleteConfirmText("");
                 }}
                 disabled={loading}
+                activeOpacity={0.75}
               >
-                <Text style={styles.modalCancelText}>Anulează</Text>
+                <Text style={styles.cancelBtnText}>Anulează</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
-                  styles.modalDeleteBtn,
-                  deleteConfirmText !== "STERGE" && styles.modalBtnDisabled,
+                  styles.destructiveBtn,
+                  (loading || deleteConfirmText !== "STERGE") && styles.btnDisabled,
                 ]}
                 onPress={handleDeleteAccount}
                 disabled={loading || deleteConfirmText !== "STERGE"}
+                activeOpacity={0.8}
               >
                 {loading ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={styles.modalDeleteText}>Șterge contul</Text>
+                  <Text style={styles.destructiveBtnText}>Șterge contul</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -232,56 +245,62 @@ export default function SettingsScreen({ navigation, onLogout }) {
         animationType="fade"
         onRequestClose={() => setShowBugModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>🐛 Raportează un bug</Text>
-            <Text style={styles.modalText}>
-              Descrie problema pe care ai întâlnit-o. Încearcă să fii cât mai
-              specific posibil.
+        <View style={styles.overlay}>
+          <View style={styles.sheet}>
+            <View style={styles.sheetIconRow}>
+              <View style={[styles.sheetIconWrap, { backgroundColor: "#fff7e6" }]}>
+                <Ionicons name="bug-outline" size={26} color="#f0a500" />
+              </View>
+            </View>
+            <Text style={styles.sheetTitle}>Raportează un bug</Text>
+            <Text style={styles.sheetBody}>
+              Descrie problema întâlnită cât mai specific posibil.
             </Text>
             <TextInput
-              style={[styles.modalInput, styles.textArea]}
+              style={[styles.input, styles.textArea]}
               value={bugDescription}
               onChangeText={setBugDescription}
               placeholder="Descrie problema..."
-              placeholderTextColor="#a0a0a0"
+              placeholderTextColor="#c0c8d0"
               multiline
               numberOfLines={4}
               textAlignVertical="top"
             />
             <TextInput
-              style={styles.modalInput}
+              style={styles.input}
               value={bugEmail}
               onChangeText={setBugEmail}
               placeholder="Email de contact (opțional)"
-              placeholderTextColor="#a0a0a0"
+              placeholderTextColor="#c0c8d0"
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            <View style={styles.modalButtons}>
+            <View style={styles.sheetActions}>
               <TouchableOpacity
-                style={styles.modalCancelBtn}
+                style={styles.cancelBtn}
                 onPress={() => {
                   setShowBugModal(false);
                   setBugDescription("");
                   setBugEmail("");
                 }}
                 disabled={loading}
+                activeOpacity={0.75}
               >
-                <Text style={styles.modalCancelText}>Anulează</Text>
+                <Text style={styles.cancelBtnText}>Anulează</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
-                  styles.modalSubmitBtn,
-                  !bugDescription.trim() && styles.modalBtnDisabled,
+                  styles.primaryBtn,
+                  (loading || !bugDescription.trim()) && styles.btnDisabled,
                 ]}
                 onPress={handleReportBug}
                 disabled={loading || !bugDescription.trim()}
+                activeOpacity={0.8}
               >
                 {loading ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={styles.modalSubmitText}>Trimite</Text>
+                  <Text style={styles.primaryBtnText}>Trimite</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -293,169 +312,236 @@ export default function SettingsScreen({ navigation, onLogout }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  gradient: { flex: 1 },
-  content: { padding: 20 },
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#ddeeff",
+  },
+  background: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 40,
+  },
+
+  // Header
   header: {
-    alignItems: "center",
-    marginBottom: 24,
-    position: "relative",
-  },
-  backBtn: {
-    position: "absolute",
-    left: 0,
-    top: -2,
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#e8f4fd",
-    elevation: 3,
-    shadowColor: "#4a90e2",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  backIcon: { fontSize: 18, color: "#4a90e2", fontWeight: "700" },
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#2c3e50",
-    textAlign: "center",
-  },
-  optionCard: {
-    marginBottom: 14,
-    borderRadius: 16,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#e8f4fd",
-    shadowColor: "#4a90e2",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  dangerCard: {
-    borderColor: "#ffdddd",
-  },
-  optionCardInner: {
-    padding: 16,
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: 32,
+    marginTop: 4,
   },
-  optionIcon: { fontSize: 24, marginRight: 12 },
-  optionTextContainer: { flex: 1 },
-  optionTitle: {
-    fontSize: 16,
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.75)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(74,144,226,0.15)",
+    shadowColor: "#4a90e2",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+    marginRight: 14,
+  },
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: "#1a2d45",
+    letterSpacing: -0.4,
+  },
+
+  // Section labels
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#8ca8c4",
+    letterSpacing: 1.2,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+
+  // Grouped rows
+  group: {
+    backgroundColor: "rgba(255,255,255,0.72)",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(200,220,240,0.6)",
+    overflow: "hidden",
+    shadowColor: "#4a90e2",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+    marginBottom: 28,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  iconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  rowTextWrap: {
+    flex: 1,
+  },
+  rowTitle: {
+    fontSize: 15,
     fontWeight: "600",
-    color: "#2c3e50",
+    color: "#1a2d45",
     marginBottom: 2,
   },
-  optionSubtitle: {
-    fontSize: 13,
-    color: "#6c7b84",
+  rowSubtitle: {
+    fontSize: 12,
+    color: "#8ca8c4",
+    fontWeight: "400",
   },
-  optionArrow: { fontSize: 18, color: "#4a90e2", fontWeight: "700" },
-  dangerText: { color: "#d9534f" },
-  // Modal styles
-  modalOverlay: {
+
+  // Modal overlay
+  overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(10, 30, 60, 0.45)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
     padding: 24,
+  },
+
+  // Modal sheet
+  sheet: {
     width: "100%",
     maxWidth: 400,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 10,
+    backgroundColor: "rgba(245,250,255,0.97)",
+    borderRadius: 26,
+    padding: 28,
+    borderWidth: 1,
+    borderColor: "rgba(200,220,242,0.6)",
+    shadowColor: "#4a90e2",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 12,
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#2c3e50",
-    textAlign: "center",
+  sheetIconRow: {
+    alignItems: "center",
     marginBottom: 16,
   },
-  modalText: {
-    fontSize: 14,
-    color: "#6c7b84",
-    lineHeight: 20,
-    marginBottom: 12,
-    textAlign: "center",
+  sheetIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  boldText: {
+  sheetTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1a2d45",
+    textAlign: "center",
+    marginBottom: 8,
+    letterSpacing: -0.3,
+  },
+  sheetBody: {
+    fontSize: 14,
+    color: "#6c8096",
+    lineHeight: 21,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  confirmWord: {
     fontWeight: "700",
     color: "#d9534f",
+    letterSpacing: 0.5,
   },
-  modalInput: {
-    backgroundColor: "#f8f9fa",
-    borderRadius: 12,
-    padding: 14,
+
+  // Input
+  input: {
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 13,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
     fontSize: 15,
-    color: "#2c3e50",
+    color: "#1a2d45",
     borderWidth: 1,
-    borderColor: "#e8f4fd",
+    borderColor: "rgba(200,220,240,0.8)",
     marginBottom: 12,
+    shadowColor: "#4a90e2",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
   },
   textArea: {
     minHeight: 100,
+    paddingTop: 13,
   },
-  modalButtons: {
+
+  // Action buttons
+  sheetActions: {
     flexDirection: "row",
-    justifyContent: "space-between",
     marginTop: 8,
+    gap: 10,
   },
-  modalCancelBtn: {
+  cancelBtn: {
     flex: 1,
     paddingVertical: 14,
-    marginRight: 8,
-    borderRadius: 12,
-    backgroundColor: "#f0f0f0",
+    borderRadius: 14,
+    backgroundColor: "rgba(200,215,230,0.35)",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(200,215,230,0.5)",
   },
-  modalCancelText: {
+  cancelBtnText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#6c7b84",
+    color: "#5a7a95",
   },
-  modalDeleteBtn: {
+  destructiveBtn: {
     flex: 1,
     paddingVertical: 14,
-    marginLeft: 8,
-    borderRadius: 12,
+    borderRadius: 14,
     backgroundColor: "#d9534f",
     alignItems: "center",
+    shadowColor: "#d9534f",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  modalDeleteText: {
+  destructiveBtnText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#fff",
   },
-  modalSubmitBtn: {
+  primaryBtn: {
     flex: 1,
     paddingVertical: 14,
-    marginLeft: 8,
-    borderRadius: 12,
+    borderRadius: 14,
     backgroundColor: "#4a90e2",
     alignItems: "center",
+    shadowColor: "#4a90e2",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  modalSubmitText: {
+  primaryBtnText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#fff",
   },
-  modalBtnDisabled: {
-    opacity: 0.5,
+  btnDisabled: {
+    opacity: 0.45,
+    shadowOpacity: 0,
+    elevation: 0,
   },
 });

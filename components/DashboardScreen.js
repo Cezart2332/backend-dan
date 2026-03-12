@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 import {
   getSubscription,
   clearSubscription,
@@ -53,7 +54,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
       id: 7,
       title: "Ajutor",
       subtitle: "Am nevoie acum",
-      icon: "🆘",
+      iconName: "alert-circle-outline",
       color: "#6cc04a",
     },
     // 2) Tehnici second
@@ -61,7 +62,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
       id: 6,
       title: "Tehnica HAI – metoda care elimină anxietatea",
       subtitle: "Descoperă pașii și aplicațiile",
-      icon: "🧘",
+      iconName: "leaf-outline",
       color: "#2bbbad",
     },
     // 3) About Dan
@@ -69,7 +70,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
       id: 8,
       title: "Eu sunt Dan fost anxios",
       subtitle: "Cunoaște-mă",
-      icon: "�",
+      iconName: "person-circle-outline",
       color: "#9b59b6",
     },
     // Rest of items
@@ -77,21 +78,21 @@ export default function DashboardScreen({ navigation, onLogout }) {
       id: 1,
       title: "Progresul meu",
       subtitle: "Urmărește-ți evoluția",
-      icon: "📊",
+      iconName: "bar-chart-outline",
       color: "#4a90e2",
     },
     {
       id: 2,
       title: "Gândul de azi de la Dan",
       subtitle: "Înțelepciune zilnică",
-      icon: "�",
+      iconName: "chatbubble-ellipses-outline",
       color: "#5cb85c",
     },
     {
       id: 3,
       title: "Provocări",
       subtitle: "Depășește-ți limitele",
-      icon: "🎯",
+      iconName: "trophy-outline",
       color: "#f0ad4e",
     },
     {
@@ -99,28 +100,28 @@ export default function DashboardScreen({ navigation, onLogout }) {
       title:
         "Intră în direct cu Dan sau trimite-i jurnalul lui Dan pentru analiza",
       subtitle: "Conectează-te direct",
-      icon: "📹",
+      iconName: "videocam-outline",
       color: "#d9534f",
     },
     {
       id: 5,
       title: "Trimite-mi o întrebare",
       subtitle: "Pune-ți întrebările",
-      icon: "❓",
+      iconName: "help-circle-outline",
       color: "#5bc0de",
     },
     {
       id: 9,
       title: "Abonamente & Acces",
       subtitle: "Planuri Basic / Premium / VIP",
-      icon: "💎",
+      iconName: "diamond-outline",
       color: "#ff8c42",
     },
     {
       id: 10,
       title: "Înțelege anxietatea",
       subtitle: "Audio-uri și video explicative",
-      icon: "🎧",
+      iconName: "headset-outline",
       color: "#8e44ad",
     },
   ];
@@ -177,9 +178,9 @@ export default function DashboardScreen({ navigation, onLogout }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={["#f0f8ff", "#e6f3ff", "#ffffff"]}
+        colors={["#ddeeff", "#eaf4ff", "#f5f9ff"]}
         style={styles.gradient}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -199,7 +200,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
 
             <View style={styles.logoContainer}>
               <View style={styles.logoCircle}>
-                <Text style={styles.logoIcon}>🌿</Text>
+                <Ionicons name="leaf" size={26} color="#4a90e2" />
               </View>
             </View>
           </View>
@@ -220,32 +221,42 @@ export default function DashboardScreen({ navigation, onLogout }) {
                 ]}
                 onPress={() => handleMenuPress(item)}
               >
-                <LinearGradient
-                  colors={locked ? ['#f0f0f0', '#e8e8e8'] : ["#ffffff", "#f8fdff"]}
-                  style={styles.menuItemGradient}
-                >
+                <View style={styles.menuItemCard}>
                   <View style={styles.menuItemContent}>
                     <View
                       style={[
                         styles.iconContainer,
-                        { backgroundColor: locked ? '#ddd' : item.color + "15" },
+                        { backgroundColor: locked ? '#e8e8e8' : item.color + "18" },
                       ]}
                     >
-                      <Text style={[styles.menuIcon, locked && { opacity: 0.4 }]}>{item.icon}</Text>
+                      <Ionicons
+                        name={item.iconName}
+                        size={26}
+                        color={locked ? '#aaa' : item.color}
+                      />
                     </View>
 
                     <View style={styles.textContainer}>
                       <Text style={[styles.menuItemTitle, locked && styles.lockedText]}>{item.title}</Text>
-                      <Text style={[styles.menuItemSubtitle, locked && styles.lockedText]}>
-                        {locked ? '🔒 Disponibil cu abonament' : item.subtitle}
-                      </Text>
+                      {locked ? (
+                        <View style={styles.lockedRow}>
+                          <Ionicons name="lock-closed" size={11} color="#bbb" />
+                          <Text style={[styles.menuItemSubtitle, styles.lockedText]}> Disponibil cu abonament</Text>
+                        </View>
+                      ) : (
+                        <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
+                      )}
                     </View>
 
                     <View style={styles.arrowContainer}>
-                      <Text style={[styles.arrow, locked && { opacity: 0.3 }]}>{locked ? '🔒' : '→'}</Text>
+                      <Ionicons
+                        name={locked ? "lock-closed" : "chevron-forward"}
+                        size={18}
+                        color={locked ? '#ccc' : '#b0c4d8'}
+                      />
                     </View>
                   </View>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
               );
             })}
@@ -258,9 +269,9 @@ export default function DashboardScreen({ navigation, onLogout }) {
               onPress={() => Linking.openURL('https://www.facebook.com/groups/820094195023604/')}
             >
               <LinearGradient colors={['#1877F2', '#145dbf']} style={styles.externalLinkGradient}>
-                <Text style={styles.externalLinkIcon}>👥</Text>
+                <Ionicons name="people" size={20} color="#fff" style={styles.externalLinkIcon} />
                 <Text style={styles.externalLinkText}>Comunitate</Text>
-                <Text style={styles.externalLinkArrow}>→</Text>
+                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.75)" />
               </LinearGradient>
             </TouchableOpacity>
 
@@ -269,9 +280,9 @@ export default function DashboardScreen({ navigation, onLogout }) {
               onPress={() => Linking.openURL('https://danfostanxios.ro/testimoniale-2/')}
             >
               <LinearGradient colors={['#6cc04a', '#5aad3e']} style={styles.externalLinkGradient}>
-                <Text style={styles.externalLinkIcon}>⭐</Text>
+                <Ionicons name="star" size={20} color="#fff" style={styles.externalLinkIcon} />
                 <Text style={styles.externalLinkText}>Testimoniale Dan</Text>
-                <Text style={styles.externalLinkArrow}>→</Text>
+                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.75)" />
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -282,7 +293,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
               style={styles.termsButton}
               onPress={() => navigation.navigate("Terms")}
             >
-              <Text style={styles.termsIcon}>📜</Text>
+              <Ionicons name="document-text-outline" size={18} color="#6c7b84" style={{ marginRight: 6 }} />
               <Text style={styles.termsText}>Termeni</Text>
             </TouchableOpacity>
 
@@ -290,7 +301,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
               style={styles.settingsButton}
               onPress={() => navigation.navigate("Settings")}
             >
-              <Text style={styles.settingsIcon}>⚙️</Text>
+              <Ionicons name="settings-outline" size={18} color="#6c7b84" style={{ marginRight: 6 }} />
               <Text style={styles.settingsText}>Setări</Text>
             </TouchableOpacity>
 
@@ -298,7 +309,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
               style={styles.logoutButton}
               onPress={handleLogout}
             >
-              <Text style={styles.logoutIcon}>🚪</Text>
+              <Ionicons name="log-out-outline" size={18} color="#d9534f" style={{ marginRight: 6 }} />
               <Text style={styles.logoutText}>Ieșire</Text>
             </TouchableOpacity>
           </View>
@@ -309,12 +320,8 @@ export default function DashboardScreen({ navigation, onLogout }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  gradient: {
-    flex: 1,
-  },
+  safeArea: { flex: 1, backgroundColor: "#ddeeff" },
+  gradient: { flex: 1 },
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: 20,
@@ -333,12 +340,12 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#2c3e50",
+    color: "#1a2d45",
     marginBottom: 4,
   },
   userName: {
     fontSize: 16,
-    color: "#6c7b84",
+    color: "#6c8096",
     fontWeight: "400",
   },
   subBadge: {
@@ -364,23 +371,13 @@ const styles = StyleSheet.create({
     marginLeft: 15,
   },
   logoCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#ffffff",
-    justifyContent: "center",
-    alignItems: "center",
+    width: 50, height: 50, borderRadius: 25,
+    backgroundColor: "rgba(255,255,255,0.75)",
+    justifyContent: "center", alignItems: "center",
+    borderWidth: 1, borderColor: "rgba(74,144,226,0.15)",
     shadowColor: "#4a90e2",
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 6,
-  },
-  logoIcon: {
-    fontSize: 24,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15, shadowRadius: 6, elevation: 6,
   },
   quoteSection: {
     marginBottom: 30,
@@ -422,15 +419,16 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   menuTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#2c3e50",
-    marginBottom: 20,
-    textAlign: "center",
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#8ca8c4",
+    letterSpacing: 1.2,
+    marginBottom: 14,
+    marginLeft: 4,
   },
   menuItem: {
-    marginBottom: 16,
-    borderRadius: 16,
+    marginBottom: 12,
+    borderRadius: 18,
     overflow: "hidden",
   },
   lastMenuItem: {
@@ -442,18 +440,13 @@ const styles = StyleSheet.create({
   lockedText: {
     color: '#999',
   },
-  menuItemGradient: {
+  menuItemCard: {
+    backgroundColor: "rgba(255,255,255,0.72)",
     shadowColor: "#4a90e2",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: "#e8f4fd",
-    borderRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
+    borderWidth: 1, borderColor: "rgba(200,220,240,0.6)",
+    borderRadius: 18,
   },
   menuItemContent: {
     flexDirection: "row",
@@ -468,8 +461,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 15,
   },
-  menuIcon: {
-    fontSize: 24,
+  lockedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 1,
   },
   textContainer: {
     flex: 1,
@@ -478,13 +473,13 @@ const styles = StyleSheet.create({
   menuItemTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#2c3e50",
+    color: "#1a2d45",
     marginBottom: 4,
     lineHeight: 22,
   },
   menuItemSubtitle: {
     fontSize: 14,
-    color: "#6c7b84",
+    color: "#6c8096",
     fontWeight: "400",
   },
   arrowContainer: {
@@ -492,11 +487,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: 30,
   },
-  arrow: {
-    fontSize: 18,
-    color: "#4a90e2",
-    fontWeight: "bold",
-  },
+
   externalLinks: {
     marginTop: 16,
     marginBottom: 8,
@@ -518,7 +509,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   externalLinkIcon: {
-    fontSize: 20,
     marginRight: 10,
   },
   externalLinkText: {
@@ -527,98 +517,55 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#fff",
   },
-  externalLinkArrow: {
-    fontSize: 18,
-    color: "#fff",
-    fontWeight: "700",
-  },
+
   bottomActions: {
     flexDirection: "row",
     justifyContent: "space-around",
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: "#e8f4fd",
+    borderTopColor: "rgba(200,220,240,0.5)",
     marginTop: "auto",
   },
   settingsButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    backgroundColor: "rgba(255,255,255,0.72)",
+    paddingHorizontal: 20, paddingVertical: 12,
     borderRadius: 20,
     shadowColor: "#4a90e2",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: "#e8f4fd",
-  },
-  settingsIcon: {
-    fontSize: 16,
-    marginRight: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 6, elevation: 4,
+    borderWidth: 1, borderColor: "rgba(200,220,240,0.6)",
   },
   settingsText: {
-    fontSize: 14,
-    color: "#2c3e50",
-    fontWeight: "500",
+    fontSize: 14, color: "#1a2d45", fontWeight: "500",
   },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    backgroundColor: "rgba(255,255,255,0.72)",
+    paddingHorizontal: 20, paddingVertical: 12,
     borderRadius: 20,
     shadowColor: "#4a90e2",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: "#e8f4fd",
-  },
-  logoutIcon: {
-    fontSize: 16,
-    marginRight: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 6, elevation: 4,
+    borderWidth: 1, borderColor: "rgba(200,220,240,0.6)",
   },
   logoutText: {
-    fontSize: 14,
-    color: "#d9534f",
-    fontWeight: "500",
+    fontSize: 14, color: "#d9534f", fontWeight: "500",
   },
   termsButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: "rgba(255,255,255,0.72)",
+    paddingHorizontal: 16, paddingVertical: 12,
     borderRadius: 20,
     shadowColor: "#4a90e2",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: "#e8f4fd",
-  },
-  termsIcon: {
-    fontSize: 14,
-    marginRight: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 6, elevation: 4,
+    borderWidth: 1, borderColor: "rgba(200,220,240,0.6)",
   },
   termsText: {
-    fontSize: 13,
-    color: "#6c7b84",
-    fontWeight: "500",
+    fontSize: 13, color: "#6c8096", fontWeight: "500",
   },
 });

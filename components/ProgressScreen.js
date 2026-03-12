@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { addEntry, getUnsyncedEntries, markEntrySynced, setBackendReady } from '../utils/progressStorage';
 import { getToken } from '../utils/authStorage';
 import { api } from '../utils/api';
@@ -65,7 +66,7 @@ export default function ProgressScreen({ navigation }) {
       }
       // Always keep local copy too
       await addEntry(entry);
-      alert('Jurnalul a fost trimis cu succes către Dan! 📝✨');
+      alert('Jurnalul a fost trimis cu succes către Dan!');
     } catch (e) {
       alert(e?.message || 'Nu am reușit să trimit progresul.');
     }
@@ -91,7 +92,7 @@ export default function ProgressScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={['#f0f8ff', '#e6f3ff', '#ffffff']}
+        colors={['#ddeeff', '#eaf4ff', '#f5f9ff']}
         style={styles.gradient}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled" onScrollBeginDrag={Keyboard.dismiss}>
@@ -101,22 +102,22 @@ export default function ProgressScreen({ navigation }) {
               onPress={() => navigation.goBack()}
               style={styles.backButton}
             >
-              <Text style={styles.backButtonText}>←</Text>
+              <Ionicons name="chevron-back" size={22} color="#4a90e2" />
             </TouchableOpacity>
 
             <View style={styles.headerContent}>
               <View style={styles.headerIcon}>
-                <Text style={styles.headerIconText}>📊</Text>
+                <Ionicons name="bar-chart-outline" size={36} color="#4a90e2" />
               </View>
               <Text style={styles.title}>Progresul Meu</Text>
               <Text style={styles.subtitle}>Urmărește-ți evoluția zilnică</Text>
             </View>
 
             <TouchableOpacity style={styles.headerAction} onPress={() => navigation.navigate('ProgressHistory')}>
-              <LinearGradient colors={['#ffffff', '#f5faff']} style={styles.headerActionInner}>
-                <Text style={styles.headerActionIcon}>🗂️</Text>
+              <View style={styles.headerActionInner}>
+                <Ionicons name="time-outline" size={16} color="#4a90e2" style={{ marginRight: 6 }} />
                 <Text style={styles.headerActionText}>Vezi istoric</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -219,11 +220,8 @@ export default function ProgressScreen({ navigation }) {
 
           {/* Progress Insights */}
           <View style={styles.insightsSection}>
-            <LinearGradient
-              colors={['#ffffff', '#f8fdff']}
-              style={styles.insightsCard}
-            >
-              <Text style={styles.insightsIcon}>💡</Text>
+            <View style={styles.insightsCard}>
+              <Ionicons name="bulb-outline" size={28} color="#f0ad4e" style={{ marginBottom: 8 }} />
               <Text style={styles.insightsTitle}>Sfat pentru astăzi</Text>
               <Text style={styles.insightsText}>
                 {anxietyLevel <= 3 
@@ -233,7 +231,7 @@ export default function ProgressScreen({ navigation }) {
                   : "Ia-ți timp să te relaxezi. Consideră să vorbești cu cineva de încredere."
                 }
               </Text>
-            </LinearGradient>
+            </View>
           </View>
 
           {/* Send Journal Button */}
@@ -245,7 +243,7 @@ export default function ProgressScreen({ navigation }) {
               colors={['#4a90e2', '#357abd']}
               style={styles.sendButtonGradient}
             >
-              <Text style={styles.sendButtonIcon}>📝</Text>
+              <Ionicons name="pencil-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
               <Text style={styles.sendButtonText}>Trimite jurnal către Dan</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -277,6 +275,7 @@ export default function ProgressScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#ddeeff',
   },
   gradient: {
     flex: 1,
@@ -296,26 +295,23 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     top: 10,
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: '#ffffff',
-    shadowColor: '#4a90e2',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(74,144,226,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#4a90e2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
   },
   backButtonText: {
     fontSize: 18,
     color: '#4a90e2',
-    fontWeight: 'bold',
   },
   headerAction: {
     position: 'absolute',
@@ -327,22 +323,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 20,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#e8f4fd',
-    backgroundColor: '#ffffff',
-    shadowColor: '#4a90e2',
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  headerActionIcon: {
-    marginRight: 6,
-    fontSize: 14,
+    borderColor: 'rgba(74,144,226,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.75)',
   },
   headerActionText: {
-    color: '#357abd',
+    color: '#4a90e2',
     fontWeight: '600',
+    fontSize: 13,
   },
   headerIconText: {
     fontSize: 35,
@@ -350,13 +339,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#2c3e50',
+    color: '#1a2d45',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#6c7b84',
+    color: '#6c8096',
     textAlign: 'center',
     fontWeight: '400',
   },
@@ -364,15 +353,15 @@ const styles = StyleSheet.create({
     marginBottom: 25,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#2c3e50',
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1a2d45',
     marginBottom: 6,
   },
   sectionSubtitle: {
-    fontSize: 14,
-    color: '#6c7b84',
-    marginBottom: 15,
+    fontSize: 13,
+    color: '#6c8096',
+    marginBottom: 14,
   },
   anxietyLevels: {
     marginBottom: 15,
@@ -384,22 +373,18 @@ const styles = StyleSheet.create({
   },
   anxietyButton: {
     width: (width - 80) / 5 - 4,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#ffffff',
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.72)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
     shadowColor: '#4a90e2',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowRadius: 6,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#e8f4fd',
+    borderColor: 'rgba(200,220,240,0.6)',
   },
   anxietyButtonSelected: {
     shadowOpacity: 0.2,
@@ -407,9 +392,9 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   anxietyButtonText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
-    color: '#2c3e50',
+    color: '#1a2d45',
   },
   anxietyButtonTextSelected: {
     color: '#ffffff',
@@ -423,29 +408,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   inputContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    borderRadius: 18,
     padding: 16,
     shadowColor: '#4a90e2',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowRadius: 12,
     elevation: 4,
     borderWidth: 1,
-    borderColor: '#e8f4fd',
+    borderColor: 'rgba(200,220,240,0.6)',
   },
   feelingsInput: {
-    fontSize: 16,
-    color: '#2c3e50',
+    fontSize: 15,
+    color: '#1a2d45',
     minHeight: 80,
     textAlignVertical: 'top',
   },
   actionsInput: {
-    fontSize: 16,
-    color: '#2c3e50',
+    fontSize: 15,
+    color: '#1a2d45',
     minHeight: 100,
     textAlignVertical: 'top',
   },
@@ -459,19 +441,17 @@ const styles = StyleSheet.create({
     marginBottom: 25,
   },
   insightsCard: {
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 20,
     shadowColor: '#4a90e2',
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
     elevation: 5,
     borderWidth: 1,
-    borderColor: '#e8f4fd',
+    borderColor: 'rgba(200,220,240,0.6)',
     alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.72)',
   },
   insightsIcon: {
     fontSize: 30,
@@ -480,13 +460,13 @@ const styles = StyleSheet.create({
   insightsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2c3e50',
+    color: '#1a2d45',
     marginBottom: 8,
     textAlign: 'center',
   },
   insightsText: {
     fontSize: 14,
-    color: '#6c7b84',
+    color: '#6c8096',
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -523,28 +503,25 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   weeklySectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#2c3e50',
-    marginBottom: 15,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1a2d45',
+    marginBottom: 14,
     textAlign: 'center',
   },
   weeklyStats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    borderRadius: 18,
     padding: 20,
     shadowColor: '#4a90e2',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowRadius: 12,
     elevation: 4,
     borderWidth: 1,
-    borderColor: '#e8f4fd',
+    borderColor: 'rgba(200,220,240,0.6)',
   },
   statBox: {
     alignItems: 'center',
@@ -557,8 +534,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: 13,
-    color: '#6c7b84',
+    fontSize: 12,
+    color: '#6c8096',
     fontWeight: '500',
     textAlign: 'center',
   },

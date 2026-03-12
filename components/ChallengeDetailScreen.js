@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { getRunById } from '../utils/challengeStorage';
@@ -28,12 +29,12 @@ export default function ChallengeDetailScreen({ route, navigation }) {
   const resolved = item ? getChallengeById(item.challenge_id) : null;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <LinearGradient colors={["#f0f8ff", "#e6f3ff", "#ffffff"]} style={styles.gradient}>
+    <SafeAreaView style={styles.safeArea}>
+      <LinearGradient colors={['#ddeeff', '#eaf4ff', '#f5f9ff']} style={styles.background}>
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Text style={styles.backIcon}>←</Text>
+              <Ionicons name="chevron-back" size={22} color="#4a90e2" />
             </TouchableOpacity>
             <Text style={styles.title}>{resolved?.challenge?.title || 'Detalii provocare'}</Text>
             <Text style={styles.subtitle}>{resolved?.level?.title || ''}</Text>
@@ -47,7 +48,7 @@ export default function ChallengeDetailScreen({ route, navigation }) {
               {!!item.notes && <Text style={[styles.cardText, { marginTop: 8 }]}>Note: {item.notes}</Text>}
             </View>
           ) : (
-            <Text style={{ textAlign: 'center', color: '#6c7b84' }}>Se încarcă...</Text>
+            <Text style={{ textAlign: 'center', color: '#6c8096' }}>Se încarcă...</Text>
           )}
         </ScrollView>
       </LinearGradient>
@@ -56,24 +57,26 @@ export default function ChallengeDetailScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  gradient: { flex: 1 },
+  safeArea: { flex: 1, backgroundColor: '#ddeeff' },
+  background: { flex: 1 },
   content: { padding: 20 },
-  header: { alignItems: 'center', marginBottom: 16 },
+  header: { alignItems: 'center', marginBottom: 20, paddingTop: 4 },
   backBtn: {
-    position: 'absolute', left: 0, top: -2,
-    backgroundColor: '#fff', borderRadius: 20, width: 36, height: 36,
+    position: 'absolute', left: 0, top: 0,
+    width: 38, height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderWidth: 1, borderColor: 'rgba(74,144,226,0.15)',
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: '#e8f4fd', elevation: 3,
+    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
   },
-  backIcon: { fontSize: 18, color: '#4a90e2', fontWeight: '700' },
-  title: { fontSize: 20, fontWeight: '700', color: '#2c3e50', textAlign: 'center' },
-  subtitle: { fontSize: 13, color: '#6c7b84', textAlign: 'center', marginTop: 4 },
+  title: { fontSize: 20, fontWeight: '700', color: '#1a2d45', textAlign: 'center' },
+  subtitle: { fontSize: 13, color: '#6c8096', textAlign: 'center', marginTop: 4 },
   card: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 14,
-    borderWidth: 1, borderColor: '#e8f4fd',
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 4,
+    backgroundColor: 'rgba(255,255,255,0.72)', borderRadius: 18, padding: 18, marginBottom: 14,
+    borderWidth: 1, borderColor: 'rgba(200,220,240,0.6)',
+    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#2c3e50', marginBottom: 6 },
-  cardText: { fontSize: 14, color: '#2c3e50' },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: '#1a2d45', marginBottom: 8 },
+  cardText: { fontSize: 14, color: '#1a2d45', lineHeight: 22 },
 });

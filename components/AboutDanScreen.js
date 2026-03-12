@@ -2,12 +2,13 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function AboutDanScreen({ navigation }) {
   const items = [
-    { id: 'intro', title: 'Intro', icon: '📘' },
-    { id: 'cine', title: 'Cine sunt eu?', icon: '🧑‍⚕️' },
-    { id: 'experienta', title: 'Din experiența mea', icon: '🧭' },
+    { id: 'intro', title: 'Intro', subtitle: 'Prezentare generală', iconName: 'book-outline', iconColor: '#4a90e2', iconBg: '#eaf3ff' },
+    { id: 'cine', title: 'Cine sunt eu?', subtitle: 'Povestea lui Dan', iconName: 'person-circle-outline', iconColor: '#9b59b6', iconBg: '#f5eeff' },
+    { id: 'experienta', title: 'Din experiența mea', subtitle: 'Lecții personale', iconName: 'compass-outline', iconColor: '#2bbbad', iconBg: '#e6f9f7' },
   ];
 
   const openItem = (it) => {
@@ -23,26 +24,34 @@ export default function AboutDanScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#f0f8ff', '#e6f3ff', '#ffffff']} style={styles.gradient}>
-        <ScrollView contentContainerStyle={styles.content}>
+    <SafeAreaView style={styles.safeArea}>
+      <LinearGradient colors={["#ddeeff", "#eaf4ff", "#f5f9ff"]} style={styles.background}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Text style={styles.backIcon}>←</Text>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.75}>
+              <Ionicons name="chevron-back" size={22} color="#4a90e2" />
             </TouchableOpacity>
-            <Text style={styles.title}>Eu sunt Dan fost anxios</Text>
-            <Text style={styles.subtitle}>Alege o secțiune</Text>
+            <Text style={styles.headerTitle}>Eu sunt Dan</Text>
           </View>
 
-          {items.map(it => (
-            <TouchableOpacity key={it.id} style={styles.card} onPress={() => openItem(it)}>
-              <LinearGradient colors={["#ffffff", "#f8fdff"]} style={styles.cardInner}>
-                <Text style={styles.cardIcon}>{it.icon}</Text>
-                <Text style={styles.cardTitle}>{it.title}</Text>
-                <Text style={styles.cardArrow}>→</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          ))}
+          <Text style={styles.sectionLabel}>SECȚIUNI</Text>
+          <View style={styles.group}>
+            {items.map((it, index) => (
+              <React.Fragment key={it.id}>
+                {index > 0 && <View style={styles.separator} />}
+                <TouchableOpacity style={styles.row} onPress={() => openItem(it)} activeOpacity={0.7}>
+                  <View style={[styles.iconWrap, { backgroundColor: it.iconBg }]}>
+                    <Ionicons name={it.iconName} size={20} color={it.iconColor} />
+                  </View>
+                  <View style={styles.rowTextWrap}>
+                    <Text style={styles.rowTitle}>{it.title}</Text>
+                    <Text style={styles.rowSubtitle}>{it.subtitle}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="#c8d8e8" />
+                </TouchableOpacity>
+              </React.Fragment>
+            ))}
+          </View>
         </ScrollView>
       </LinearGradient>
     </SafeAreaView>
@@ -50,25 +59,30 @@ export default function AboutDanScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  gradient: { flex: 1 },
-  content: { padding: 20 },
-  header: { alignItems: 'center', marginBottom: 16 },
+  safeArea: { flex: 1, backgroundColor: "#ddeeff" },
+  background: { flex: 1 },
+  content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 40 },
+  header: { flexDirection: "row", alignItems: "center", marginBottom: 28, marginTop: 4 },
   backBtn: {
-    position: 'absolute', left: 0, top: -2,
-    backgroundColor: '#fff', borderRadius: 20, width: 36, height: 36,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: '#e8f4fd', elevation: 3,
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.75)",
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: "rgba(74,144,226,0.15)",
+    shadowColor: "#4a90e2", shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12, shadowRadius: 6, elevation: 3, marginRight: 14,
   },
-  backIcon: { fontSize: 18, color: '#4a90e2', fontWeight: '700' },
-  title: { fontSize: 20, fontWeight: '700', color: '#2c3e50', textAlign: 'center' },
-  subtitle: { fontSize: 13, color: '#6c7b84', textAlign: 'center', marginTop: 4 },
-  card: {
-    marginTop: 12, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#e8f4fd',
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 4,
+  headerTitle: { fontSize: 22, fontWeight: "700", color: "#1a2d45", letterSpacing: -0.3 },
+  sectionLabel: { fontSize: 11, fontWeight: "700", color: "#8ca8c4", letterSpacing: 1.2, marginBottom: 8, marginLeft: 4 },
+  group: {
+    backgroundColor: "rgba(255,255,255,0.72)", borderRadius: 18,
+    borderWidth: 1, borderColor: "rgba(200,220,240,0.6)", overflow: "hidden",
+    shadowColor: "#4a90e2", shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
   },
-  cardInner: { padding: 16, flexDirection: 'row', alignItems: 'center' },
-  cardIcon: { fontSize: 22, marginRight: 10 },
-  cardTitle: { flex: 1, fontSize: 16, fontWeight: '600', color: '#2c3e50' },
-  cardArrow: { fontSize: 18, color: '#4a90e2', fontWeight: '700' },
+  separator: { height: 1, backgroundColor: "rgba(200,220,240,0.5)", marginLeft: 68 },
+  row: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16 },
+  iconWrap: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", marginRight: 14 },
+  rowTextWrap: { flex: 1 },
+  rowTitle: { fontSize: 15, fontWeight: "600", color: "#1a2d45", marginBottom: 2 },
+  rowSubtitle: { fontSize: 12, color: "#8ca8c4" },
 });
