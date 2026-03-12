@@ -372,7 +372,8 @@ export async function registerSubscriptionRoutes(app) {
         case 'customer.subscription.updated': {
           const subObj = event.data.object;
           const userId = subObj.metadata?.userId; // ensured via subscription_data.metadata
-          if (userId) {
+          const parsedUserId = userId ? Number(userId) : NaN;
+          if (!isNaN(parsedUserId) && parsedUserId > 0) {
             const stripeStatus = subObj.status; // active, trialing, canceled, incomplete, past_due ...
             const priceId = subObj.items?.data?.[0]?.price?.id;
             // Prefer explicit plan metadata; fallback to pattern heuristic & status
@@ -437,7 +438,8 @@ export async function registerSubscriptionRoutes(app) {
         case 'customer.subscription.deleted': {
           const subObj = event.data.object;
           const userId = subObj.metadata?.userId;
-          if (userId) {
+          const parsedUserId = userId ? Number(userId) : NaN;
+          if (!isNaN(parsedUserId) && parsedUserId > 0) {
             // Only terminate the specific deleted subscription, not all active ones
             const [result] = await mysqlPool.query(
               `UPDATE subscriptions SET ends_at = NOW() WHERE user_id = ? AND stripe_subscription_id = ? AND (ends_at IS NULL OR ends_at > NOW())`,

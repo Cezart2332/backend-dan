@@ -71,7 +71,7 @@ function resolveOptions() {
     Object.assign(poolOptions, { connectTimeout, connectionLimit, waitForConnections, queueLimit });
     if (dsn.allowPublicKeyRetrieval) Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
     if (dsn.useSSL && (!dsn.sslMode || dsn.sslMode.toLowerCase() !== "none")) {
-      Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
+      Object.assign(poolOptions, { ssl: { rejectUnauthorized: true } });
     }
     // Env overrides (even when DSN is present)
     const allowPkEnv = process.env.MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL ?? process.env.CORE_MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL;
@@ -84,7 +84,7 @@ function resolveOptions() {
   const sslModeEnv = String(process.env.MYSQL_SSL_MODE || process.env.CORE_MYSQL_SSL_MODE || "").trim().toLowerCase();
   const sslFlagEnv = process.env.MYSQL_SSL ?? process.env.CORE_MYSQL_SSL;
     if (truthy(sslFlagEnv) && sslModeEnv !== "none") {
-      Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
+      Object.assign(poolOptions, { ssl: { rejectUnauthorized: true } });
     }
     // If SSL is enabled, do not send allowPublicKeyRetrieval (not needed and can warn)
     if (poolOptions.ssl) delete poolOptions.allowPublicKeyRetrieval;
@@ -115,7 +115,7 @@ function resolveOptions() {
     const queueLimit = Number(process.env.MYSQL_QUEUE_LIMIT || process.env.DB_QUEUE_LIMIT || 0);
     Object.assign(poolOptions, { connectTimeout, connectionLimit, waitForConnections, queueLimit });
     if (allowPublicKeyRetrieval) Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
-    if (useSSL) Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
+    if (useSSL) Object.assign(poolOptions, { ssl: { rejectUnauthorized: true } });
     // Env overrides
     const allowPkEnv = process.env.MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL ?? process.env.CORE_MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL;
     if (allowPkEnv !== undefined && allowPkEnv !== null) {
@@ -127,7 +127,7 @@ function resolveOptions() {
   const sslModeEnv = String(process.env.MYSQL_SSL_MODE || process.env.CORE_MYSQL_SSL_MODE || "").trim().toLowerCase();
   const sslFlagEnv = process.env.MYSQL_SSL ?? process.env.CORE_MYSQL_SSL;
     if (truthy(sslFlagEnv) && sslModeEnv !== "none") {
-      Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
+      Object.assign(poolOptions, { ssl: { rejectUnauthorized: true } });
     }
     if (poolOptions.ssl) delete poolOptions.allowPublicKeyRetrieval;
     return poolOptions;
@@ -161,7 +161,7 @@ function resolveOptions() {
   const sslMode = String(process.env.MYSQL_SSL_MODE || process.env.CORE_MYSQL_SSL_MODE || "").trim().toLowerCase();
   const sslFlag = process.env.MYSQL_SSL ?? process.env.CORE_MYSQL_SSL;
   if (truthy(sslFlag) && sslMode !== "none") {
-    Object.assign(poolOptions, { ssl: { rejectUnauthorized: false } });
+    Object.assign(poolOptions, { ssl: { rejectUnauthorized: true } });
   }
   if (poolOptions.ssl) delete poolOptions.allowPublicKeyRetrieval;
   return poolOptions;

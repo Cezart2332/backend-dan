@@ -1,9 +1,17 @@
 import jwt from 'jsonwebtoken';
+import { createHash, timingSafeEqual } from 'crypto';
 import { mysqlPool } from './mysql.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
 if (!JWT_SECRET) throw new Error('CRITICAL: JWT_SECRET is required');
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || process.env.CORE_ADMIN_TOKEN || null;
+
+// Constant-time string comparison to prevent timing attacks
+function safeCompare(a, b) {
+  const hashA = createHash('sha256').update(String(a)).digest();
+  const hashB = createHash('sha256').update(String(b)).digest();
+  return timingSafeEqual(hashA, hashB);
+}
 
 /**
  * Admin authentication: accepts either
@@ -13,7 +21,7 @@ const ADMIN_TOKEN = process.env.ADMIN_TOKEN || process.env.CORE_ADMIN_TOKEN || n
 async function adminAuth(request) {
   // 1) Static token approach
   const staticToken = request.headers['x-admin-token'];
-  if (ADMIN_TOKEN && staticToken === ADMIN_TOKEN) return { admin: true, method: 'token' };
+  if (ADMIN_TOKEN && staticToken && safeCompare(staticToken, ADMIN_TOKEN)) return { admin: true, method: 'token' };
 
   // 2) JWT approach – check is_admin flag on user
   const auth = request.headers['authorization'] || request.headers['Authorization'];
@@ -28,7 +36,7 @@ async function adminAuth(request) {
       if (rows.length && rows[0].is_admin) {
         return { admin: true, method: 'jwt', user: rows[0] };
       }
-    } catch {}
+    } catch (e) { request.log.debug({ err: e }, 'Admin JWT verify failed'); }
   }
   return null;
 }
@@ -39,7 +47,7 @@ export async function registerAdminRoutes(app) {
   app.post('/api/admin/login', async (request, reply) => {
     const { token } = request.body || {};
     if (!token) return reply.code(400).send({ error: 'Token necesar' });
-    if (ADMIN_TOKEN && token === ADMIN_TOKEN) {
+    if (ADMIN_TOKEN && safeCompare(token, ADMIN_TOKEN)) {
       return reply.send({ ok: true, method: 'token' });
     }
     return reply.code(403).send({ error: 'Token invalid' });
@@ -216,10 +224,12 @@ export async function registerAdminRoutes(app) {
     if (!auth) return reply.code(403).send({ error: 'Forbidden' });
     const { user_id, title, notes, scheduled_at, duration_min } = request.body || {};
     if (!scheduled_at) return reply.code(400).send({ error: 'Data programării este necesară' });
+    const parsedScheduledAt = new Date(scheduled_at);
+    if (isNaN(parsedScheduledAt.getTime())) return reply.code(400).send({ error: 'Data programării este invalidă' });
     try {
       const [res] = await mysqlPool.query(
         'INSERT INTO meetings (user_id, title, notes, scheduled_at, duration_min) VALUES (?, ?, ?, ?, ?)',
-        [user_id ? Number(user_id) : null, title || 'Ședință', notes || null, new Date(scheduled_at), duration_min ? Number(duration_min) : 60]
+        [user_id ? Number(user_id) : null, title || 'Ședință', notes || null, parsedScheduledAt, duration_min ? Number(duration_min) : 60]
       );
       return reply.send({ id: res.insertId });
     } catch (e) {
@@ -233,11 +243,19 @@ export async function registerAdminRoutes(app) {
     if (!auth) return reply.code(403).send({ error: 'Forbidden' });
     const id = Number(request.params.id);
     const { title, notes, scheduled_at, duration_min, status } = request.body || {};
+    const validMeetingStatuses = ['scheduled', 'completed', 'cancelled'];
+    if (status !== undefined && !validMeetingStatuses.includes(status)) {
+      return reply.code(400).send({ error: 'Status întâlnire invalid' });
+    }
     const fields = [];
     const values = [];
     if (title !== undefined) { fields.push('title = ?'); values.push(title); }
     if (notes !== undefined) { fields.push('notes = ?'); values.push(notes); }
-    if (scheduled_at !== undefined) { fields.push('scheduled_at = ?'); values.push(new Date(scheduled_at)); }
+    if (scheduled_at !== undefined) {
+      const parsedDate = new Date(scheduled_at);
+      if (isNaN(parsedDate.getTime())) return reply.code(400).send({ error: 'Data programării este invalidă' });
+      fields.push('scheduled_at = ?'); values.push(parsedDate);
+    }
     if (duration_min !== undefined) { fields.push('duration_min = ?'); values.push(Number(duration_min)); }
     if (status !== undefined) { fields.push('status = ?'); values.push(status); }
     if (!fields.length) return reply.code(400).send({ error: 'Niciun câmp de actualizat' });

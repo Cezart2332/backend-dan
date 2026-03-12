@@ -1,7 +1,10 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import Stripe from "stripe";
 import { mysqlPool } from "./mysql.js";
+
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || '';
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
 if (!JWT_SECRET) {
@@ -38,8 +41,6 @@ async function verifyGoogleIdToken(idToken) {
       return null;
     }
     const payload = await res.json();
-    console.log("Google token audience (aud):", payload.aud);
-    console.log("Expected GOOGLE_CLIENT_IDS:", GOOGLE_VALID_CLIENT_IDS);
     // Verify audience matches one of our client IDs (web, iOS, or Android)
     if (!GOOGLE_VALID_CLIENT_IDS.includes(payload.aud)) {
       console.error("Google audience mismatch: got", payload.aud, "expected one of", GOOGLE_VALID_CLIENT_IDS);
@@ -87,9 +88,6 @@ async function verifyAppleIdToken(idToken) {
     const tokenAud = decoded?.payload?.aud;
     const tokenIss = decoded?.payload?.iss;
     const tokenExp = decoded?.payload?.exp;
-    console.log("Apple token details - aud:", tokenAud, "iss:", tokenIss, "exp:", tokenExp, "now:", Math.floor(Date.now() / 1000));
-    console.log("Expected APPLE_CLIENT_ID:", APPLE_CLIENT_ID);
-
     // Verify signature and issuer, but handle audience flexibly
     const payload = jwt.verify(idToken, pubKey, {
       algorithms: ["RS256"],
@@ -116,7 +114,7 @@ async function verifyAppleIdToken(idToken) {
 /**
  * Find or create a user by provider + provider_id, then return JWT + user.
  */
-async function findOrCreateOAuthUser(provider, providerId, email, name) {
+async function findOrCreateOAuthUser(provider, providerId, email, name, emailVerified = false) {
   // 1) Check if user already exists with this provider + provider_id
   const [existing] = await mysqlPool.query(
     "SELECT id, email, name FROM users WHERE provider = ? AND provider_id = ? LIMIT 1",
@@ -130,7 +128,7 @@ async function findOrCreateOAuthUser(provider, providerId, email, name) {
 
   // 2) Check if there's an existing user with the same email (local account)
   //    Only link if OAuth provider reports email_verified to prevent account takeover
-  if (email) {
+  if (email && emailVerified) {
     const [byEmail] = await mysqlPool.query(
       "SELECT id, email, name, provider, provider_id FROM users WHERE email = ? LIMIT 1",
       [email]
@@ -225,8 +223,24 @@ export async function registerAuthRoutes(app) {
     const userId = decoded.sub;
 
     try {
+      // Cancel active Stripe subscriptions (best-effort; do not fail account deletion if Stripe is unavailable)
+      if (stripeSecretKey) {
+        const stripeClient = new Stripe(stripeSecretKey, { apiVersion: '2024-06-20' });
+        const [stripeSubs] = await mysqlPool.query(
+          "SELECT stripe_subscription_id FROM subscriptions WHERE user_id = ? AND stripe_subscription_id IS NOT NULL AND (ends_at IS NULL OR ends_at > NOW())",
+          [userId]
+        );
+        for (const sub of (stripeSubs || [])) {
+          try {
+            await stripeClient.subscriptions.cancel(sub.stripe_subscription_id);
+          } catch (err) {
+            request.log.error({ err, stripe_subscription_id: sub.stripe_subscription_id }, 'Failed to cancel Stripe subscription on account deletion');
+          }
+        }
+      }
       // Delete user's related data first (due to foreign key constraints)
       await mysqlPool.query("DELETE FROM user_questions WHERE user_id = ?", [userId]);
+      await mysqlPool.query("DELETE FROM questions WHERE user_id = ?", [userId]);
       await mysqlPool.query("DELETE FROM user_challenge_progress WHERE user_id = ?", [userId]);
       await mysqlPool.query("DELETE FROM user_challenge_completions WHERE user_id = ?", [userId]);
       await mysqlPool.query("DELETE FROM progress_entries WHERE user_id = ?", [userId]);
@@ -257,9 +271,10 @@ export async function registerAuthRoutes(app) {
       return reply.code(401).send({ error: "Token Google invalid" });
     }
     if (!googleUser.email) return reply.code(400).send({ error: "Email nu este disponibil din contul Google" });
+    if (!googleUser.email_verified) return reply.code(401).send({ error: "Adresa de email Google nu este confirmată" });
 
     try {
-      const result = await findOrCreateOAuthUser("google", googleUser.sub, googleUser.email, googleUser.name);
+      const result = await findOrCreateOAuthUser("google", googleUser.sub, googleUser.email, googleUser.name, googleUser.email_verified);
       return reply.send(result);
     } catch (err) {
       request.log.error({ err }, "Google OAuth error");
@@ -291,7 +306,7 @@ export async function registerAuthRoutes(app) {
     const userName = name || appleUser.name;
 
     try {
-      const result = await findOrCreateOAuthUser("apple", appleUser.sub, appleUser.email, userName);
+      const result = await findOrCreateOAuthUser("apple", appleUser.sub, appleUser.email, userName, appleUser.email_verified === true);
       return reply.send(result);
     } catch (err) {
       request.log.error({ err }, "Apple OAuth error");

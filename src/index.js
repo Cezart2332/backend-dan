@@ -82,6 +82,7 @@ await app.register(fastifyCors, {
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-Admin-Token"],
+  exposedHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining"],
   credentials: true,
   maxAge: 86400,
 });
