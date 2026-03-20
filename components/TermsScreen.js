@@ -106,7 +106,9 @@ export default function TermsScreen({ navigation }) {
             3.2. Prețurile sunt exprimate în lei (RON) și includ T.V.A. conform
             legislației în vigoare.{"\n\n"}
             3.3. Plățile se procesează prin intermediul procesatorului de plăți
-            Stripe. Datele cardului nu sunt stocate de aplicație.{"\n\n"}
+            Google Play (Android) și Apple App Store (iOS), prin sistemele
+            native de achiziții in-app. Datele cardului nu sunt stocate de
+            aplicație.{"\n\n"}
             3.4. Abonamentele se reînnoiesc automat la sfârșitul perioadei
             contractate, cu excepția cazului în care sunt anulate de utilizator.
           </Text>

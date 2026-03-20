@@ -12,14 +12,12 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSubscription } from "../contexts/SubscriptionContext";
-import { api } from "../utils/api";
-import { getToken } from "../utils/authStorage";
 
 const { width } = Dimensions.get("window");
 const EXCLUDED_ROUTES = new Set(["Login", "Register", "Subscriptions", "Onboarding"]);
 
 export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRoute }) {
-  const { status, trialEligible, refresh, initializing, hasToken } = useSubscription();
+  const { status, refresh, initializing, hasToken, showPaywall, restorePurchases } = useSubscription();
   const [pendingAction, setPendingAction] = useState(null);
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
@@ -57,24 +55,27 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
     }
   };
 
-  const handleStartTrial = async () => {
-    if (!trialEligible) return;
+  const handleOpenPaywall = async () => {
     try {
-      setPendingAction("trial");
-      const token = await getToken();
-      if (!token) {
-        Alert.alert("Autentificare", "Trebuie să te autentifici din nou.");
-        return;
-      }
-      await api.startTrial(token);
+      setPendingAction("paywall");
+      await showPaywall();
       await refresh();
-      Alert.alert("Trial activ", "Ai acces la 3 zile de conținut complet.");
     } catch (err) {
-      const msg = err?.message || "Nu am putut activa perioada de trial.";
+      const msg = err?.message || "Nu am putut deschide paywall-ul.";
       Alert.alert("Eroare", msg);
-      if (msg.includes("Trial deja folosit") || msg.includes("TRIAL_ALREADY_USED") || msg.includes("TRIAL_NOT_ELIGIBLE") || msg.includes("utilizatori noi")) {
-        await refresh();
-      }
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const handleRestore = async () => {
+    try {
+      setPendingAction("restore");
+      await restorePurchases();
+      await refresh();
+      Alert.alert("Restore", "Achizitiile au fost restaurate.");
+    } catch (err) {
+      Alert.alert("Eroare", err?.message || "Nu am putut restaura achizitiile.");
     } finally {
       setPendingAction(null);
     }
@@ -125,7 +126,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
             </View>
             <Text style={styles.title}>Subscribe sau Free Trial</Text>
             <Text style={styles.subtitle}>
-              Activează abonamentul sau perioada de trial ca să continui să folosești aplicația.
+              Activeaza un abonament pentru a continua accesul complet in aplicatie.
             </Text>
 
             <View style={styles.statusPill}>
@@ -134,34 +135,44 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
               </Text>
             </View>
 
-            {trialEligible ? (
-              <TouchableOpacity
-                style={[styles.primaryButton, pendingAction && styles.disabledButton]}
-                onPress={handleStartTrial}
-                disabled={pendingAction === "trial"}
-              >
-                <View style={styles.primaryGradient}>
-                  {pendingAction === "trial" ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={styles.primaryText}>Începe perioada de trial</Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.infoBox}>
-                <Text style={styles.infoText}>
-                  Perioada de trial a fost folosită. Alege un abonament pentru acces complet.
-                </Text>
+            <TouchableOpacity
+              style={[styles.primaryButton, pendingAction && styles.disabledButton]}
+              onPress={handleOpenPaywall}
+              disabled={pendingAction === "paywall"}
+            >
+              <View style={styles.primaryGradient}>
+                {pendingAction === "paywall" ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.primaryText}>Deschide paywall</Text>
+                )}
               </View>
-            )}
+            </TouchableOpacity>
+
+            <View style={styles.infoBox}>
+              <Text style={styles.infoText}>
+                Planurile disponibile sunt Monthly, Yearly si Lifetime.
+              </Text>
+            </View>
 
             <TouchableOpacity
               style={styles.secondaryButton}
               onPress={handleSeePlans}
-              disabled={pendingAction === "trial"}
+              disabled={Boolean(pendingAction)}
             >
-              <Text style={styles.secondaryText}>Vezi abonamente</Text>
+              <Text style={styles.secondaryText}>Vezi ecranul de abonamente</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.refreshButton}
+              onPress={handleRestore}
+              disabled={pendingAction === "restore"}
+            >
+              {pendingAction === "restore" ? (
+                <ActivityIndicator color="#4a90e2" />
+              ) : (
+                <Text style={styles.refreshText}>Restore purchases</Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -172,7 +183,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
               {pendingAction === "refresh" ? (
                 <ActivityIndicator color="#4a90e2" />
               ) : (
-                <Text style={styles.refreshText}>Am deja abonament activ</Text>
+                <Text style={styles.refreshText}>Refresh customer info</Text>
               )}
             </TouchableOpacity>
           </View>

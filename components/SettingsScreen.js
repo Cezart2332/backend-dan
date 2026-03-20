@@ -16,9 +16,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "../utils/api";
-import { getToken, removeToken } from "../utils/authStorage";
-import { removeUser } from "../utils/userStorage";
-import { removeSubscription } from "../utils/subscriptionStorage";
+import { getToken, clearToken } from "../utils/authStorage";
+import { clearUser } from "../utils/userStorage";
+import { clearSubscription } from "../utils/subscriptionStorage";
+import { logoutRevenueCatUser } from "../utils/revenuecat";
 
 export default function SettingsScreen({ navigation, onLogout }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -46,9 +47,10 @@ export default function SettingsScreen({ navigation, onLogout }) {
       
       if (response.success) {
         // Clear all local storage
-        await removeToken();
-        await removeUser();
-        await removeSubscription();
+        await logoutRevenueCatUser();
+        await clearToken();
+        await clearUser();
+        await clearSubscription();
         
         Alert.alert(
           "Cont șters",

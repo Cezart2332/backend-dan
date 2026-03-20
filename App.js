@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { StatusBar } from "expo-status-bar";
-import { StripeProvider } from "@stripe/stripe-react-native";
 import { View, ActivityIndicator, Text } from "react-native";
 import LoginScreen from "./components/LoginScreen";
 import RegisterScreen from "./components/RegisterScreen";
@@ -43,7 +42,6 @@ import TehnicaHAIFiziceScreen from "./components/TehnicaHAIFiziceScreen";
 import TehnicaHAIVideoScreen from "./components/TehnicaHAIVideoScreen";
 import SettingsScreen from "./components/SettingsScreen";
 import { getToken, clearToken } from "./utils/authStorage";
-import { getStripePublishableKey } from "./utils/stripe";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import SubscriptionPaywall from "./components/SubscriptionPaywall";
 import { clearSubscription } from "./utils/subscriptionStorage";
@@ -120,23 +118,17 @@ export default function App() {
     );
   }
 
-  const publishableKey = getStripePublishableKey();
   const handleNavUpdate = () => {
     const current = navigationRef.current?.getCurrentRoute?.();
     setCurrentRoute(current?.name || null);
   };
   return (
-    <StripeProvider
-      publishableKey={publishableKey || ""}
-      merchantIdentifier="merchant.dan.anxiety" // Apple Pay (placeholder)
-      urlScheme="dananxiety" // 3DS / bank redirects (placeholder)
-    >
-      <SubscriptionProvider isAuthed={isAuthed}>
-        <NavigationContainer
-          ref={navigationRef}
-          onReady={handleNavUpdate}
-          onStateChange={handleNavUpdate}
-        >
+    <SubscriptionProvider isAuthed={isAuthed}>
+      <NavigationContainer
+        ref={navigationRef}
+        onReady={handleNavUpdate}
+        onStateChange={handleNavUpdate}
+      >
           <StatusBar style="light" backgroundColor="#4a90e2" />
           <Stack.Navigator
             initialRouteName={isAuthed ? "Dashboard" : "Login"}
@@ -292,13 +284,12 @@ export default function App() {
               )}
             </Stack.Screen>
           </Stack.Navigator>
-        </NavigationContainer>
-        <SubscriptionPaywall
-          isAuthed={isAuthed}
-          navigationRef={navigationRef}
-          currentRoute={currentRoute}
-        />
-      </SubscriptionProvider>
-    </StripeProvider>
+      </NavigationContainer>
+      <SubscriptionPaywall
+        isAuthed={isAuthed}
+        navigationRef={navigationRef}
+        currentRoute={currentRoute}
+      />
+    </SubscriptionProvider>
   );
 }

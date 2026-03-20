@@ -41,6 +41,9 @@ export const api = {
   // Questions
   createQuestion: (payload, token) => request('/api/questions', { method: 'POST', body: payload, token }),
   listMyQuestions: (token) => request('/api/questions', { method: 'GET', token }),
+  // Meetings
+  createMeeting: (payload, token) => request('/api/meetings', { method: 'POST', body: payload, token }),
+  listMyMeetings: (token) => request('/api/meetings', { method: 'GET', token }),
   // Challenges
   createChallengeRun: (payload, token) => request('/api/challenges/run', { method: 'POST', body: payload, token }),
   listChallengeRuns: (token) => request('/api/challenges/run', { method: 'GET', token }),

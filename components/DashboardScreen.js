@@ -19,6 +19,7 @@ import { clearToken } from "../utils/authStorage";
 import { clearUser } from "../utils/userStorage";
 import { clearEntries } from "../utils/progressStorage";
 import { replaceAllRuns } from "../utils/challengeStorage";
+import { logoutRevenueCatUser } from "../utils/revenuecat";
 
 const { width } = Dimensions.get("window");
 
@@ -34,6 +35,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
   const handleLogout = useCallback(async () => {
     try {
       await Promise.all([
+        logoutRevenueCatUser(),
         clearToken(),
         clearUser(),
         clearSubscription(),
