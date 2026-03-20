@@ -165,6 +165,13 @@ export default function SubscriptionsScreen({ navigation }) {
             <Text style={styles.smallText}>
               Pachete active in offering: {availablePackages.length}
             </Text>
+            <Text style={styles.smallText}>
+              {availablePackages.length
+                ? `Offering SKUs: ${availablePackages
+                    .map((pkg) => `${pkg?.identifier}:${pkg?.product?.identifier}`)
+                    .join(" | ")}`
+                : "Offering SKUs: none"}
+            </Text>
           </View>
 
           <ProductCard

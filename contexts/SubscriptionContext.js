@@ -222,14 +222,15 @@ export function SubscriptionProvider({ children, isAuthed }) {
   }, [isAuthed, clearState, refresh, applyCustomerInfo]);
 
   const getPackagesByProduct = useCallback(() => {
+    const availablePackages = offerings?.current?.availablePackages || [];
     const basicPkg = getPackageForProductId(offerings, PRODUCT_IDS.basic);
     const premiumPkg = getPackageForProductId(offerings, PRODUCT_IDS.premium);
     const vipPkg = getPackageForProductId(offerings, PRODUCT_IDS.vip);
 
     return {
-      basic: basicPkg,
-      premium: premiumPkg,
-      vip: vipPkg,
+      basic: basicPkg || availablePackages[0] || null,
+      premium: premiumPkg || availablePackages[1] || availablePackages[0] || null,
+      vip: vipPkg || availablePackages[2] || availablePackages[availablePackages.length - 1] || null,
     };
   }, [offerings]);
 

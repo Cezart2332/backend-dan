@@ -27,16 +27,45 @@ function getPlatformRevenueCatKey() {
 export const REVENUECAT_API_KEY = getPlatformRevenueCatKey();
 
 export const PRO_ENTITLEMENT_ID = "Dan Fost Anxios Pro";
+export const OFFERING_ID = "ofrng9b7115a069";
 export const PRODUCT_IDS = {
-  basic: "Basic",
-  premium: "Premium",
-  vip: "Vip",
+  basic: "basic",
+  premium: "premium",
+  vip: "vip",
 };
 
 const PRODUCT_ALIASES = {
-  [PRODUCT_IDS.basic]: ["Basic", "prod769058ac9a"],
-  [PRODUCT_IDS.premium]: ["Premium", "prodc84db671dc"],
-  [PRODUCT_IDS.vip]: ["Vip", "prod30e0e21197"],
+  [PRODUCT_IDS.basic]: [
+    "basic",
+    "Basic",
+    "basic_subscription",
+    "monthly",
+    "$rc_monthly",
+    "prod769058ac9a",
+  ],
+  [PRODUCT_IDS.premium]: [
+    "premium",
+    "Premium",
+    "premium_subscription",
+    "yearly",
+    "annual",
+    "$rc_annual",
+    "prodc84db671dc",
+  ],
+  [PRODUCT_IDS.vip]: [
+    "vip",
+    "Vip",
+    "vip_subscription",
+    "lifetime",
+    "$rc_lifetime",
+    "prod30e0e21197",
+  ],
+};
+
+const PRODUCT_PACKAGE_TYPES = {
+  [PRODUCT_IDS.basic]: ["MONTHLY"],
+  [PRODUCT_IDS.premium]: ["ANNUAL"],
+  [PRODUCT_IDS.vip]: ["LIFETIME"],
 };
 
 let configured = false;
@@ -47,6 +76,9 @@ function isIOSOrAndroid() {
 
 export function getRevenueCatErrorMessage(error, fallback = "A aparut o eroare la abonament.") {
   if (!error) return fallback;
+  if (String(error?.code) === "23") {
+    return "Produsul nu este disponibil pentru contul de test sau storefront-ul curent. Verifica Offering-ul curent, pachetele si contul Sandbox.";
+  }
   if (typeof error?.message === "string" && error.message.trim()) return error.message;
   return fallback;
 }
@@ -112,6 +144,12 @@ export async function fetchOfferings() {
   return Purchases.getOfferings();
 }
 
+function getTargetOffering(offerings) {
+  if (!offerings) return null;
+  const byIdentifier = offerings?.all?.[OFFERING_ID];
+  return byIdentifier || offerings?.current || null;
+}
+
 export function isProEntitlementActive(customerInfo) {
   return Boolean(customerInfo?.entitlements?.active?.[PRO_ENTITLEMENT_ID]);
 }
@@ -121,7 +159,7 @@ export function getProEntitlement(customerInfo) {
 }
 
 export function getPackageForProductId(offerings, productId) {
-  const current = offerings?.current;
+  const current = getTargetOffering(offerings);
   if (!current?.availablePackages?.length) return null;
 
   const aliases = PRODUCT_ALIASES[productId] || [productId];
@@ -134,6 +172,12 @@ export function getPackageForProductId(offerings, productId) {
   }
   );
   if (exact) return exact;
+
+  const allowedPackageTypes = PRODUCT_PACKAGE_TYPES[productId] || [];
+  const byType = current.availablePackages.find((pkg) =>
+    allowedPackageTypes.includes(String(pkg?.packageType || "").toUpperCase())
+  );
+  if (byType) return byType;
 
   return (
     current.availablePackages.find((pkg) => {
@@ -170,12 +214,18 @@ export async function presentRevenueCatPaywall(requiredEntitlementIdentifier = P
 
   let paywallResult = PAYWALL_RESULT.NOT_PRESENTED;
 
+  const offerings = await fetchOfferings();
+  const targetOffering = getTargetOffering(offerings);
+
   if (typeof RevenueCatUI?.presentPaywallIfNeeded === "function") {
     paywallResult = await RevenueCatUI.presentPaywallIfNeeded({
+      offering: targetOffering || undefined,
       requiredEntitlementIdentifier,
     });
   } else if (typeof RevenueCatUI?.presentPaywall === "function") {
-    paywallResult = await RevenueCatUI.presentPaywall();
+    paywallResult = await RevenueCatUI.presentPaywall(
+      targetOffering ? { offering: targetOffering } : undefined
+    );
   } else {
     throw new Error("SDK-ul RevenueCat UI nu este disponibil in acest build.");
   }
