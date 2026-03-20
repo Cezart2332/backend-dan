@@ -3,12 +3,28 @@ import Constants from "expo-constants";
 import Purchases, { LOG_LEVEL, PURCHASES_ERROR_CODE } from "react-native-purchases";
 import RevenueCatUI from "react-native-purchases-ui";
 
-const fromConstants =
-  Constants?.expoConfig?.extra?.EXPO_PUBLIC_REVENUECAT_API_KEY ||
-  Constants?.manifest?.extra?.EXPO_PUBLIC_REVENUECAT_API_KEY;
+const extra = Constants?.expoConfig?.extra || Constants?.manifest?.extra || {};
 
-export const REVENUECAT_API_KEY =
-  fromConstants || process.env.EXPO_PUBLIC_REVENUECAT_API_KEY || "";
+function getPlatformRevenueCatKey() {
+  const iosKey =
+    extra?.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ||
+    process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ||
+    "";
+  const androidKey =
+    extra?.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ||
+    process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ||
+    "";
+  const legacyKey =
+    extra?.EXPO_PUBLIC_REVENUECAT_API_KEY ||
+    process.env.EXPO_PUBLIC_REVENUECAT_API_KEY ||
+    "";
+
+  if (Platform.OS === "ios") return iosKey || legacyKey;
+  if (Platform.OS === "android") return androidKey || legacyKey;
+  return "";
+}
+
+export const REVENUECAT_API_KEY = getPlatformRevenueCatKey();
 
 export const PRO_ENTITLEMENT_ID = "Dan Fost Anxios Pro";
 export const PRODUCT_IDS = {
@@ -45,23 +61,29 @@ export function isUserCancelledPurchase(error) {
 export async function configureRevenueCat({ appUserID } = {}) {
   if (!isIOSOrAndroid()) return false;
   if (!REVENUECAT_API_KEY) {
-    throw new Error("Lipseste cheia RevenueCat (EXPO_PUBLIC_REVENUECAT_API_KEY).");
+    console.warn("RevenueCat disabled: missing EXPO_PUBLIC_REVENUECAT_IOS_API_KEY / EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY.");
+    return false;
   }
 
-  if (!configured) {
-    if (__DEV__) {
-      await Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+  try {
+    if (!configured) {
+      if (__DEV__) {
+        await Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+      }
+      await Purchases.configure({ apiKey: REVENUECAT_API_KEY, appUserID });
+      configured = true;
+      return true;
     }
-    await Purchases.configure({ apiKey: REVENUECAT_API_KEY, appUserID });
-    configured = true;
+
+    if (appUserID) {
+      await Purchases.logIn(appUserID);
+    }
+
     return true;
+  } catch (error) {
+    console.warn("RevenueCat configure failed:", error?.message || error);
+    return false;
   }
-
-  if (appUserID) {
-    await Purchases.logIn(appUserID);
-  }
-
-  return true;
 }
 
 export async function identifyRevenueCatUser(appUserID) {

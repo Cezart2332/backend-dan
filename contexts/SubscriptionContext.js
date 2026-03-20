@@ -148,7 +148,19 @@ export function SubscriptionProvider({ children, isAuthed }) {
         const user = await getUser();
         const appUserId = user?.id ? String(user.id) : user?.email || null;
 
-        await configureRevenueCat({ appUserID: appUserId || undefined });
+        const isConfigured = await configureRevenueCat({ appUserID: appUserId || undefined });
+        if (!isConfigured) {
+          await clearState();
+          return {
+            subscription: null,
+            status: "none",
+            trialEligible: false,
+            hasProEntitlement: false,
+            offerings: null,
+            customerInfo: null,
+          };
+        }
+
         if (appUserId) {
           await identifyRevenueCatUser(appUserId);
         }

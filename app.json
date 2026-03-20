@@ -55,7 +55,9 @@
     ],
     "extra": {
       "EXPO_PUBLIC_API_URL": "https://api.danfostanxios.ro",
-      "EXPO_PUBLIC_REVENUECAT_API_KEY": "test_PwNfLXhfOQnKXEkUbIjlLQwhmyD",
+      "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_PmKTgPqleLWWTmQYOWGzJCdQoyC",
+      "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "",
+      "EXPO_PUBLIC_REVENUECAT_API_KEY": "",
       "EXPO_PUBLIC_REVENUECAT_ENTITLEMENT": "Dan Fost Anxios Pro",
       "eas": {
         "projectId": "d9f73843-db4d-441f-9a97-1cb350a7900b"
