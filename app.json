@@ -46,7 +46,6 @@
       "expo-video",
       "expo-font",
       "expo-apple-authentication",
-      "react-native-purchases",
       [
         "expo-av",
         {
