@@ -7,6 +7,7 @@ import { auth } from "./auth.js";
 import { mysqlPool, testDbConnection } from "./mysql.js";
 import { registerProgressRoutes } from "./routes-progress.js";
 import { registerQuestionRoutes } from "./routes-questions.js";
+import { registerMeetingRoutes } from "./routes-meetings.js";
 import { registerChallengeRoutes } from "./routes-challenges.js";
 import { registerMediaRoutes } from "./routes-media.js";
 import { registerSubscriptionRoutes } from "./routes-subscriptions.js";
@@ -132,6 +133,7 @@ app.route({
 await registerAuthRoutes(app);
 await registerProgressRoutes(app);
 await registerQuestionRoutes(app);
+await registerMeetingRoutes(app);
 await registerChallengeRoutes(app);
 await registerMediaRoutes(app);
 await registerSubscriptionRoutes(app);

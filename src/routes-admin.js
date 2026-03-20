@@ -202,15 +202,30 @@ export async function registerAdminRoutes(app) {
     const limit = Math.min(100, Math.max(1, Number(request.query.limit) || 50));
     const offset = (page - 1) * limit;
     const upcoming = request.query.upcoming === '1';
+    const from = request.query.from ? new Date(request.query.from) : null;
+    const to = request.query.to ? new Date(request.query.to) : null;
+    if (from && isNaN(from.getTime())) return reply.code(400).send({ error: 'Parametrul from este invalid' });
+    if (to && isNaN(to.getTime())) return reply.code(400).send({ error: 'Parametrul to este invalid' });
     try {
       let rows, total;
-      const where = upcoming ? 'WHERE m.scheduled_at > NOW()' : '';
-      [[{ total }]] = await mysqlPool.query(`SELECT COUNT(*) AS total FROM meetings m ${where}`);
+      const whereParts = [];
+      const whereParams = [];
+      if (upcoming) whereParts.push('m.scheduled_at > NOW()');
+      if (from) {
+        whereParts.push('m.scheduled_at >= ?');
+        whereParams.push(from);
+      }
+      if (to) {
+        whereParts.push('m.scheduled_at < ?');
+        whereParams.push(to);
+      }
+      const where = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
+      [[{ total }]] = await mysqlPool.query(`SELECT COUNT(*) AS total FROM meetings m ${where}`, whereParams);
       [rows] = await mysqlPool.query(
         `SELECT m.id, m.user_id, u.email, u.name AS user_name, m.title, m.notes, m.scheduled_at, m.duration_min, m.status, m.created_at
          FROM meetings m LEFT JOIN users u ON u.id = m.user_id
          ${where} ORDER BY m.scheduled_at ASC LIMIT ? OFFSET ?`,
-        [limit, offset]
+        [...whereParams, limit, offset]
       );
       return reply.send({ items: rows, total, page, limit });
     } catch (e) {

@@ -15,8 +15,8 @@ FROM node:20-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Install runtime dependencies (ffmpeg for HLS encoding)
-RUN apk add --no-cache ffmpeg
+# Install runtime dependencies (ffmpeg for HLS encoding + cpulimit for CPU capping)
+RUN apk add --no-cache ffmpeg cpulimit
 
 # Copy node_modules and source
 COPY --from=build /app/node_modules ./node_modules

@@ -38,10 +38,12 @@ async function pathExists(filePath) {
 function buildFfmpegCommand(inputPath, outputDir) {
   const segmentPattern = path.join(outputDir, 'segment_%03d.ts');
   const playlistPath = path.join(outputDir, 'master.m3u8');
-  // Single-variant HLS tuned for low CPU (2 vCPU) and reasonable quality.
+  // Limit CPU threads (default 2) to cap memory and parallelism.
+  const threads = process.env.HLS_THREADS || '2';
   const args = [
     '-y',
     '-i', `"${inputPath}"`,
+    '-threads', threads,
     '-c:v', 'libx264',
     '-preset', 'veryfast',
     '-crf', process.env.HLS_CRF || '22',
@@ -56,7 +58,11 @@ function buildFfmpegCommand(inputPath, outputDir) {
     '-hls_segment_filename', `"${segmentPattern}"`,
     `"${playlistPath}"`,
   ];
-  return `ffmpeg ${args.join(' ')}`;
+  // Wrap with cpulimit if HLS_CPU_LIMIT is set (e.g. HLS_CPU_LIMIT=35 caps at 35% of one core).
+  // Falls back to nice -n 15 (low priority) if cpulimit is not requested.
+  const cpuLimit = process.env.HLS_CPU_LIMIT;
+  const prefix = cpuLimit ? `cpulimit --limit=${cpuLimit} -- ` : 'nice -n 15 ';
+  return `${prefix}ffmpeg ${args.join(' ')}`;
 }
 
 async function encodeOne({ inputPath, outputDir, videoId, force }) {
