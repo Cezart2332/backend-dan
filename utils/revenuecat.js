@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 import Purchases, { LOG_LEVEL, PURCHASES_ERROR_CODE } from "react-native-purchases";
-import RevenueCatUI from "react-native-purchases-ui";
+import RevenueCatUI, { PAYWALL_RESULT } from "react-native-purchases-ui";
 
 const extra = Constants?.expoConfig?.extra || Constants?.manifest?.extra || {};
 
@@ -28,15 +28,15 @@ export const REVENUECAT_API_KEY = getPlatformRevenueCatKey();
 
 export const PRO_ENTITLEMENT_ID = "Dan Fost Anxios Pro";
 export const PRODUCT_IDS = {
-  basic: "basic",
-  premium: "premium",
-  vip: "vip",
+  basic: "Basic",
+  premium: "Premium",
+  vip: "Vip",
 };
 
 const PRODUCT_ALIASES = {
-  [PRODUCT_IDS.basic]: ["basic", "prod769058ac9a"],
-  [PRODUCT_IDS.premium]: ["premium", "prodc84db671dc"],
-  [PRODUCT_IDS.vip]: ["vip", "prod30e0e21197"],
+  [PRODUCT_IDS.basic]: ["Basic", "prod769058ac9a"],
+  [PRODUCT_IDS.premium]: ["Premium", "prodc84db671dc"],
+  [PRODUCT_IDS.vip]: ["Vip", "prod30e0e21197"],
 };
 
 let configured = false;
@@ -168,15 +168,26 @@ export async function presentRevenueCatPaywall(requiredEntitlementIdentifier = P
     throw new Error("Paywall-ul RevenueCat este disponibil doar pe iOS/Android.");
   }
 
+  let paywallResult = PAYWALL_RESULT.NOT_PRESENTED;
+
   if (typeof RevenueCatUI?.presentPaywallIfNeeded === "function") {
-    return RevenueCatUI.presentPaywallIfNeeded({ requiredEntitlementIdentifier });
+    paywallResult = await RevenueCatUI.presentPaywallIfNeeded({
+      requiredEntitlementIdentifier,
+    });
+  } else if (typeof RevenueCatUI?.presentPaywall === "function") {
+    paywallResult = await RevenueCatUI.presentPaywall();
+  } else {
+    throw new Error("SDK-ul RevenueCat UI nu este disponibil in acest build.");
   }
 
-  if (typeof RevenueCatUI?.presentPaywall === "function") {
-    return RevenueCatUI.presentPaywall();
-  }
+  const success =
+    paywallResult === PAYWALL_RESULT.PURCHASED ||
+    paywallResult === PAYWALL_RESULT.RESTORED;
 
-  throw new Error("SDK-ul RevenueCat UI nu este disponibil in acest build.");
+  return {
+    result: paywallResult,
+    success,
+  };
 }
 
 export async function presentRevenueCatCustomerCenter() {

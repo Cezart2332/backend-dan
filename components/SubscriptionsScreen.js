@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import RevenueCatUI from "react-native-purchases-ui";
 import { useSubscription } from "../contexts/SubscriptionContext";
 import {
   getRevenueCatErrorMessage,
@@ -61,6 +63,7 @@ export default function SubscriptionsScreen({ navigation }) {
 
   const [processing, setProcessing] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(PRODUCT_IDS.basic);
+  const [showEmbeddedPaywall, setShowEmbeddedPaywall] = useState(false);
 
   const productPackages = useMemo(() => getPackagesByProduct(), [getPackagesByProduct]);
   const availablePackages = offerings?.current?.availablePackages || [];
@@ -213,6 +216,14 @@ export default function SubscriptionsScreen({ navigation }) {
           </TouchableOpacity>
 
           <TouchableOpacity
+            style={[styles.secondaryBtn, showEmbeddedPaywall && styles.disabledBtn]}
+            onPress={() => setShowEmbeddedPaywall(true)}
+            disabled={showEmbeddedPaywall}
+          >
+            <Text style={styles.secondaryBtnText}>Deschide Embedded Paywall</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={[styles.secondaryBtn, processing === "restore" && styles.disabledBtn]}
             onPress={handleRestore}
             disabled={processing === "restore"}
@@ -249,6 +260,25 @@ export default function SubscriptionsScreen({ navigation }) {
             </Text>
           </View>
         </ScrollView>
+
+        <Modal
+          visible={showEmbeddedPaywall}
+          animationType="slide"
+          onRequestClose={() => setShowEmbeddedPaywall(false)}
+        >
+          <View style={styles.embeddedPaywallContainer}>
+            <RevenueCatUI.Paywall
+              options={offerings?.current ? { offering: offerings.current } : undefined}
+              onRestoreCompleted={async () => {
+                await refresh();
+              }}
+              onDismiss={async () => {
+                setShowEmbeddedPaywall(false);
+                await refresh();
+              }}
+            />
+          </View>
+        </Modal>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -360,4 +390,8 @@ const styles = StyleSheet.create({
   },
   customerInfoTitle: { color: "#1a2d45", fontWeight: "700", fontSize: 15, marginBottom: 8 },
   customerInfoText: { color: "#44586f", fontSize: 12, marginTop: 4 },
+  embeddedPaywallContainer: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+  },
 });
