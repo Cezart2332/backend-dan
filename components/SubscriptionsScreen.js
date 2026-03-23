@@ -160,7 +160,7 @@ export default function SubscriptionsScreen({ navigation }) {
             <Text style={styles.statusValue}>{status || "none"}</Text>
             <Text style={styles.entitlementText}>{entitlementLine}</Text>
             <Text style={styles.smallText}>
-              Produse mapate: basic, premium, vip
+              Oferte mapate: dan_basic, dan_premium, dan_vip
             </Text>
             <Text style={styles.smallText}>
               Pachete active in offering: {availablePackages.length}
@@ -177,7 +177,7 @@ export default function SubscriptionsScreen({ navigation }) {
           <ProductCard
             title="Basic"
             subtitle="Plan Basic"
-            packageItem={productPackages.basic}
+            packageItem={productPackages?.[PRODUCT_IDS.basic] || productPackages?.basic}
             selected={selectedProduct === PRODUCT_IDS.basic}
             onSelect={() => setSelectedProduct(PRODUCT_IDS.basic)}
           />
@@ -185,7 +185,7 @@ export default function SubscriptionsScreen({ navigation }) {
           <ProductCard
             title="Premium"
             subtitle="Plan Premium"
-            packageItem={productPackages.premium}
+            packageItem={productPackages?.[PRODUCT_IDS.premium] || productPackages?.premium}
             selected={selectedProduct === PRODUCT_IDS.premium}
             onSelect={() => setSelectedProduct(PRODUCT_IDS.premium)}
           />
@@ -193,7 +193,7 @@ export default function SubscriptionsScreen({ navigation }) {
           <ProductCard
             title="VIP"
             subtitle="Plan VIP"
-            packageItem={productPackages.vip}
+            packageItem={productPackages?.[PRODUCT_IDS.vip] || productPackages?.vip}
             selected={selectedProduct === PRODUCT_IDS.vip}
             onSelect={() => setSelectedProduct(PRODUCT_IDS.vip)}
           />

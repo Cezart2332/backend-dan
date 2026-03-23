@@ -51,6 +51,7 @@ export const api = {
   // Subscriptions
   getCurrentSubscription: (token) => request('/api/subscriptions/current', { method: 'GET', token }),
   getSubscriptionHistory: (token) => request('/api/subscriptions/history', { method: 'GET', token }),
+  syncRevenueCatSubscription: (payload, token) => request('/api/subscriptions/sync', { method: 'POST', body: payload, token }),
   startTrial: (token) => request('/api/subscriptions/start-trial', { method: 'POST', token }),
   createCheckout: (payload, token) => request('/api/subscriptions/create-checkout', { method: 'POST', body: payload, token }),
   createPaymentSheet: (payload, token) => request('/api/subscriptions/create-payment-sheet', { method: 'POST', body: payload, token }),

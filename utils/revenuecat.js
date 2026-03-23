@@ -27,15 +27,25 @@ function getPlatformRevenueCatKey() {
 export const REVENUECAT_API_KEY = getPlatformRevenueCatKey();
 
 export const PRO_ENTITLEMENT_ID = "Dan Fost Anxios Pro";
-export const OFFERING_ID = "ofrng9b7115a069";
+export const OFFERING_ID =
+  extra?.EXPO_PUBLIC_REVENUECAT_OFFERING_ID ||
+  process.env.EXPO_PUBLIC_REVENUECAT_OFFERING_ID ||
+  "";
 export const PRODUCT_IDS = {
-  basic: "basic",
-  premium: "premium",
-  vip: "vip",
+  basic: "dan_basic",
+  premium: "dan_premium",
+  vip: "dan_vip",
+};
+
+export const OFFERING_IDS = {
+  basic: "dan_basic",
+  premium: "dan_premium",
+  vip: "dan_vip",
 };
 
 const PRODUCT_ALIASES = {
   [PRODUCT_IDS.basic]: [
+    "dan_basic",
     "basic",
     "Basic",
     "basic_subscription",
@@ -44,6 +54,7 @@ const PRODUCT_ALIASES = {
     "prod769058ac9a",
   ],
   [PRODUCT_IDS.premium]: [
+    "dan_premium",
     "premium",
     "Premium",
     "premium_subscription",
@@ -53,6 +64,7 @@ const PRODUCT_ALIASES = {
     "prodc84db671dc",
   ],
   [PRODUCT_IDS.vip]: [
+    "dan_vip",
     "vip",
     "Vip",
     "vip_subscription",
@@ -146,8 +158,13 @@ export async function fetchOfferings() {
 
 function getTargetOffering(offerings) {
   if (!offerings) return null;
-  const byIdentifier = offerings?.all?.[OFFERING_ID];
+  const byIdentifier = OFFERING_ID ? offerings?.all?.[OFFERING_ID] : null;
   return byIdentifier || offerings?.current || null;
+}
+
+function getOfferingById(offerings, offeringId) {
+  if (!offerings || !offeringId) return null;
+  return offerings?.all?.[offeringId] || null;
 }
 
 export function isProEntitlementActive(customerInfo) {
@@ -186,6 +203,25 @@ export function getPackageForProductId(offerings, productId) {
       return normalizedAliases.some((alias) => id.includes(alias) || sku.includes(alias));
     }) || null
   );
+}
+
+export function getPackageForOfferingId(offerings, offeringId, productId) {
+  const targetOffering = getOfferingById(offerings, offeringId);
+  const availablePackages = targetOffering?.availablePackages || [];
+  if (!availablePackages.length) return null;
+
+  if (productId) {
+    const aliases = PRODUCT_ALIASES[productId] || [productId];
+    const normalizedAliases = aliases.map((item) => String(item || "").toLowerCase());
+    const byAlias = availablePackages.find((pkg) => {
+      const packageId = String(pkg?.identifier || "").toLowerCase();
+      const storeProductId = String(pkg?.product?.identifier || "").toLowerCase();
+      return normalizedAliases.includes(packageId) || normalizedAliases.includes(storeProductId);
+    });
+    if (byAlias) return byAlias;
+  }
+
+  return availablePackages[0] || null;
 }
 
 export async function purchaseRevenueCatPackage(pkg) {

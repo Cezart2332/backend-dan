@@ -17,7 +17,7 @@ const { width } = Dimensions.get("window");
 const EXCLUDED_ROUTES = new Set(["Login", "Register", "Subscriptions", "Onboarding"]);
 
 export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRoute }) {
-  const { status, refresh, initializing, hasToken, showPaywall, restorePurchases } = useSubscription();
+  const { status, trialEligible, refresh, initializing, hasToken, showPaywall, restorePurchases, startFreeTrial } = useSubscription();
   const [pendingAction, setPendingAction] = useState(null);
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
@@ -76,6 +76,19 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
       Alert.alert("Restore", "Achizitiile au fost restaurate.");
     } catch (err) {
       Alert.alert("Eroare", err?.message || "Nu am putut restaura achizitiile.");
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const handleStartTrial = async () => {
+    try {
+      setPendingAction("trial");
+      await startFreeTrial();
+      await refresh();
+      Alert.alert("Trial activat", "Ai 3 zile de trial gratuit.");
+    } catch (err) {
+      Alert.alert("Eroare", err?.message || "Nu am putut porni trial-ul gratuit.");
     } finally {
       setPendingAction(null);
     }
@@ -154,6 +167,20 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
                 Planurile disponibile sunt Monthly, Yearly si Lifetime.
               </Text>
             </View>
+
+            {trialEligible ? (
+              <TouchableOpacity
+                style={[styles.secondaryButton, pendingAction && styles.disabledButton]}
+                onPress={handleStartTrial}
+                disabled={pendingAction === "trial"}
+              >
+                {pendingAction === "trial" ? (
+                  <ActivityIndicator color="#4a90e2" />
+                ) : (
+                  <Text style={styles.secondaryText}>Porneste trial gratuit (3 zile)</Text>
+                )}
+              </TouchableOpacity>
+            ) : null}
 
             <TouchableOpacity
               style={styles.secondaryButton}

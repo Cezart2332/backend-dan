@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import Purchases from "react-native-purchases";
+import { api } from "../utils/api";
 import { getToken } from "../utils/authStorage";
 import { getUser } from "../utils/userStorage";
 import {
@@ -11,7 +12,9 @@ import {
   configureRevenueCat,
   fetchCustomerInfo,
   fetchOfferings,
+  getPackageForOfferingId,
   getPackageForProductId,
+  OFFERING_IDS,
   getProEntitlement,
   getRevenueCatErrorMessage,
   identifyRevenueCatUser,
@@ -19,6 +22,7 @@ import {
   logoutRevenueCatUser,
   presentRevenueCatCustomerCenter,
   presentRevenueCatPaywall,
+  PRO_ENTITLEMENT_ID,
   PRODUCT_IDS,
   purchaseRevenueCatPackage,
   restoreRevenueCatPurchases,
@@ -73,8 +77,57 @@ export function SubscriptionProvider({ children, isAuthed }) {
       } else {
         await saveSubscription({ _status: nextStatus, _trialEligible: false });
       }
+
+      // Keep backend subscription status synchronized for admin/reporting and auth checks.
+      const token = await getToken();
+      if (token) {
+        await api.syncRevenueCatSubscription(
+          {
+            status: nextStatus,
+            productId: nextSubscription?.product_id || null,
+            startsAt: nextSubscription?.starts_at || null,
+            endsAt: nextSubscription?.ends_at || null,
+            store: nextSubscription?.store || null,
+            willRenew:
+              typeof nextSubscription?.will_renew === "boolean"
+                ? nextSubscription.will_renew
+                : null,
+            entitlementId: PRO_ENTITLEMENT_ID,
+            appUserId: info?.originalAppUserId || null,
+          },
+          token
+        );
+      }
     } catch {
       // Cache save failed.
+    }
+  }, []);
+
+  const applyBackendSubscription = useCallback((backendCurrent) => {
+    if (!backendCurrent || typeof backendCurrent !== "object") return;
+
+    const backendStatus = backendCurrent.status || "none";
+    const backendSub = backendCurrent.subscription || null;
+    const backendType = String(backendSub?.type || "").toLowerCase();
+    const hasActiveTrial = backendStatus === "active" && backendType === "trial";
+
+    if (hasActiveTrial) {
+      setStatus("active");
+      setSubscription({
+        type: "trial",
+        product_id: "trial",
+        starts_at: backendSub?.starts_at || null,
+        ends_at: backendSub?.ends_at || null,
+        store: "backend-trial",
+        will_renew: false,
+      });
+      setHasProEntitlement(false);
+      setTrialEligible(false);
+      return;
+    }
+
+    if (typeof backendCurrent.trialEligible === "boolean") {
+      setTrialEligible(backendCurrent.trialEligible);
     }
   }, []);
 
@@ -148,8 +201,23 @@ export function SubscriptionProvider({ children, isAuthed }) {
         const user = await getUser();
         const appUserId = user?.id ? String(user.id) : user?.email || null;
 
+        const backendCurrentPromise = api.getCurrentSubscription(token).catch(() => null);
+
         const isConfigured = await configureRevenueCat({ appUserID: appUserId || undefined });
         if (!isConfigured) {
+          const backendCurrent = await backendCurrentPromise;
+          if (backendCurrent) {
+            applyBackendSubscription(backendCurrent);
+            return {
+              subscription: backendCurrent.subscription || null,
+              status: backendCurrent.status || "none",
+              trialEligible: Boolean(backendCurrent.trialEligible),
+              hasProEntitlement: false,
+              offerings: null,
+              customerInfo: null,
+            };
+          }
+
           await clearState();
           return {
             subscription: null,
@@ -165,18 +233,25 @@ export function SubscriptionProvider({ children, isAuthed }) {
           await identifyRevenueCatUser(appUserId);
         }
 
-        const [info, latestOfferings] = await Promise.all([
+        const [info, latestOfferings, backendCurrent] = await Promise.all([
           fetchCustomerInfo(),
           fetchOfferings(),
+          backendCurrentPromise,
         ]);
 
         setOfferings(latestOfferings || null);
         await applyCustomerInfo(info);
+        applyBackendSubscription(backendCurrent);
 
         return {
           subscription: info,
-          status: isProEntitlementActive(info) ? "active" : "none",
-          trialEligible: false,
+          status:
+            backendCurrent?.status === "active" && backendCurrent?.subscription?.type === "trial"
+              ? "active"
+              : isProEntitlementActive(info)
+                ? "active"
+                : "none",
+          trialEligible: Boolean(backendCurrent?.trialEligible),
           hasProEntitlement: isProEntitlementActive(info),
           offerings: latestOfferings || null,
           customerInfo: info,
@@ -190,7 +265,7 @@ export function SubscriptionProvider({ children, isAuthed }) {
     })();
     refreshPromiseRef.current = executor;
     return executor;
-  }, [clearState]);
+  }, [clearState, applyBackendSubscription]);
 
   useEffect(() => {
     if (listenerRef.current) {
@@ -223,15 +298,29 @@ export function SubscriptionProvider({ children, isAuthed }) {
 
   const getPackagesByProduct = useCallback(() => {
     const availablePackages = offerings?.current?.availablePackages || [];
-    const basicPkg = getPackageForProductId(offerings, PRODUCT_IDS.basic);
-    const premiumPkg = getPackageForProductId(offerings, PRODUCT_IDS.premium);
-    const vipPkg = getPackageForProductId(offerings, PRODUCT_IDS.vip);
+    const basicPkg =
+      getPackageForOfferingId(offerings, OFFERING_IDS.basic, PRODUCT_IDS.basic) ||
+      getPackageForProductId(offerings, PRODUCT_IDS.basic);
+    const premiumPkg =
+      getPackageForOfferingId(offerings, OFFERING_IDS.premium, PRODUCT_IDS.premium) ||
+      getPackageForProductId(offerings, PRODUCT_IDS.premium);
+    const vipPkg =
+      getPackageForOfferingId(offerings, OFFERING_IDS.vip, PRODUCT_IDS.vip) ||
+      getPackageForProductId(offerings, PRODUCT_IDS.vip);
 
-    return {
-      basic: basicPkg || availablePackages[0] || null,
-      premium: premiumPkg || availablePackages[1] || availablePackages[0] || null,
-      vip: vipPkg || availablePackages[2] || availablePackages[availablePackages.length - 1] || null,
+    const mapped = {
+      [PRODUCT_IDS.basic]: basicPkg || availablePackages[0] || null,
+      [PRODUCT_IDS.premium]: premiumPkg || availablePackages[1] || availablePackages[0] || null,
+      [PRODUCT_IDS.vip]:
+        vipPkg || availablePackages[2] || availablePackages[availablePackages.length - 1] || null,
     };
+
+    // Backward-compatible keys in case any screen still expects basic/premium/vip keys.
+    mapped.basic = mapped[PRODUCT_IDS.basic];
+    mapped.premium = mapped[PRODUCT_IDS.premium];
+    mapped.vip = mapped[PRODUCT_IDS.vip];
+
+    return mapped;
   }, [offerings]);
 
   const purchaseByProductId = useCallback(
@@ -265,6 +354,14 @@ export function SubscriptionProvider({ children, isAuthed }) {
     return result;
   }, [applyCustomerInfo]);
 
+  const startFreeTrial = useCallback(async () => {
+    const token = await getToken();
+    if (!token) throw new Error("Nu esti autentificat.");
+    const result = await api.startTrial(token);
+    await refresh();
+    return result;
+  }, [refresh]);
+
   useEffect(() => {
     if (!initializing) return;
     if (hasToken) setInitializing(false);
@@ -291,6 +388,7 @@ export function SubscriptionProvider({ children, isAuthed }) {
       restorePurchases,
       showPaywall,
       openCustomerCenter,
+      startFreeTrial,
       getPackagesByProduct,
       setTrialEligible: (eligible) => setTrialEligible(Boolean(eligible)),
     }),
@@ -309,6 +407,7 @@ export function SubscriptionProvider({ children, isAuthed }) {
       restorePurchases,
       showPaywall,
       openCustomerCenter,
+      startFreeTrial,
       getPackagesByProduct,
     ]
   );
