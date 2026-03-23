@@ -106,6 +106,12 @@ export async function runMigrations() {
       type ENUM('trial','basic','premium','vip') NOT NULL,
       starts_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       ends_at TIMESTAMP NULL,
+      revenuecat_app_user_id VARCHAR(255) NULL,
+      revenuecat_product_id VARCHAR(255) NULL,
+      revenuecat_entitlement_id VARCHAR(255) NULL,
+      revenuecat_store VARCHAR(64) NULL,
+      revenuecat_will_renew TINYINT(1) NULL,
+      revenuecat_event_type VARCHAR(64) NULL,
       stripe_customer_id VARCHAR(255) NULL,
       stripe_subscription_id VARCHAR(255) NULL,
       stripe_price_id VARCHAR(255) NULL,
@@ -115,9 +121,37 @@ export async function runMigrations() {
       INDEX idx_subscriptions_user (user_id),
       INDEX idx_subscriptions_active (user_id, ends_at),
       INDEX idx_subscriptions_stripe_sub (stripe_subscription_id),
+      INDEX idx_subscriptions_revenuecat_app_user (revenuecat_app_user_id),
+      INDEX idx_subscriptions_revenuecat_product (revenuecat_product_id),
       INDEX idx_subscriptions_user_starts (user_id, starts_at DESC)
     )
   `);
+
+  // RevenueCat columns for pre-existing deployments
+  try {
+    await mysqlPool.query(`ALTER TABLE subscriptions ADD COLUMN revenuecat_app_user_id VARCHAR(255) NULL`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE subscriptions ADD COLUMN revenuecat_product_id VARCHAR(255) NULL`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE subscriptions ADD COLUMN revenuecat_entitlement_id VARCHAR(255) NULL`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE subscriptions ADD COLUMN revenuecat_store VARCHAR(64) NULL`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE subscriptions ADD COLUMN revenuecat_will_renew TINYINT(1) NULL`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE subscriptions ADD COLUMN revenuecat_event_type VARCHAR(64) NULL`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE subscriptions ADD INDEX idx_subscriptions_revenuecat_app_user (revenuecat_app_user_id)`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE subscriptions ADD INDEX idx_subscriptions_revenuecat_product (revenuecat_product_id)`);
+  } catch {}
 
   // bug_reports table
   await mysqlPool.query(`

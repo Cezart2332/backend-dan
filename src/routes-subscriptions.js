@@ -1,502 +1,690 @@
-import Stripe from 'stripe';
-import { mysqlPool } from './mysql.js';
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
+import { mysqlPool } from "./mysql.js";
 
-const stripeSecret = process.env.STRIPE_SECRET_KEY || '';
-const stripe = stripeSecret ? new Stripe(stripeSecret, { apiVersion: '2024-06-20' }) : null;
-
-// Price / Product mapping via env (frontend supplies a logical plan)
-// Values can be either a Stripe Price ID (price_...) or a Product ID (prod_...).
-const priceMap = {
-  basic: process.env.SUBSCRIPTION_PRICE_BASIC,
-  premium: process.env.SUBSCRIPTION_PRICE_PREMIUM,
-  vip: process.env.SUBSCRIPTION_PRICE_VIP,
+const PRODUCT_IDS = {
+  basic: "dan_basic",
+  premium: "dan_premium",
+  vip: "dan_vip",
 };
 
-// Simple in-memory cache for product -> default price resolution
-const productDefaultPriceCache = new Map();
+const KNOWN_PRODUCT_ALIASES = {
+  basic: ["dan_basic", "basic"],
+  premium: ["dan_premium", "premium"],
+  vip: ["dan_vip", "vip"],
+};
 
-async function resolvePriceId(plan, explicit) {
-  if (explicit) return explicit; // override wins
-  if (!plan) return null;
-  const val = priceMap[plan];
-  if (!val) return null;
-  if (typeof val === 'string' && val.toLowerCase().includes('placeholder')) return null; // treat placeholders as unset
-  // If it's already a price id, return directly
-  if (val.startsWith('price_')) return val;
-  // If it's a product id, try to resolve its default price
-  if (val.startsWith('prod_')) {
-    if (!stripe) return null; // cannot resolve without Stripe client
-    if (productDefaultPriceCache.has(val)) return productDefaultPriceCache.get(val);
-    try {
-      const product = await stripe.products.retrieve(val);
-      let priceId = product.default_price && typeof product.default_price === 'string'
-        ? product.default_price
-        : (typeof product.default_price === 'object' && product.default_price?.id) ? product.default_price.id : null;
-      if (!priceId) {
-        // Fallback: list one active price
-        const prices = await stripe.prices.list({ product: val, active: true, limit: 1 });
-        if (prices.data.length) priceId = prices.data[0].id;
-      }
-      if (priceId) {
-        productDefaultPriceCache.set(val, priceId);
-        return priceId;
-      }
-      return null;
-    } catch (err) {
-      return null;
-    }
-  }
-  return null; // unsupported format
-}
+const PRO_ENTITLEMENT_ID = process.env.REVENUECAT_ENTITLEMENT_ID || "Dan Fost Anxios Pro";
+const REVENUECAT_SECRET_API_KEY = process.env.REVENUECAT_SECRET_API_KEY || "";
+
+const ACTIVE_EVENT_TYPES = new Set([
+  "INITIAL_PURCHASE",
+  "NON_RENEWING_PURCHASE",
+  "RENEWAL",
+  "PRODUCT_CHANGE",
+  "UNCANCELLATION",
+  "TRANSFER",
+]);
+
+const INACTIVE_EVENT_TYPES = new Set([
+  "EXPIRATION",
+  "CANCELLATION",
+  "REFUND",
+  "SUBSCRIPTION_PAUSED",
+]);
 
 function requireAuth(request) {
-  const auth = request.headers.authorization || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
-  if (!token) throw new Error('NO_AUTH');
+  const auth = request.headers.authorization || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token) throw new Error("NO_AUTH");
   const secret = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
-  if (!secret) throw new Error('SERVER_CONFIG_ERROR');
+  if (!secret) throw new Error("SERVER_CONFIG_ERROR");
   try {
     const decoded = jwt.verify(token, secret);
     return decoded;
   } catch {
-    throw new Error('BAD_TOKEN');
+    throw new Error("BAD_TOKEN");
   }
 }
 
-async function getActiveSubscription(userId) {
+async function getUserById(userId) {
+  const [rows] = await mysqlPool.query(`SELECT id, email FROM users WHERE id = ? LIMIT 1`, [userId]);
+  return Array.isArray(rows) && rows.length ? rows[0] : null;
+}
+
+function normalizeProductType(productId) {
+  const normalized = String(productId || "").toLowerCase().trim();
+  if (!normalized) return "premium";
+  if (KNOWN_PRODUCT_ALIASES.basic.includes(normalized)) return "basic";
+  if (KNOWN_PRODUCT_ALIASES.vip.includes(normalized)) return "vip";
+  if (KNOWN_PRODUCT_ALIASES.premium.includes(normalized)) return "premium";
+  if (normalized.includes("basic")) return "basic";
+  if (normalized.includes("vip")) return "vip";
+  return "premium";
+}
+
+function parseNullableDate(value) {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
+
+function parseMillisOrDate(value) {
+  if (!value) return null;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  if (typeof value === "string" && /^\d+$/.test(value)) {
+    const d = new Date(Number(value));
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  return parseNullableDate(value);
+}
+
+function computeStatusFromDates(startsAt, endsAt) {
+  const start = parseNullableDate(startsAt);
+  const end = parseNullableDate(endsAt);
+  if (!start && !end) return "none";
+  if (!end || end.getTime() > Date.now()) return "active";
+  return "expired";
+}
+
+function getEntitlementFromRevenueCat(subscriber, entitlementId) {
+  if (!subscriber) return null;
+
+  const entitlements = subscriber.entitlements || {};
+
+  const sdkLikeActive = entitlements.active?.[entitlementId];
+  if (sdkLikeActive) {
+    return {
+      raw: sdkLikeActive,
+      isActive: true,
+      productIdentifier: sdkLikeActive.productIdentifier,
+      latestPurchaseDate: sdkLikeActive.latestPurchaseDate,
+      expirationDate: sdkLikeActive.expirationDate,
+      store: sdkLikeActive.store,
+      willRenew: sdkLikeActive.willRenew,
+      entitlementId,
+    };
+  }
+
+  const sdkLikeAll = entitlements.all?.[entitlementId];
+  if (sdkLikeAll) {
+    const expirationDate = parseNullableDate(sdkLikeAll.expirationDate);
+    const isActive = !expirationDate || expirationDate.getTime() > Date.now();
+    return {
+      raw: sdkLikeAll,
+      isActive,
+      productIdentifier: sdkLikeAll.productIdentifier,
+      latestPurchaseDate: sdkLikeAll.latestPurchaseDate,
+      expirationDate: sdkLikeAll.expirationDate,
+      store: sdkLikeAll.store,
+      willRenew: sdkLikeAll.willRenew,
+      entitlementId,
+    };
+  }
+
+  const restEntitlement = entitlements?.[entitlementId];
+  if (restEntitlement && typeof restEntitlement === "object") {
+    const expirationDate = parseNullableDate(restEntitlement.expires_date);
+    const isActive = !expirationDate || expirationDate.getTime() > Date.now();
+    return {
+      raw: restEntitlement,
+      isActive,
+      productIdentifier: restEntitlement.product_identifier,
+      latestPurchaseDate: restEntitlement.purchase_date,
+      expirationDate: restEntitlement.expires_date,
+      store: restEntitlement.store,
+      willRenew: restEntitlement.unsubscribe_detected_at ? false : null,
+      entitlementId,
+    };
+  }
+
+  return null;
+}
+
+async function fetchRevenueCatSubscriber(appUserId) {
+  if (!REVENUECAT_SECRET_API_KEY) return null;
+  const safeUserId = encodeURIComponent(String(appUserId || "").trim());
+  if (!safeUserId) return null;
+
+  const response = await fetch(`https://api.revenuecat.com/v1/subscribers/${safeUserId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${REVENUECAT_SECRET_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    const payload = await response.text().catch(() => "");
+    throw new Error(`REVENUECAT_FETCH_FAILED:${response.status}:${payload}`);
+  }
+
+  const payload = await response.json();
+  return payload?.subscriber || null;
+}
+
+async function getLatestSubscriptionRow(userId) {
   const [rows] = await mysqlPool.query(
-    `SELECT * FROM subscriptions WHERE user_id = ? AND (ends_at IS NULL OR ends_at > NOW()) ORDER BY starts_at DESC LIMIT 1`,
+    `SELECT
+      id,
+      type,
+      starts_at,
+      ends_at,
+      revenuecat_product_id,
+      revenuecat_store,
+      revenuecat_will_renew,
+      revenuecat_entitlement_id,
+      revenuecat_app_user_id,
+      created_at,
+      updated_at
+     FROM subscriptions
+     WHERE user_id = ?
+     ORDER BY starts_at DESC, id DESC
+     LIMIT 1`,
     [userId]
   );
   return Array.isArray(rows) && rows.length ? rows[0] : null;
 }
 
-export async function registerSubscriptionRoutes(app) {
-  // Get current subscription (including trial)
-  app.get('/api/subscriptions/current', async (request, reply) => {
-    try {
-      const user = requireAuth(request);
+async function getActiveTrialRow(userId) {
+  const [rows] = await mysqlPool.query(
+    `SELECT
+      id,
+      type,
+      starts_at,
+      ends_at,
+      revenuecat_product_id,
+      revenuecat_store,
+      revenuecat_will_renew,
+      revenuecat_entitlement_id,
+      revenuecat_app_user_id,
+      created_at,
+      updated_at
+     FROM subscriptions
+     WHERE user_id = ?
+       AND type = 'trial'
+       AND (ends_at IS NULL OR ends_at > NOW())
+     ORDER BY starts_at DESC, id DESC
+     LIMIT 1`,
+    [userId]
+  );
+  return Array.isArray(rows) && rows.length ? rows[0] : null;
+}
 
-      // Verify user still exists in DB (guards against wiped DB / deleted account)
-      const [userRows] = await mysqlPool.query(
-        `SELECT id FROM users WHERE id = ? LIMIT 1`,
-        [user.sub]
-      );
-      if (!Array.isArray(userRows) || !userRows.length) {
-        return reply.code(401).send({ error: 'Neautorizat', code: 'USER_NOT_FOUND' });
-      }
+async function getTrialEligible(userId) {
+  const [rows] = await mysqlPool.query(
+    `SELECT id FROM subscriptions WHERE user_id = ? AND type IN ('trial','basic','premium','vip') LIMIT 1`,
+    [userId]
+  );
+  return !Array.isArray(rows) || rows.length === 0;
+}
 
-      let sub = await getActiveSubscription(user.sub);
-      // No auto-fallback: if trial expired, user must subscribe to a paid plan.
-      // The frontend paywall will prompt them.
-      let status = 'none';
-      if (sub) {
-        const now = Date.now();
-        const ends = sub.ends_at ? new Date(sub.ends_at).getTime() : null;
-        if (!ends || ends > now) status = 'active';
-        else status = 'expired';
-      }
-      // Check if user is eligible for trial (never had a trial OR a paid subscription)
-      // Trials are for brand-new users only; anyone who ever subscribed is ineligible
-      const [pastSubs] = await mysqlPool.query(
-        `SELECT id FROM subscriptions WHERE user_id = ? AND type IN ('trial','basic','premium','vip') LIMIT 1`,
-        [user.sub]
-      );
-      const trialEligible = !Array.isArray(pastSubs) || pastSubs.length === 0;
-      reply.send({ subscription: sub || null, status, trialEligible });
-    } catch (e) {
-      if (e.message === 'NO_AUTH' || e.message === 'BAD_TOKEN') return reply.code(401).send({ error: 'Neautorizat' });
-      request.log.error(e);
-      reply.code(500).send({ error: 'Eroare server' });
-    }
-  });
+async function persistRevenueCatSnapshot({
+  userId,
+  appUserId,
+  entitlementId,
+  productId,
+  status,
+  startsAt,
+  endsAt,
+  store,
+  willRenew,
+  eventType,
+}) {
+  const nextStatus = ["active", "expired", "none"].includes(status) ? status : "none";
+  const normalizedProductId = productId ? String(productId).trim() : null;
+  const normalizedType = normalizedProductId ? normalizeProductType(normalizedProductId) : "premium";
 
-  // Start or ensure a trial (client can call on signup or dashboard)
-  app.post('/api/subscriptions/start-trial', async (request, reply) => {
-    try {
-      const user = requireAuth(request);
-      // If user already has any active subscription (trial or paid) do not grant new trial
-      const active = await getActiveSubscription(user.sub);
-      if (active) return reply.send({ subscription: active, note: 'Subscription already active' });
+  const startDate = parseNullableDate(startsAt) || new Date();
+  const parsedEndsAt = parseNullableDate(endsAt);
+  const endDate =
+    nextStatus === "active"
+      ? parsedEndsAt
+      : parsedEndsAt || new Date();
 
-      // Enforce: trial only for users who NEVER had a trial or a paid subscription
-      const [pastSubs] = await mysqlPool.query(
-        `SELECT id FROM subscriptions WHERE user_id = ? AND type IN ('trial','basic','premium','vip') LIMIT 1`,
-        [user.sub]
-      );
-      if (Array.isArray(pastSubs) && pastSubs.length) {
-        return reply.code(400).send({ error: 'Trial disponibil doar pentru utilizatori noi', code: 'TRIAL_NOT_ELIGIBLE' });
-      }
-      // Grant a 3-day Basic-equivalent trial (type=trial)
+  if (nextStatus !== "active") {
+    await mysqlPool.query(
+      `UPDATE subscriptions
+       SET ends_at = IFNULL(ends_at, NOW())
+       WHERE user_id = ?
+         AND type <> 'trial'
+         AND (ends_at IS NULL OR ends_at > NOW())`,
+      [userId]
+    );
+
+    if (normalizedProductId) {
       await mysqlPool.query(
-        `INSERT INTO subscriptions (user_id, type, starts_at, ends_at) VALUES (?, 'trial', NOW(), DATE_ADD(NOW(), INTERVAL 3 DAY))`,
-        [user.sub]
+        `INSERT INTO subscriptions (
+          user_id,
+          type,
+          starts_at,
+          ends_at,
+          revenuecat_app_user_id,
+          revenuecat_product_id,
+          revenuecat_entitlement_id,
+          revenuecat_store,
+          revenuecat_will_renew,
+          revenuecat_event_type,
+          stripe_price_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          userId,
+          normalizedType,
+          startDate,
+          endDate,
+          appUserId || null,
+          normalizedProductId,
+          entitlementId || null,
+          store || null,
+          typeof willRenew === "boolean" ? Number(willRenew) : null,
+          eventType || null,
+          normalizedProductId,
+        ]
       );
-      request.log.info({ userId: user.sub, durationDays: 3 }, '[subscriptions] inserted trial subscription');
-      const created = await getActiveSubscription(user.sub);
-      reply.send({ subscription: created, note: 'Trial started' });
-    } catch (e) {
-      if (e.message === 'NO_AUTH' || e.message === 'BAD_TOKEN') return reply.code(401).send({ error: 'Neautorizat' });
-      request.log.error(e);
-      reply.code(500).send({ error: 'Eroare server' });
     }
-  });
 
-  // Create checkout session (Stripe Hosted) - placeholder until product/price IDs configured
-  app.post('/api/subscriptions/create-checkout', async (request, reply) => {
+    return;
+  }
+
+  const [existingRows] = await mysqlPool.query(
+    `SELECT id, starts_at, ends_at
+     FROM subscriptions
+     WHERE user_id = ?
+       AND revenuecat_product_id <=> ?
+       AND revenuecat_entitlement_id <=> ?
+     ORDER BY id DESC
+     LIMIT 1`,
+    [userId, normalizedProductId, entitlementId || null]
+  );
+
+  const existing = Array.isArray(existingRows) && existingRows.length ? existingRows[0] : null;
+  if (existing) {
+    await mysqlPool.query(
+      `UPDATE subscriptions
+       SET
+         type = ?,
+         starts_at = ?,
+         ends_at = ?,
+         revenuecat_app_user_id = ?,
+         revenuecat_store = ?,
+         revenuecat_will_renew = ?,
+         revenuecat_event_type = ?,
+         stripe_price_id = ?
+       WHERE id = ?`,
+      [
+        normalizedType,
+        startDate,
+        endDate,
+        appUserId || null,
+        store || null,
+        typeof willRenew === "boolean" ? Number(willRenew) : null,
+        eventType || null,
+        normalizedProductId,
+        existing.id,
+      ]
+    );
+    return;
+  }
+
+  await mysqlPool.query(
+    `INSERT INTO subscriptions (
+      user_id,
+      type,
+      starts_at,
+      ends_at,
+      revenuecat_app_user_id,
+      revenuecat_product_id,
+      revenuecat_entitlement_id,
+      revenuecat_store,
+      revenuecat_will_renew,
+      revenuecat_event_type,
+      stripe_price_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      userId,
+      normalizedType,
+      startDate,
+      endDate,
+      appUserId || null,
+      normalizedProductId,
+      entitlementId || null,
+      store || null,
+      typeof willRenew === "boolean" ? Number(willRenew) : null,
+      eventType || null,
+      normalizedProductId,
+    ]
+  );
+}
+
+function formatCurrentResponse(row, trialEligible) {
+  const status = row
+    ? computeStatusFromDates(row.starts_at, row.ends_at)
+    : "none";
+
+  const subscription = row
+    ? {
+        type: row.type,
+        product_id: row.revenuecat_product_id || row.stripe_price_id || null,
+        starts_at: row.starts_at || null,
+        ends_at: row.ends_at || null,
+        store: row.revenuecat_store || null,
+        will_renew:
+          row.revenuecat_will_renew === null || row.revenuecat_will_renew === undefined
+            ? null
+            : Boolean(row.revenuecat_will_renew),
+      }
+    : null;
+
+  return { subscription, status, trialEligible };
+}
+
+function getWebhookToken(request) {
+  const auth = request.headers.authorization || "";
+  if (auth.startsWith("Bearer ")) return auth.slice(7).trim();
+  const xToken = request.headers["x-revenuecat-auth"] || request.headers["x-webhook-auth"];
+  if (typeof xToken === "string") return xToken.trim();
+  return auth.trim();
+}
+
+export async function registerSubscriptionRoutes(app) {
+  app.get("/api/subscriptions/current", async (request, reply) => {
     try {
-      if (!stripe) return reply.code(500).send({ error: 'Stripe neconfigurat', code: 'STRIPE_NOT_CONFIGURED' });
       const user = requireAuth(request);
-      const { plan, mode = 'subscription', priceId: rawPriceId, quantity = 1 } = request.body || {};
-      const normPlan = typeof plan === 'string' ? plan.toLowerCase().trim() : '';
-
-      // Resolve price ID (explicit overrides plan mapping)
-      const finalPriceId = await resolvePriceId(normPlan, rawPriceId);
-      if (!normPlan) return reply.code(400).send({ error: 'Plan lipsă', code: 'PLAN_REQUIRED' });
-      const rawMapValue = priceMap[normPlan];
-      if (rawMapValue && rawMapValue.toLowerCase().includes('placeholder')) {
-        return reply.code(400).send({
-          error: 'Valoare placeholder în env pentru acest plan – setează un ID real de produs (prod_...) sau preț (price_...)',
-          code: 'PLACEHOLDER_PRICE_ID',
-          plan: normPlan,
-          source: 'env',
-          rawMapValue,
-        });
-      }
-      if (!finalPriceId) {
-        return reply.code(400).send({
-          error: 'Preț inexistent pentru plan / produs sau priceId invalid',
-          code: rawMapValue && rawMapValue.startsWith('prod_') ? 'PRODUCT_PRICE_NOT_FOUND' : 'PRICE_NOT_FOUND',
-          plan: normPlan,
-        });
-      }
-      if (finalPriceId.toLowerCase().includes('placeholder')) {
-        return reply.code(400).send({
-          error: 'ID-ul de preț este încă un placeholder – actualizează mediul și redepornește containerul',
-          code: 'PLACEHOLDER_PRICE_ID',
-          price: finalPriceId,
-          source: rawPriceId && rawPriceId.toLowerCase().includes('placeholder') ? 'explicit-request' : 'resolved',
-          rawPriceId: rawPriceId || null,
-          mapValue: rawMapValue || null,
-        });
-      }
-      if (!['subscription', 'payment', 'setup'].includes(mode)) {
-        return reply.code(400).send({ error: 'Mode invalid', code: 'INVALID_MODE' });
+      const userRow = await getUserById(user.sub);
+      if (!userRow) {
+        return reply.code(401).send({ error: "Neautorizat", code: "USER_NOT_FOUND" });
       }
 
-      // Create or reuse customer
-      let customerId;
-      const [existing] = await mysqlPool.query(
-        `SELECT stripe_customer_id FROM subscriptions WHERE user_id = ? AND stripe_customer_id IS NOT NULL ORDER BY id DESC LIMIT 1`,
-        [user.sub]
-      );
-      if (Array.isArray(existing) && existing.length && existing[0].stripe_customer_id) {
-        customerId = existing[0].stripe_customer_id;
-      } else {
-        const customer = await stripe.customers.create({ email: user.email });
-        customerId = customer.id;
-      }
+      const appUserId = String(user.sub || userRow.email || "").trim();
 
-      // Optional pre-validation of price to surface clearer errors (enabled by env STRIPE_VALIDATE_PRICE=1)
-      if (process.env.STRIPE_VALIDATE_PRICE === '1') {
-        try {
-          const priceObj = await stripe.prices.retrieve(finalPriceId);
-          if (mode === 'subscription' && !priceObj.recurring) {
-            return reply.code(400).send({
-              error: 'Prețul nu este de tip abonament (recurring) pentru mode=subscription',
-              code: 'PRICE_NOT_RECURRING',
-              price: finalPriceId,
-            });
-          }
-        } catch (err) {
-          request.log.error({ err, price: finalPriceId }, 'Price retrieval failed');
-          return reply.code(400).send({
-            error: 'Prețul nu a putut fi găsit în Stripe (verifică dacă faci test vs live)',
-            code: 'PRICE_LOOKUP_FAILED',
-            price: finalPriceId,
+      try {
+        const subscriber = await fetchRevenueCatSubscriber(appUserId);
+        const entitlement = getEntitlementFromRevenueCat(subscriber, PRO_ENTITLEMENT_ID);
+        const status = entitlement
+          ? entitlement.isActive
+            ? "active"
+            : "expired"
+          : "none";
+
+        if (entitlement) {
+          await persistRevenueCatSnapshot({
+            userId: user.sub,
+            appUserId,
+            entitlementId: entitlement.entitlementId,
+            productId: entitlement.productIdentifier,
+            status,
+            startsAt: entitlement.latestPurchaseDate,
+            endsAt: entitlement.expirationDate,
+            store: entitlement.store,
+            willRenew: entitlement.willRenew,
+            eventType: "API_SYNC",
+          });
+        } else {
+          await persistRevenueCatSnapshot({
+            userId: user.sub,
+            appUserId,
+            entitlementId: PRO_ENTITLEMENT_ID,
+            productId: null,
+            status: "none",
+            startsAt: null,
+            endsAt: new Date(),
+            store: null,
+            willRenew: null,
+            eventType: "API_SYNC",
           });
         }
+      } catch (error) {
+        request.log.warn({ err: error }, "RevenueCat fetch failed, falling back to local subscription snapshot");
       }
 
-      // Build line items for session
-      const lineItems = [{ price: finalPriceId, quantity: Number(quantity) > 0 ? Number(quantity) : 1 }];
+      const [latestRow, activeTrialRow, trialEligible] = await Promise.all([
+        getLatestSubscriptionRow(user.sub),
+        getActiveTrialRow(user.sub),
+        getTrialEligible(user.sub),
+      ]);
 
-      request.log.info({ plan: normPlan, mode }, 'Preparing checkout session');
-
-      const successBase = process.env.CLIENT_ORIGIN || 'http://localhost:19006';
-
-      const sessionParams = {
-        mode,
-        customer: customerId,
-        line_items: lineItems,
-        success_url: `${successBase}/?checkout=success&plan=${encodeURIComponent(plan)}`,
-        cancel_url: `${successBase}/?checkout=cancel&plan=${encodeURIComponent(plan)}`,
-        metadata: { userId: String(user.sub), plan: normPlan },
-      };
-      // subscription_data is only valid for mode=subscription; Stripe rejects it for payment/setup
-      if (mode === 'subscription') {
-        sessionParams.subscription_data = { metadata: { userId: String(user.sub), plan: normPlan } };
-      }
-      const session = await stripe.checkout.sessions.create(sessionParams);
-      reply.send({ url: session.url });
+      const rowToSend = activeTrialRow || latestRow;
+      reply.send(formatCurrentResponse(rowToSend, activeTrialRow ? false : trialEligible));
     } catch (e) {
-      if (e.message === 'NO_AUTH' || e.message === 'BAD_TOKEN') return reply.code(401).send({ error: 'Neautorizat' });
-      // Stripe price missing -> 400 with clearer code
-      if (e && e.code === 'resource_missing' && e.param === 'line_items[0][price]') {
-        return reply.code(400).send({
-          error: 'Preț Stripe inexistent (posibil test vs live mismatch sau ID greșit)',
-          code: 'STRIPE_PRICE_MISSING',
-          param: e.param,
-          hint: 'Verifică dacă folosești cheia sk_test cu un price_ test și nu amesteci cu live',
-        });
+      if (e.message === "NO_AUTH" || e.message === "BAD_TOKEN") {
+        return reply.code(401).send({ error: "Neautorizat" });
       }
-      request.log.error({ err: e }, '[checkout] error');
-      reply.code(500).send({ error: 'Eroare creare sesiune checkout', code: 'CHECKOUT_FAILED' });
+      request.log.error(e);
+      reply.code(500).send({ error: "Eroare server" });
     }
   });
 
-  // In-app PaymentSheet subscription setup (returns ephemeral key + payment intent client secret)
-  app.post('/api/subscriptions/create-payment-sheet', async (request, reply) => {
+  app.post("/api/subscriptions/sync", async (request, reply) => {
     try {
-      if (!stripe) return reply.code(500).send({ error: 'Stripe neconfigurat', code: 'STRIPE_NOT_CONFIGURED' });
       const user = requireAuth(request);
-      const { plan, priceId: explicitPriceId } = request.body || {};
-      const normPlan = typeof plan === 'string' ? plan.toLowerCase().trim() : '';
-      if (!normPlan) return reply.code(400).send({ error: 'Plan lipsă', code: 'PLAN_REQUIRED' });
-      const rawMapValue = priceMap[normPlan];
-      if (rawMapValue && rawMapValue.toLowerCase().includes('placeholder')) {
-        return reply.code(400).send({ error: 'Valoare placeholder în env pentru acest plan', code: 'PLACEHOLDER_PRICE_ID', plan: normPlan });
-      }
-      const finalPriceId = await resolvePriceId(normPlan, explicitPriceId);
-      if (!finalPriceId) return reply.code(400).send({ error: 'Preț inexistent pentru plan', code: 'PRICE_NOT_FOUND', plan: normPlan });
-      if (finalPriceId.toLowerCase().includes('placeholder')) return reply.code(400).send({ error: 'ID placeholder', code: 'PLACEHOLDER_PRICE_ID' });
-
-      // Reuse existing customer if available
-      let customerId;
-      const [existing] = await mysqlPool.query(
-        `SELECT stripe_customer_id FROM subscriptions WHERE user_id = ? AND stripe_customer_id IS NOT NULL ORDER BY id DESC LIMIT 1`,
-        [user.sub]
-      );
-      if (Array.isArray(existing) && existing.length && existing[0].stripe_customer_id) {
-        customerId = existing[0].stripe_customer_id;
-      } else {
-        const customer = await stripe.customers.create({ email: user.email, metadata: { userId: String(user.sub) } });
-        customerId = customer.id;
+      const userRow = await getUserById(user.sub);
+      if (!userRow) {
+        return reply.code(401).send({ error: "Neautorizat", code: "USER_NOT_FOUND" });
       }
 
-      // Create ephemeral key for PaymentSheet (client uses publishable key + this secret)
-      const ephemeralKey = await stripe.ephemeralKeys.create({ customer: customerId }, { apiVersion: '2024-06-20' });
+      const {
+        status = "none",
+        productId = null,
+        startsAt = null,
+        endsAt = null,
+        store = null,
+        willRenew = null,
+        entitlementId = PRO_ENTITLEMENT_ID,
+        appUserId = null,
+      } = request.body || {};
 
-      // Create subscription in incomplete state until payment is confirmed in PaymentSheet
-      // Auto-cancel incomplete subscriptions after 30 minutes to avoid dangling subs
-      const subscription = await stripe.subscriptions.create({
-        customer: customerId,
-        items: [{ price: finalPriceId }],
-        payment_behavior: 'default_incomplete',
-        payment_settings: {
-          save_default_payment_method: 'on_subscription',
-        },
-        expand: ['latest_invoice.payment_intent'],
-        metadata: { userId: String(user.sub), plan: normPlan },
+      await persistRevenueCatSnapshot({
+        userId: user.sub,
+        appUserId: appUserId || String(user.sub),
+        entitlementId,
+        productId,
+        status,
+        startsAt,
+        endsAt,
+        store,
+        willRenew,
+        eventType: "APP_SYNC",
       });
 
-      // Schedule auto-cancellation if still incomplete after 30 minutes
-      // Stripe handles this via subscription schedules; we use a simpler approach:
-      // the webhook will only insert active subscriptions, so incompletes won't appear in our DB.
-      // For extra safety, set the invoice to void after expiry via Stripe dashboard settings
-      // (Settings > Subscriptions > Manage failed payments > Cancel subscription immediately).
+      const [latestRow, activeTrialRow, trialEligible] = await Promise.all([
+        getLatestSubscriptionRow(user.sub),
+        getActiveTrialRow(user.sub),
+        getTrialEligible(user.sub),
+      ]);
 
-      const latestInvoice = subscription.latest_invoice;
-      const paymentIntent = latestInvoice && latestInvoice.payment_intent;
-      if (!paymentIntent) {
-        return reply.code(500).send({ error: 'PaymentIntent lipsă în subscription', code: 'MISSING_PAYMENT_INTENT' });
-      }
-
-      reply.send({
-        customerId,
-        ephemeralKeySecret: ephemeralKey.secret,
-        paymentIntentClientSecret: paymentIntent.client_secret,
-        subscriptionId: subscription.id,
-        priceId: finalPriceId,
-        plan: normPlan,
-      });
+      const rowToSend = activeTrialRow || latestRow;
+      reply.send(formatCurrentResponse(rowToSend, activeTrialRow ? false : trialEligible));
     } catch (e) {
-      if (e.message === 'NO_AUTH' || e.message === 'BAD_TOKEN') return reply.code(401).send({ error: 'Neautorizat' });
-      request.log.error({ err: e }, 'create-payment-sheet failed');
-      reply.code(500).send({ error: 'Eroare creare PaymentSheet subscription', code: 'PAYMENTSHEET_SUB_CREATE_FAILED', message: e.message });
+      if (e.message === "NO_AUTH" || e.message === "BAD_TOKEN") {
+        return reply.code(401).send({ error: "Neautorizat" });
+      }
+      request.log.error(e);
+      reply.code(500).send({ error: "Eroare server" });
     }
   });
 
-  // History endpoint – all subscription rows for the user (limited to last 50)
-  app.get('/api/subscriptions/history', async (request, reply) => {
+  app.get("/api/subscriptions/history", async (request, reply) => {
     try {
       const user = requireAuth(request);
       const [rows] = await mysqlPool.query(
-        `SELECT id, type, starts_at, ends_at, stripe_subscription_id, stripe_price_id, created_at, updated_at
-         FROM subscriptions WHERE user_id = ? ORDER BY starts_at DESC LIMIT 50`,
+        `SELECT
+          id,
+          type,
+          starts_at,
+          ends_at,
+          revenuecat_product_id,
+          revenuecat_store,
+          revenuecat_entitlement_id,
+          revenuecat_event_type,
+          revenuecat_will_renew,
+          stripe_subscription_id,
+          stripe_price_id,
+          created_at,
+          updated_at
+         FROM subscriptions
+         WHERE user_id = ?
+         ORDER BY starts_at DESC, id DESC
+         LIMIT 50`,
         [user.sub]
       );
       reply.send({ history: rows });
     } catch (e) {
-      if (e.message === 'NO_AUTH' || e.message === 'BAD_TOKEN') return reply.code(401).send({ error: 'Neautorizat' });
-      reply.code(500).send({ error: 'Eroare server' });
+      if (e.message === "NO_AUTH" || e.message === "BAD_TOKEN") {
+        return reply.code(401).send({ error: "Neautorizat" });
+      }
+      request.log.error(e);
+      reply.code(500).send({ error: "Eroare server" });
     }
   });
 
-  // Webhook with signature verification & subscription sync
-  app.post('/api/subscriptions/webhook', { config: { rawBody: true } }, async (request, reply) => {
-    const sig = request.headers['stripe-signature'];
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-    
-    // Require webhook secret in production
-    if (!webhookSecret) {
-      request.log.error('STRIPE_WEBHOOK_SECRET not configured');
-      return reply.code(500).send({ error: 'Webhook not configured' });
-    }
-    if (!stripe) {
-      return reply.code(500).send({ error: 'Stripe not configured' });
-    }
-    
-    let event;
+  // Standalone free trial endpoint (not bound to RevenueCat).
+  app.post("/api/subscriptions/start-trial", async (request, reply) => {
     try {
-      event = stripe.webhooks.constructEvent(request.rawBody, sig, webhookSecret);
-    } catch (err) {
-      request.log.error({ err }, 'Webhook signature verification failed');
-      return reply.code(400).send({ error: 'Invalid signature' });
-    }
-
-    try {
-      switch (event.type) {
-        case 'customer.subscription.created':
-        case 'customer.subscription.updated': {
-          const subObj = event.data.object;
-          const userId = subObj.metadata?.userId; // ensured via subscription_data.metadata
-          const parsedUserId = userId ? Number(userId) : NaN;
-          if (!isNaN(parsedUserId) && parsedUserId > 0) {
-            const stripeStatus = subObj.status; // active, trialing, canceled, incomplete, past_due ...
-            const priceId = subObj.items?.data?.[0]?.price?.id;
-            // Prefer explicit plan metadata; fallback to pattern heuristic & status
-            let localType = (subObj.metadata?.plan || '').toLowerCase();
-            if (!['basic','premium','vip','trial'].includes(localType)) {
-              if (priceId?.includes('basic')) localType = 'basic';
-              else if (priceId?.includes('vip')) localType = 'vip';
-              else if (stripeStatus === 'trialing') localType = 'trial';
-              else localType = 'premium';
-            }
-            const periodStart = subObj.current_period_start ? new Date(subObj.current_period_start * 1000) : new Date();
-            const periodEnd = subObj.current_period_end ? new Date(subObj.current_period_end * 1000) : null;
-
-            // Fetch latest row for this subscription (if any)
-            const [rows] = await mysqlPool.query(
-              `SELECT * FROM subscriptions WHERE user_id = ? AND stripe_subscription_id = ? ORDER BY id DESC LIMIT 1`,
-              [userId, subObj.id]
-            );
-            const existing = Array.isArray(rows) && rows.length ? rows[0] : null;
-
-            if (!existing) {
-              // Idempotency: double-check no row exists for this stripe_subscription_id (guards against webhook retries)
-              const [dupeCheck] = await mysqlPool.query(
-                `SELECT id FROM subscriptions WHERE stripe_subscription_id = ? LIMIT 1`,
-                [subObj.id]
-              );
-              if (Array.isArray(dupeCheck) && dupeCheck.length) {
-                request.log.info({ stripe_subscription_id: subObj.id }, '[subscriptions] webhook skipped duplicate insert');
-              } else {
-                await mysqlPool.query(
-                  `INSERT INTO subscriptions (user_id, type, starts_at, ends_at, stripe_customer_id, stripe_subscription_id, stripe_price_id) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                  [userId, localType, periodStart, periodEnd, subObj.customer, subObj.id, priceId]
-                );
-                request.log.info({ userId, type: localType, stripe_subscription_id: subObj.id }, '[subscriptions] webhook insert new subscription');
-              }
-            } else {
-              // If still same billing period (starts_at within 2 minutes of new periodStart) just update fields
-              const existingStart = existing.starts_at ? new Date(existing.starts_at) : null;
-              const samePeriod = existingStart && Math.abs(existingStart.getTime() - periodStart.getTime()) < 120000; // 2 min tolerance
-              if (samePeriod) {
-                await mysqlPool.query(
-                  `UPDATE subscriptions SET type = ?, ends_at = ?, stripe_price_id = ? WHERE id = ?`,
-                  [localType, periodEnd, priceId, existing.id]
-                );
-              } else if (periodStart > existingStart) {
-                // New billing period began -> close previous (if not closed) and insert new period row
-                if (!existing.ends_at || new Date(existing.ends_at).getTime() < periodStart.getTime()) {
-                  await mysqlPool.query(`UPDATE subscriptions SET ends_at = ? WHERE id = ?`, [periodStart, existing.id]);
-                }
-                await mysqlPool.query(
-                  `INSERT INTO subscriptions (user_id, type, starts_at, ends_at, stripe_customer_id, stripe_subscription_id, stripe_price_id) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                  [userId, localType, periodStart, periodEnd, subObj.customer, subObj.id, priceId]
-                );
-                request.log.info({ userId, type: localType, stripe_subscription_id: subObj.id }, '[subscriptions] webhook insert new billing period');
-              } else {
-                // Edge case: out-of-order event with earlier start -> ignore
-              }
-            }
-          }
-          break;
-        }
-        case 'customer.subscription.deleted': {
-          const subObj = event.data.object;
-          const userId = subObj.metadata?.userId;
-          const parsedUserId = userId ? Number(userId) : NaN;
-          if (!isNaN(parsedUserId) && parsedUserId > 0) {
-            // Only terminate the specific deleted subscription, not all active ones
-            const [result] = await mysqlPool.query(
-              `UPDATE subscriptions SET ends_at = NOW() WHERE user_id = ? AND stripe_subscription_id = ? AND (ends_at IS NULL OR ends_at > NOW())`,
-              [userId, subObj.id]
-            );
-            request.log.info({ userId, stripe_subscription_id: subObj.id, affectedRows: result?.affectedRows }, '[subscriptions] webhook deleted subscription');
-          }
-          break;
-        }
-        case 'invoice.payment_succeeded': {
-          // Backfill ends_at for current period if we inserted row before initial payment (ends_at may still be NULL)
-          const invoice = event.data.object;
-          const subId = invoice.subscription;
-          if (stripe && subId && typeof subId === 'string' && subId.startsWith('sub_')) {
-            try {
-              const stripeSub = await stripe.subscriptions.retrieve(subId);
-              const userId = stripeSub.metadata?.userId;
-              if (userId) {
-                const periodEnd = stripeSub.current_period_end ? new Date(stripeSub.current_period_end * 1000) : null;
-                if (periodEnd) {
-                  // Update latest row for this subscription if ends_at is still null
-                  await mysqlPool.query(
-                    `UPDATE subscriptions SET ends_at = ? WHERE user_id = ? AND stripe_subscription_id = ? AND (ends_at IS NULL OR ends_at < ?)`,
-                    [periodEnd, userId, subId, periodEnd]
-                  );
-                }
-              }
-            } catch (err) {
-              request.log.error({ err, subId }, 'Failed to backfill ends_at on invoice.payment_succeeded');
-            }
-          }
-          break;
-        }
-        case 'invoice.payment_failed': {
-          const invoice = event.data.object;
-          const subId = invoice.subscription;
-          if (stripe && subId && typeof subId === 'string') {
-            try {
-              const stripeSub = await stripe.subscriptions.retrieve(subId);
-              const userId = stripeSub.metadata?.userId;
-              if (userId) {
-                // Mark current active row as at-risk (ends_at unchanged) – optional: could add a flag column; for now we just log
-                request.log.warn({ subId, userId }, 'Payment failed for subscription');
-              }
-            } catch (err) {
-              request.log.error({ err, subId }, 'Failed to process payment_failed');
-            }
-          }
-          break;
-        }
-        default:
-          break;
+      const user = requireAuth(request);
+      const userRow = await getUserById(user.sub);
+      if (!userRow) {
+        return reply.code(401).send({ error: "Neautorizat", code: "USER_NOT_FOUND" });
       }
+
+      const activeTrial = await getActiveTrialRow(user.sub);
+      if (activeTrial) {
+        return reply.send({ subscription: activeTrial, status: "active", trialEligible: false, note: "TRIAL_ALREADY_ACTIVE" });
+      }
+
+      const [activePaidRows] = await mysqlPool.query(
+        `SELECT id
+         FROM subscriptions
+         WHERE user_id = ?
+           AND type IN ('basic','premium','vip')
+           AND (ends_at IS NULL OR ends_at > NOW())
+         LIMIT 1`,
+        [user.sub]
+      );
+
+      if (Array.isArray(activePaidRows) && activePaidRows.length) {
+        return reply.code(409).send({
+          error: "Ai deja un abonament activ.",
+          code: "PAID_SUBSCRIPTION_ALREADY_ACTIVE",
+        });
+      }
+
+      const [pastTrialRows] = await mysqlPool.query(
+        `SELECT id FROM subscriptions WHERE user_id = ? AND type = 'trial' LIMIT 1`,
+        [user.sub]
+      );
+      if (Array.isArray(pastTrialRows) && pastTrialRows.length) {
+        return reply.code(400).send({
+          error: "Trial-ul gratuit este disponibil o singura data.",
+          code: "TRIAL_NOT_ELIGIBLE",
+        });
+      }
+
+      await mysqlPool.query(
+        `INSERT INTO subscriptions (
+          user_id,
+          type,
+          starts_at,
+          ends_at,
+          revenuecat_event_type
+        ) VALUES (?, 'trial', NOW(), DATE_ADD(NOW(), INTERVAL 3 DAY), 'TRIAL_START')`,
+        [user.sub]
+      );
+
+      const createdTrial = await getActiveTrialRow(user.sub);
+      reply.send({ subscription: createdTrial, status: "active", trialEligible: false, note: "TRIAL_STARTED" });
+    } catch (e) {
+      if (e.message === "NO_AUTH" || e.message === "BAD_TOKEN") {
+        return reply.code(401).send({ error: "Neautorizat" });
+      }
+      request.log.error(e);
+      reply.code(500).send({ error: "Eroare server" });
+    }
+  });
+
+  app.post("/api/subscriptions/create-checkout", async (_request, reply) => {
+    return reply.code(410).send({
+      error: "Checkout-ul Stripe este dezactivat. Folosește RevenueCat purchases în aplicație.",
+      code: "REVENUECAT_MANAGED",
+    });
+  });
+
+  app.post("/api/subscriptions/create-payment-sheet", async (_request, reply) => {
+    return reply.code(410).send({
+      error: "PaymentSheet Stripe este dezactivat. Folosește RevenueCat purchases în aplicație.",
+      code: "REVENUECAT_MANAGED",
+    });
+  });
+
+  // RevenueCat webhook endpoint.
+  app.post("/api/subscriptions/webhook", async (request, reply) => {
+    try {
+      const expectedToken = process.env.REVENUECAT_WEBHOOK_AUTH || "";
+      if (expectedToken) {
+        const provided = getWebhookToken(request);
+        if (!provided || provided !== expectedToken) {
+          return reply.code(401).send({ error: "Unauthorized webhook" });
+        }
+      }
+
+      const event = request.body?.event || request.body || {};
+      const eventType = String(event?.type || "").toUpperCase();
+      const appUserId = String(event?.app_user_id || "").trim();
+      const productId = event?.product_id || null;
+      const entitlementIds = Array.isArray(event?.entitlement_ids) ? event.entitlement_ids : [];
+      const entitlementId = entitlementIds[0] || PRO_ENTITLEMENT_ID;
+      const store = event?.store || null;
+
+      if (!appUserId) {
+        return reply.code(400).send({ error: "Missing app_user_id" });
+      }
+
+      const userId = Number(appUserId);
+      if (!Number.isFinite(userId) || userId <= 0) {
+        // We identify users by numeric appUserID (user.id). Ignore other aliases safely.
+        return reply.send({ received: true, ignored: true, reason: "NON_NUMERIC_APP_USER_ID" });
+      }
+
+      const userRow = await getUserById(userId);
+      if (!userRow) {
+        return reply.send({ received: true, ignored: true, reason: "USER_NOT_FOUND" });
+      }
+
+      let status = "none";
+      if (ACTIVE_EVENT_TYPES.has(eventType)) status = "active";
+      if (INACTIVE_EVENT_TYPES.has(eventType)) status = "expired";
+      if (eventType === "BILLING_ISSUE") status = "active";
+
+      const startsAt =
+        parseMillisOrDate(event?.purchased_at_ms) ||
+        parseMillisOrDate(event?.purchased_at) ||
+        parseMillisOrDate(event?.event_timestamp_ms) ||
+        new Date();
+      const endsAt =
+        parseMillisOrDate(event?.expiration_at_ms) ||
+        parseMillisOrDate(event?.expiration_at) ||
+        null;
+
+      await persistRevenueCatSnapshot({
+        userId,
+        appUserId,
+        entitlementId,
+        productId,
+        status,
+        startsAt,
+        endsAt,
+        store,
+        willRenew: status === "active" ? true : false,
+        eventType: eventType || "WEBHOOK",
+      });
+
       reply.send({ received: true });
     } catch (err) {
-      request.log.error({ err }, 'Webhook handling failed');
-      reply.code(500).send({ error: 'Webhook processing error' });
+      request.log.error({ err }, "RevenueCat webhook handling failed");
+      reply.code(500).send({ error: "Webhook processing error" });
     }
   });
 }

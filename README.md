@@ -23,41 +23,26 @@ Copy `.env.example` to `.env` and fill in real values (never commit the real `.e
 Key groups:
 - Auth: `BETTER_AUTH_SECRET`, `JWT_SECRET`
 - Database: `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`
-- Stripe: `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`
-- Subscription mapping: `SUBSCRIPTION_PRICE_BASIC`, `SUBSCRIPTION_PRICE_PREMIUM`, `SUBSCRIPTION_PRICE_VIP`
+- RevenueCat:
+	- `REVENUECAT_SECRET_API_KEY` (server secret key for subscriber lookup)
+	- `REVENUECAT_ENTITLEMENT_ID` (default: `Dan Fost Anxios Pro`)
+	- `REVENUECAT_WEBHOOK_AUTH` (optional shared secret for webhook authorization)
 - Media storage and caching:
 	- `FileStorage__BasePath` (or `FILESTORAGE__BASEPATH` / `FILE_STORAGE_BASE_PATH`): absolute folder root, e.g. `/media`.
 	- `MEDIA_CACHE_CONTROL`: optional override for media routes (default `public, max-age=86400, immutable`). For HLS VOD you can set `public, max-age=31536000, immutable`.
 	- Optional tuning for the transcoder: `HLS_CRF` (default 22), `HLS_SCALE` (default `scale=-2:720`), `HLS_SEGMENT_TIME` (default 4 seconds).
 
-Each subscription mapping var can be either:
-1. A direct Stripe Price ID (e.g. `price_123`) — used as-is.
-2. A Stripe Product ID (e.g. `prod_123`) — backend lazily resolves its `default_price` (or first active price) and caches it.
+The app-side RevenueCat product identifiers used by this project are:
+- `dan_basic`
+- `dan_premium`
+- `dan_vip`
 
-Diagnostic endpoint to verify resolution before attempting checkout:
-`GET /api/subscriptions/prices`
-
-Example response:
-```
-{
-	"prices": {
-		"basic": { "source": "prod_abc", "type": "product", "resolvedPriceId": "price_xyz", "ok": true, "reason": null },
-		"premium": { "source": "price_def", "type": "price", "resolvedPriceId": "price_def", "ok": true, "reason": null },
-		"vip": { "source": null, "type": null, "resolvedPriceId": null, "ok": false, "reason": "no env var set" }
-	},
-	"stripeConfigured": true
-}
-```
-
-If a product returns `ok: false` with `reason: could not resolve default/active price`, ensure:
-- The product has an active recurring price in Stripe.
-- The price is not archived and is set to the desired billing interval.
-- Consider setting the product's default price in the Stripe dashboard for faster resolution.
-
-### Checkout Debugging
-You can test plan resolution without creating a real session:
-`POST /api/subscriptions/create-checkout?debug=1` with body `{ "plan": "basic" }`.
-It returns the resolved price ID and mapping details.
+Main subscription endpoints:
+- `GET /api/subscriptions/current`
+- `GET /api/subscriptions/history`
+- `POST /api/subscriptions/sync`
+- `POST /api/subscriptions/start-trial` (3-day backend-managed free trial, independent of RevenueCat)
+- `POST /api/subscriptions/webhook`
 
 ## Endpoints
 - `GET /health` — quick check
