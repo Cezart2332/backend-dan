@@ -25,7 +25,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
     subscriptionResolved,
     hasToken,
     showPaywall,
-    restorePurchases,
+    restorePermissions,
     startFreeTrial,
   } = useSubscription();
   const [pendingAction, setPendingAction] = useState(null);
@@ -87,7 +87,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
   const handleRestore = async () => {
     try {
       setPendingAction("restore");
-      await restorePurchases();
+      await restorePermissions();
       await refresh();
       Alert.alert("Restore", "Achizitiile au fost restaurate.");
     } catch (err) {

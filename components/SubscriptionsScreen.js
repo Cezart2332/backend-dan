@@ -50,28 +50,33 @@ export default function SubscriptionsScreen({ navigation }) {
     status,
     hasProEntitlement,
     subscription,
+    packages,
+    packagesByOffering,
     customerInfo,
     offerings,
     loading,
     refresh,
-    purchaseByOfferingId,
-    restorePurchases,
+    purchasePackage,
+    restorePermissions,
     showPaywall,
     openCustomerCenter,
-    getPackagesByOffering,
   } = useSubscription();
 
   const [processing, setProcessing] = useState("");
   const [selectedOffering, setSelectedOffering] = useState(OFFERING_IDS.basic);
   const [showEmbeddedPaywall, setShowEmbeddedPaywall] = useState(false);
 
-  const productPackages = useMemo(() => getPackagesByOffering(), [getPackagesByOffering]);
+  const productPackages = useMemo(() => packagesByOffering || {}, [packagesByOffering]);
   const availablePackages = offerings?.current?.availablePackages || [];
 
   const handlePurchase = async () => {
     try {
       setProcessing(`purchase:${selectedOffering}`);
-      await purchaseByOfferingId(selectedOffering);
+      const selectedPackage = productPackages?.[selectedOffering] || null;
+      const result = await purchasePackage(selectedPackage);
+      if (!result?.success) {
+        throw new Error(result?.error || "Achizitia a esuat.");
+      }
       await refresh();
       Alert.alert("Succes", "Abonamentul a fost activat.");
     } catch (error) {
@@ -85,7 +90,7 @@ export default function SubscriptionsScreen({ navigation }) {
   const handleRestore = async () => {
     try {
       setProcessing("restore");
-      await restorePurchases();
+      await restorePermissions();
       await refresh();
       Alert.alert("Restore", "Am sincronizat achizitiile tale.");
     } catch (error) {
@@ -172,6 +177,7 @@ export default function SubscriptionsScreen({ navigation }) {
                     .join(" | ")}`
                 : "Offering SKUs: none"}
             </Text>
+            <Text style={styles.smallText}>Pachete totale detectate: {packages?.length || 0}</Text>
           </View>
 
           <ProductCard

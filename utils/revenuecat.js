@@ -36,7 +36,10 @@ function getPlatformRevenueCatKey() {
 export const REVENUECAT_API_KEY = getPlatformRevenueCatKey();
 const IS_TEST_STORE_KEY = /^(rc_|test_)/i.test(String(REVENUECAT_API_KEY || ""));
 
-export const PRO_ENTITLEMENT_ID = "Dan Fost Anxios Pro";
+export const PRO_ENTITLEMENT_ID =
+  extra?.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT ||
+  process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT ||
+  "Dan Fost Anxios Pro";
 export const OFFERING_ID =
   extra?.EXPO_PUBLIC_REVENUECAT_OFFERING_ID ||
   process.env.EXPO_PUBLIC_REVENUECAT_OFFERING_ID ||
@@ -164,6 +167,25 @@ export async function fetchCustomerInfo() {
 export async function fetchOfferings() {
   if (!isIOSOrAndroid()) return null;
   return Purchases.getOfferings();
+}
+
+export function getAllPackagesFromOfferings(offerings) {
+  if (!offerings?.all) return [];
+
+  const seen = new Set();
+  const allPackages = [];
+
+  Object.values(offerings.all).forEach((offering) => {
+    const packages = offering?.availablePackages || [];
+    packages.forEach((pkg) => {
+      const key = `${pkg?.identifier || ""}::${pkg?.product?.identifier || ""}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      allPackages.push(pkg);
+    });
+  });
+
+  return allPackages;
 }
 
 function getTargetOffering(offerings) {

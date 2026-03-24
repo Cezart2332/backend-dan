@@ -12,6 +12,7 @@ import {
   configureRevenueCat,
   fetchCustomerInfo,
   fetchOfferings,
+  getAllPackagesFromOfferings,
   getPackageForOfferingId,
   getPackageForProductId,
   OFFERING_IDS,
@@ -374,8 +375,39 @@ export function SubscriptionProvider({ children, isAuthed }) {
     if (initializing) setInitializing(false);
   }, [isAuthed, clearState, refresh]);
 
+  const packagesByOffering = useMemo(() => getPackagesByOffering(), [getPackagesByOffering]);
+  const packages = useMemo(() => getAllPackagesFromOfferings(offerings), [offerings]);
+
+  const user = useMemo(
+    () => ({
+      pro: hasProEntitlement,
+      subscription,
+      appUserId: customerInfo?.originalAppUserId || null,
+      activeEntitlements: Object.keys(customerInfo?.entitlements?.active || {}),
+    }),
+    [hasProEntitlement, subscription, customerInfo]
+  );
+
+  const purchasePackage = useCallback(
+    async (pkg) => {
+      const info = await purchaseRevenueCatPackage(pkg);
+      await applyCustomerInfo(info);
+      return { success: true, customerInfo: info };
+    },
+    [applyCustomerInfo]
+  );
+
+  const restorePermissions = useCallback(async () => {
+    const info = await restoreRevenueCatPurchases();
+    await applyCustomerInfo(info);
+    return info;
+  }, [applyCustomerInfo]);
+
   const value = useMemo(
     () => ({
+      user,
+      packages,
+      packagesByOffering,
       subscription,
       status,
       trialEligible,
@@ -389,16 +421,22 @@ export function SubscriptionProvider({ children, isAuthed }) {
       refresh,
       purchaseByOfferingId,
       restorePurchases,
+      purchasePackage,
+      restorePermissions,
       showPaywall,
       openCustomerCenter,
       startFreeTrial,
       getPackagesByOffering,
+      offeringsLoaded: Boolean(offerings),
       // Backward-compatible aliases for existing screens.
       purchaseByProductId: purchaseByOfferingId,
       getPackagesByProduct: getPackagesByOffering,
       setTrialEligible: (eligible) => setTrialEligible(Boolean(eligible)),
     }),
     [
+      user,
+      packages,
+      packagesByOffering,
       subscription,
       status,
       trialEligible,
@@ -412,6 +450,8 @@ export function SubscriptionProvider({ children, isAuthed }) {
       refresh,
       purchaseByOfferingId,
       restorePurchases,
+      purchasePackage,
+      restorePermissions,
       showPaywall,
       openCustomerCenter,
       startFreeTrial,
@@ -431,3 +471,6 @@ export function useSubscription() {
   if (!ctx) throw new Error("useSubscription must be used within SubscriptionProvider");
   return ctx;
 }
+
+// RevenueCat-style alias for easier migration from examples/docs.
+export const useRevenueCat = useSubscription;
