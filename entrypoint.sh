@@ -8,12 +8,12 @@ set -e
 #   HLS_ENCODER_BLOCKING=true       -> wait for encoder to finish (may delay startup)
 #   FileStorage__BasePath=/media    -> where /media/original and /media/hls live (must be mounted)
 
-if [ "${RUN_HLS_ENCODER_ON_START}" = "false" ]; then
+if [ "${RUN_HLS_ENCODER_ON_START}" = "true" ]; then
   echo "[entrypoint] Running HLS encoder (async unless HLS_ENCODER_BLOCKING=false)..."
   FORCE_FLAG=""
-  [ "${HLS_ENCODER_FORCE}" = "false" ] && FORCE_FLAG="--force"
+  [ "${HLS_ENCODER_FORCE}" = "true" ] && FORCE_FLAG="--force"
 
-  if [ "${HLS_ENCODER_BLOCKING}" = "false" ]; then
+  if [ "${HLS_ENCODER_BLOCKING}" = "true" ]; then
     node src/encode-videos.js ${FORCE_FLAG} || echo "[entrypoint] Encoder failed (continuing)" >&2
   else
     node src/encode-videos.js ${FORCE_FLAG} >/tmp/encode.log 2>&1 &
