@@ -301,7 +301,6 @@ export function SubscriptionProvider({ children, isAuthed }) {
   }, [isAuthed, clearState, refresh, applyCustomerInfo]);
 
   const getPackagesByOffering = useCallback(() => {
-    const availablePackages = offerings?.current?.availablePackages || [];
     const basicPkg =
       getPackageForOfferingId(offerings, OFFERING_IDS.basic, PLAN_IDS.basic) ||
       getPackageForProductId(offerings, PLAN_IDS.basic);
@@ -313,10 +312,9 @@ export function SubscriptionProvider({ children, isAuthed }) {
       getPackageForProductId(offerings, PLAN_IDS.vip);
 
     const mapped = {
-      [PLAN_IDS.basic]: basicPkg || availablePackages[0] || null,
-      [PLAN_IDS.premium]: premiumPkg || availablePackages[1] || availablePackages[0] || null,
-      [PLAN_IDS.vip]:
-        vipPkg || availablePackages[2] || availablePackages[availablePackages.length - 1] || null,
+      [PLAN_IDS.basic]: basicPkg || null,
+      [PLAN_IDS.premium]: premiumPkg || null,
+      [PLAN_IDS.vip]: vipPkg || null,
     };
 
     // Backward-compatible keys in case any screen still expects basic/premium/vip keys.

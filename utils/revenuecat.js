@@ -6,6 +6,11 @@ import RevenueCatUI, { PAYWALL_RESULT } from "react-native-purchases-ui";
 const extra = Constants?.expoConfig?.extra || Constants?.manifest?.extra || {};
 
 function getPlatformRevenueCatKey() {
+  const isExpoGo = Constants?.appOwnership === "expo";
+  const testKey =
+    extra?.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY ||
+    process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY ||
+    "";
   const iosKey =
     extra?.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ||
     process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ||
@@ -19,13 +24,17 @@ function getPlatformRevenueCatKey() {
     process.env.EXPO_PUBLIC_REVENUECAT_API_KEY ||
     "";
 
+  if (isExpoGo) {
+    return testKey || legacyKey;
+  }
+
   if (Platform.OS === "ios") return iosKey || legacyKey;
   if (Platform.OS === "android") return androidKey || legacyKey;
   return "";
 }
 
 export const REVENUECAT_API_KEY = getPlatformRevenueCatKey();
-const IS_TEST_STORE_KEY = /^rc_/i.test(String(REVENUECAT_API_KEY || ""));
+const IS_TEST_STORE_KEY = /^(rc_|test_)/i.test(String(REVENUECAT_API_KEY || ""));
 
 export const PRO_ENTITLEMENT_ID = "Dan Fost Anxios Pro";
 export const OFFERING_ID =
@@ -71,12 +80,6 @@ const PRODUCT_ALIASES = {
     "$rc_lifetime",
     "prod30e0e21197",
   ],
-};
-
-const PRODUCT_PACKAGE_TYPES = {
-  [PLAN_IDS.basic]: ["MONTHLY"],
-  [PLAN_IDS.premium]: ["ANNUAL"],
-  [PLAN_IDS.vip]: ["LIFETIME"],
 };
 
 let configured = false;
@@ -197,12 +200,6 @@ export function getPackageForProductId(offerings, productId) {
   );
   if (exact) return exact;
 
-  const allowedPackageTypes = PRODUCT_PACKAGE_TYPES[productId] || [];
-  const byType = current.availablePackages.find((pkg) =>
-    allowedPackageTypes.includes(String(pkg?.packageType || "").toUpperCase())
-  );
-  if (byType) return byType;
-
   return (
     current.availablePackages.find((pkg) => {
       const id = String(pkg?.identifier || "").toLowerCase();
@@ -226,12 +223,6 @@ export function getPackageForOfferingId(offerings, offeringId, planId) {
       return normalizedAliases.includes(packageId) || normalizedAliases.includes(storeProductId);
     });
     if (byAlias) return byAlias;
-
-    const allowedPackageTypes = PRODUCT_PACKAGE_TYPES[planId] || [];
-    const byType = availablePackages.find((pkg) =>
-      allowedPackageTypes.includes(String(pkg?.packageType || "").toUpperCase())
-    );
-    if (byType) return byType;
   }
 
   return availablePackages[0] || null;
