@@ -17,7 +17,7 @@ import { useSubscription } from "../contexts/SubscriptionContext";
 import {
   getRevenueCatErrorMessage,
   isUserCancelledPurchase,
-  PRODUCT_IDS,
+  OFFERING_IDS,
 } from "../utils/revenuecat";
 
 function ProductCard({ title, subtitle, packageItem, selected, onSelect }) {
@@ -54,24 +54,24 @@ export default function SubscriptionsScreen({ navigation }) {
     offerings,
     loading,
     refresh,
-    purchaseByProductId,
+    purchaseByOfferingId,
     restorePurchases,
     showPaywall,
     openCustomerCenter,
-    getPackagesByProduct,
+    getPackagesByOffering,
   } = useSubscription();
 
   const [processing, setProcessing] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState(PRODUCT_IDS.basic);
+  const [selectedOffering, setSelectedOffering] = useState(OFFERING_IDS.basic);
   const [showEmbeddedPaywall, setShowEmbeddedPaywall] = useState(false);
 
-  const productPackages = useMemo(() => getPackagesByProduct(), [getPackagesByProduct]);
+  const productPackages = useMemo(() => getPackagesByOffering(), [getPackagesByOffering]);
   const availablePackages = offerings?.current?.availablePackages || [];
 
   const handlePurchase = async () => {
     try {
-      setProcessing(`purchase:${selectedProduct}`);
-      await purchaseByProductId(selectedProduct);
+      setProcessing(`purchase:${selectedOffering}`);
+      await purchaseByOfferingId(selectedOffering);
       await refresh();
       Alert.alert("Succes", "Abonamentul a fost activat.");
     } catch (error) {
@@ -177,25 +177,25 @@ export default function SubscriptionsScreen({ navigation }) {
           <ProductCard
             title="Basic"
             subtitle="Plan Basic"
-            packageItem={productPackages?.[PRODUCT_IDS.basic] || productPackages?.basic}
-            selected={selectedProduct === PRODUCT_IDS.basic}
-            onSelect={() => setSelectedProduct(PRODUCT_IDS.basic)}
+            packageItem={productPackages?.[OFFERING_IDS.basic] || productPackages?.basic}
+            selected={selectedOffering === OFFERING_IDS.basic}
+            onSelect={() => setSelectedOffering(OFFERING_IDS.basic)}
           />
 
           <ProductCard
             title="Premium"
             subtitle="Plan Premium"
-            packageItem={productPackages?.[PRODUCT_IDS.premium] || productPackages?.premium}
-            selected={selectedProduct === PRODUCT_IDS.premium}
-            onSelect={() => setSelectedProduct(PRODUCT_IDS.premium)}
+            packageItem={productPackages?.[OFFERING_IDS.premium] || productPackages?.premium}
+            selected={selectedOffering === OFFERING_IDS.premium}
+            onSelect={() => setSelectedOffering(OFFERING_IDS.premium)}
           />
 
           <ProductCard
             title="VIP"
             subtitle="Plan VIP"
-            packageItem={productPackages?.[PRODUCT_IDS.vip] || productPackages?.vip}
-            selected={selectedProduct === PRODUCT_IDS.vip}
-            onSelect={() => setSelectedProduct(PRODUCT_IDS.vip)}
+            packageItem={productPackages?.[OFFERING_IDS.vip] || productPackages?.vip}
+            selected={selectedOffering === OFFERING_IDS.vip}
+            onSelect={() => setSelectedOffering(OFFERING_IDS.vip)}
           />
 
           <TouchableOpacity
@@ -206,7 +206,7 @@ export default function SubscriptionsScreen({ navigation }) {
             {processing.startsWith("purchase") ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text style={styles.primaryBtnText}>Cumpara produsul selectat</Text>
+              <Text style={styles.primaryBtnText}>Cumpara planul selectat</Text>
             )}
           </TouchableOpacity>
 

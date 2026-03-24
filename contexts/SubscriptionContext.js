@@ -23,7 +23,7 @@ import {
   presentRevenueCatCustomerCenter,
   presentRevenueCatPaywall,
   PRO_ENTITLEMENT_ID,
-  PRODUCT_IDS,
+  PLAN_IDS,
   purchaseRevenueCatPackage,
   restoreRevenueCatPurchases,
 } from "../utils/revenuecat";
@@ -39,6 +39,7 @@ export function SubscriptionProvider({ children, isAuthed }) {
   const [offerings, setOfferings] = useState(null);
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const [subscriptionResolved, setSubscriptionResolved] = useState(false);
   const [hasToken, setHasToken] = useState(false);
   const refreshPromiseRef = useRef(null);
   const listenerRef = useRef(null);
@@ -173,6 +174,7 @@ export function SubscriptionProvider({ children, isAuthed }) {
     setCustomerInfo(null);
     setOfferings(null);
     setHasToken(false);
+    setSubscriptionResolved(false);
     try {
       await clearSubscription();
     } catch {}
@@ -182,6 +184,7 @@ export function SubscriptionProvider({ children, isAuthed }) {
     if (refreshPromiseRef.current) return refreshPromiseRef.current;
     const executor = (async () => {
       try {
+        setSubscriptionResolved(false);
         const token = await getToken();
         if (!token) {
           await logoutRevenueCatUser();
@@ -259,6 +262,7 @@ export function SubscriptionProvider({ children, isAuthed }) {
       } catch (err) {
         throw new Error(getRevenueCatErrorMessage(err, "Nu am putut sincroniza abonamentul."));
       } finally {
+        setSubscriptionResolved(true);
         setLoading(false);
         refreshPromiseRef.current = null;
       }
@@ -296,42 +300,42 @@ export function SubscriptionProvider({ children, isAuthed }) {
     };
   }, [isAuthed, clearState, refresh, applyCustomerInfo]);
 
-  const getPackagesByProduct = useCallback(() => {
+  const getPackagesByOffering = useCallback(() => {
     const availablePackages = offerings?.current?.availablePackages || [];
     const basicPkg =
-      getPackageForOfferingId(offerings, OFFERING_IDS.basic, PRODUCT_IDS.basic) ||
-      getPackageForProductId(offerings, PRODUCT_IDS.basic);
+      getPackageForOfferingId(offerings, OFFERING_IDS.basic, PLAN_IDS.basic) ||
+      getPackageForProductId(offerings, PLAN_IDS.basic);
     const premiumPkg =
-      getPackageForOfferingId(offerings, OFFERING_IDS.premium, PRODUCT_IDS.premium) ||
-      getPackageForProductId(offerings, PRODUCT_IDS.premium);
+      getPackageForOfferingId(offerings, OFFERING_IDS.premium, PLAN_IDS.premium) ||
+      getPackageForProductId(offerings, PLAN_IDS.premium);
     const vipPkg =
-      getPackageForOfferingId(offerings, OFFERING_IDS.vip, PRODUCT_IDS.vip) ||
-      getPackageForProductId(offerings, PRODUCT_IDS.vip);
+      getPackageForOfferingId(offerings, OFFERING_IDS.vip, PLAN_IDS.vip) ||
+      getPackageForProductId(offerings, PLAN_IDS.vip);
 
     const mapped = {
-      [PRODUCT_IDS.basic]: basicPkg || availablePackages[0] || null,
-      [PRODUCT_IDS.premium]: premiumPkg || availablePackages[1] || availablePackages[0] || null,
-      [PRODUCT_IDS.vip]:
+      [PLAN_IDS.basic]: basicPkg || availablePackages[0] || null,
+      [PLAN_IDS.premium]: premiumPkg || availablePackages[1] || availablePackages[0] || null,
+      [PLAN_IDS.vip]:
         vipPkg || availablePackages[2] || availablePackages[availablePackages.length - 1] || null,
     };
 
     // Backward-compatible keys in case any screen still expects basic/premium/vip keys.
-    mapped.basic = mapped[PRODUCT_IDS.basic];
-    mapped.premium = mapped[PRODUCT_IDS.premium];
-    mapped.vip = mapped[PRODUCT_IDS.vip];
+    mapped.basic = mapped[PLAN_IDS.basic];
+    mapped.premium = mapped[PLAN_IDS.premium];
+    mapped.vip = mapped[PLAN_IDS.vip];
 
     return mapped;
   }, [offerings]);
 
-  const purchaseByProductId = useCallback(
-    async (productId) => {
-      const packages = getPackagesByProduct();
-      const pkg = packages?.[productId] || getPackageForProductId(offerings, productId);
+  const purchaseByOfferingId = useCallback(
+    async (offeringId) => {
+      const packages = getPackagesByOffering();
+      const pkg = packages?.[offeringId] || getPackageForProductId(offerings, offeringId);
       const info = await purchaseRevenueCatPackage(pkg);
       await applyCustomerInfo(info);
       return info;
     },
-    [applyCustomerInfo, getPackagesByProduct, offerings]
+    [applyCustomerInfo, getPackagesByOffering, offerings]
   );
 
   const restorePurchases = useCallback(async () => {
@@ -382,14 +386,18 @@ export function SubscriptionProvider({ children, isAuthed }) {
       offerings,
       loading,
       initializing,
+      subscriptionResolved,
       hasToken,
       refresh,
-      purchaseByProductId,
+      purchaseByOfferingId,
       restorePurchases,
       showPaywall,
       openCustomerCenter,
       startFreeTrial,
-      getPackagesByProduct,
+      getPackagesByOffering,
+      // Backward-compatible aliases for existing screens.
+      purchaseByProductId: purchaseByOfferingId,
+      getPackagesByProduct: getPackagesByOffering,
       setTrialEligible: (eligible) => setTrialEligible(Boolean(eligible)),
     }),
     [
@@ -401,14 +409,15 @@ export function SubscriptionProvider({ children, isAuthed }) {
       offerings,
       loading,
       initializing,
+      subscriptionResolved,
       hasToken,
       refresh,
-      purchaseByProductId,
+      purchaseByOfferingId,
       restorePurchases,
       showPaywall,
       openCustomerCenter,
       startFreeTrial,
-      getPackagesByProduct,
+      getPackagesByOffering,
     ]
   );
 

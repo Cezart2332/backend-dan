@@ -17,9 +17,25 @@ const { width } = Dimensions.get("window");
 const EXCLUDED_ROUTES = new Set(["Login", "Register", "Subscriptions", "Onboarding"]);
 
 export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRoute }) {
-  const { status, trialEligible, refresh, initializing, hasToken, showPaywall, restorePurchases, startFreeTrial } = useSubscription();
+  const {
+    status,
+    trialEligible,
+    refresh,
+    initializing,
+    subscriptionResolved,
+    hasToken,
+    showPaywall,
+    restorePurchases,
+    startFreeTrial,
+  } = useSubscription();
   const [pendingAction, setPendingAction] = useState(null);
   const scaleAnim = useRef(new Animated.Value(0)).current;
+
+  const shouldShowLoading = useMemo(() => {
+    if (!isAuthed) return false;
+    if (pendingAction) return false;
+    return initializing || !subscriptionResolved;
+  }, [isAuthed, initializing, subscriptionResolved, pendingAction]);
 
   const shouldShow = useMemo(() => {
     if (!isAuthed) return false;
@@ -102,6 +118,20 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
       setPendingAction(null);
     }
   };
+
+  if (shouldShowLoading) {
+    return (
+      <Modal visible transparent animationType="fade">
+        <View style={styles.backdrop}>
+          <View style={styles.loadingCard}>
+            <ActivityIndicator size="large" color="#4a90e2" />
+            <Text style={styles.loadingTitle}>Verificam abonamentul...</Text>
+            <Text style={styles.loadingSubtitle}>Sincronizam statusul din RevenueCat</Text>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
 
   if (!shouldShow) {
     return null;
@@ -339,5 +369,28 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.7,
+  },
+  loadingCard: {
+    width: Math.min(width - 64, 320),
+    borderRadius: 18,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    backgroundColor: "rgba(241,247,255,0.98)",
+    borderWidth: 1,
+    borderColor: "rgba(200,220,240,0.7)",
+  },
+  loadingTitle: {
+    marginTop: 14,
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1a2d45",
+    textAlign: "center",
+  },
+  loadingSubtitle: {
+    marginTop: 6,
+    fontSize: 13,
+    color: "#6c8096",
+    textAlign: "center",
   },
 });

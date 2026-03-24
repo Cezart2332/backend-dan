@@ -25,26 +25,25 @@ function getPlatformRevenueCatKey() {
 }
 
 export const REVENUECAT_API_KEY = getPlatformRevenueCatKey();
+const IS_TEST_STORE_KEY = /^rc_/i.test(String(REVENUECAT_API_KEY || ""));
 
 export const PRO_ENTITLEMENT_ID = "Dan Fost Anxios Pro";
 export const OFFERING_ID =
   extra?.EXPO_PUBLIC_REVENUECAT_OFFERING_ID ||
   process.env.EXPO_PUBLIC_REVENUECAT_OFFERING_ID ||
   "";
-export const PRODUCT_IDS = {
-  basic: "dan_basic",
-  premium: "dan_premium",
-  vip: "dan_vip",
-};
-
 export const OFFERING_IDS = {
   basic: "dan_basic",
   premium: "dan_premium",
   vip: "dan_vip",
 };
 
+export const PLAN_IDS = OFFERING_IDS;
+// Backward compatible alias kept for screens still using PRODUCT_IDS naming.
+export const PRODUCT_IDS = PLAN_IDS;
+
 const PRODUCT_ALIASES = {
-  [PRODUCT_IDS.basic]: [
+  [PLAN_IDS.basic]: [
     "dan_basic",
     "basic",
     "Basic",
@@ -53,7 +52,7 @@ const PRODUCT_ALIASES = {
     "$rc_monthly",
     "prod769058ac9a",
   ],
-  [PRODUCT_IDS.premium]: [
+  [PLAN_IDS.premium]: [
     "dan_premium",
     "premium",
     "Premium",
@@ -63,7 +62,7 @@ const PRODUCT_ALIASES = {
     "$rc_annual",
     "prodc84db671dc",
   ],
-  [PRODUCT_IDS.vip]: [
+  [PLAN_IDS.vip]: [
     "dan_vip",
     "vip",
     "Vip",
@@ -75,12 +74,13 @@ const PRODUCT_ALIASES = {
 };
 
 const PRODUCT_PACKAGE_TYPES = {
-  [PRODUCT_IDS.basic]: ["MONTHLY"],
-  [PRODUCT_IDS.premium]: ["ANNUAL"],
-  [PRODUCT_IDS.vip]: ["LIFETIME"],
+  [PLAN_IDS.basic]: ["MONTHLY"],
+  [PLAN_IDS.premium]: ["ANNUAL"],
+  [PLAN_IDS.vip]: ["LIFETIME"],
 };
 
 let configured = false;
+let currentAppUserId = null;
 
 function isIOSOrAndroid() {
   return Platform.OS === "ios" || Platform.OS === "android";
@@ -116,11 +116,13 @@ export async function configureRevenueCat({ appUserID } = {}) {
       }
       await Purchases.configure({ apiKey: REVENUECAT_API_KEY, appUserID });
       configured = true;
+      currentAppUserId = appUserID || null;
       return true;
     }
 
-    if (appUserID) {
+    if (appUserID && appUserID !== currentAppUserId) {
       await Purchases.logIn(appUserID);
+      currentAppUserId = appUserID;
     }
 
     return true;
@@ -133,7 +135,11 @@ export async function configureRevenueCat({ appUserID } = {}) {
 export async function identifyRevenueCatUser(appUserID) {
   if (!isIOSOrAndroid()) return null;
   if (!appUserID) return null;
+  if (appUserID === currentAppUserId) {
+    return fetchCustomerInfo();
+  }
   const result = await Purchases.logIn(appUserID);
+  currentAppUserId = appUserID;
   return result?.customerInfo || null;
 }
 
@@ -141,6 +147,7 @@ export async function logoutRevenueCatUser() {
   if (!isIOSOrAndroid()) return;
   try {
     await Purchases.logOut();
+    currentAppUserId = null;
   } catch {
     // No-op: logOut can fail if SDK was not configured.
   }
@@ -205,13 +212,13 @@ export function getPackageForProductId(offerings, productId) {
   );
 }
 
-export function getPackageForOfferingId(offerings, offeringId, productId) {
+export function getPackageForOfferingId(offerings, offeringId, planId) {
   const targetOffering = getOfferingById(offerings, offeringId);
   const availablePackages = targetOffering?.availablePackages || [];
   if (!availablePackages.length) return null;
 
-  if (productId) {
-    const aliases = PRODUCT_ALIASES[productId] || [productId];
+  if (planId) {
+    const aliases = PRODUCT_ALIASES[planId] || [planId];
     const normalizedAliases = aliases.map((item) => String(item || "").toLowerCase());
     const byAlias = availablePackages.find((pkg) => {
       const packageId = String(pkg?.identifier || "").toLowerCase();
@@ -219,6 +226,12 @@ export function getPackageForOfferingId(offerings, offeringId, productId) {
       return normalizedAliases.includes(packageId) || normalizedAliases.includes(storeProductId);
     });
     if (byAlias) return byAlias;
+
+    const allowedPackageTypes = PRODUCT_PACKAGE_TYPES[planId] || [];
+    const byType = availablePackages.find((pkg) =>
+      allowedPackageTypes.includes(String(pkg?.packageType || "").toUpperCase())
+    );
+    if (byType) return byType;
   }
 
   return availablePackages[0] || null;
@@ -248,22 +261,43 @@ export async function presentRevenueCatPaywall(requiredEntitlementIdentifier = P
     throw new Error("Paywall-ul RevenueCat este disponibil doar pe iOS/Android.");
   }
 
+  // RevenueCat Test Store / Preview API mode cannot present native paywall UI.
+  if (IS_TEST_STORE_KEY) {
+    return {
+      result: PAYWALL_RESULT.NOT_PRESENTED,
+      success: false,
+      reason: "preview_api_mode",
+    };
+  }
+
   let paywallResult = PAYWALL_RESULT.NOT_PRESENTED;
 
   const offerings = await fetchOfferings();
   const targetOffering = getTargetOffering(offerings);
 
-  if (typeof RevenueCatUI?.presentPaywallIfNeeded === "function") {
-    paywallResult = await RevenueCatUI.presentPaywallIfNeeded({
-      offering: targetOffering || undefined,
-      requiredEntitlementIdentifier,
-    });
-  } else if (typeof RevenueCatUI?.presentPaywall === "function") {
-    paywallResult = await RevenueCatUI.presentPaywall(
-      targetOffering ? { offering: targetOffering } : undefined
-    );
-  } else {
-    throw new Error("SDK-ul RevenueCat UI nu este disponibil in acest build.");
+  try {
+    if (typeof RevenueCatUI?.presentPaywallIfNeeded === "function") {
+      paywallResult = await RevenueCatUI.presentPaywallIfNeeded({
+        offering: targetOffering || undefined,
+        requiredEntitlementIdentifier,
+      });
+    } else if (typeof RevenueCatUI?.presentPaywall === "function") {
+      paywallResult = await RevenueCatUI.presentPaywall(
+        targetOffering ? { offering: targetOffering } : undefined
+      );
+    } else {
+      throw new Error("SDK-ul RevenueCat UI nu este disponibil in acest build.");
+    }
+  } catch (error) {
+    const message = String(error?.message || "").toLowerCase();
+    if (message.includes("document is not available") || message.includes("preview api mode")) {
+      return {
+        result: PAYWALL_RESULT.NOT_PRESENTED,
+        success: false,
+        reason: "unsupported_runtime",
+      };
+    }
+    throw error;
   }
 
   const success =
