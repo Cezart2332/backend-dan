@@ -215,9 +215,45 @@ async function getActiveTrialRow(userId) {
   return Array.isArray(rows) && rows.length ? rows[0] : null;
 }
 
+async function getActivePaidRow(userId) {
+  const [rows] = await mysqlPool.query(
+    `SELECT
+      id,
+      type,
+      starts_at,
+      ends_at,
+      revenuecat_product_id,
+      revenuecat_store,
+      revenuecat_will_renew,
+      revenuecat_entitlement_id,
+      revenuecat_app_user_id,
+      created_at,
+      updated_at
+     FROM subscriptions
+     WHERE user_id = ?
+       AND type IN ('basic','premium','vip','pro')
+       AND (ends_at IS NULL OR ends_at > NOW())
+     ORDER BY starts_at DESC, id DESC
+     LIMIT 1`,
+    [userId]
+  );
+  return Array.isArray(rows) && rows.length ? rows[0] : null;
+}
+
+async function closeActiveTrialRows(userId) {
+  await mysqlPool.query(
+    `UPDATE subscriptions
+     SET ends_at = NOW()
+     WHERE user_id = ?
+       AND type = 'trial'
+       AND (ends_at IS NULL OR ends_at > NOW())`,
+    [userId]
+  );
+}
+
 async function getTrialEligible(userId) {
   const [rows] = await mysqlPool.query(
-    `SELECT id FROM subscriptions WHERE user_id = ? AND type IN ('trial','basic','premium','vip') LIMIT 1`,
+    `SELECT id FROM subscriptions WHERE user_id = ? AND type IN ('trial','basic','premium','vip','pro') LIMIT 1`,
     [userId]
   );
   return !Array.isArray(rows) || rows.length === 0;
@@ -288,6 +324,11 @@ async function persistRevenueCatSnapshot({
     }
 
     return;
+  }
+
+  // A paid RevenueCat entitlement should supersede and end any active backend trial.
+  if (normalizedProductId) {
+    await closeActiveTrialRows(userId);
   }
 
   const [existingRows] = await mysqlPool.query(
@@ -441,14 +482,16 @@ export async function registerSubscriptionRoutes(app) {
         request.log.warn({ err: error }, "RevenueCat fetch failed, falling back to local subscription snapshot");
       }
 
-      const [latestRow, activeTrialRow, trialEligible] = await Promise.all([
+      const [latestRow, activePaidRow, activeTrialRow, trialEligible] = await Promise.all([
         getLatestSubscriptionRow(user.sub),
+        getActivePaidRow(user.sub),
         getActiveTrialRow(user.sub),
         getTrialEligible(user.sub),
       ]);
 
-      const rowToSend = activeTrialRow || latestRow;
-      reply.send(formatCurrentResponse(rowToSend, activeTrialRow ? false : trialEligible));
+      const rowToSend = activePaidRow || activeTrialRow || latestRow;
+      const hasEffectiveTrial = Boolean(activeTrialRow) && !Boolean(activePaidRow);
+      reply.send(formatCurrentResponse(rowToSend, hasEffectiveTrial ? false : trialEligible));
     } catch (e) {
       if (e.message === "NO_AUTH" || e.message === "BAD_TOKEN") {
         return reply.code(401).send({ error: "Neautorizat" });
@@ -490,14 +533,16 @@ export async function registerSubscriptionRoutes(app) {
         eventType: "APP_SYNC",
       });
 
-      const [latestRow, activeTrialRow, trialEligible] = await Promise.all([
+      const [latestRow, activePaidRow, activeTrialRow, trialEligible] = await Promise.all([
         getLatestSubscriptionRow(user.sub),
+        getActivePaidRow(user.sub),
         getActiveTrialRow(user.sub),
         getTrialEligible(user.sub),
       ]);
 
-      const rowToSend = activeTrialRow || latestRow;
-      reply.send(formatCurrentResponse(rowToSend, activeTrialRow ? false : trialEligible));
+      const rowToSend = activePaidRow || activeTrialRow || latestRow;
+      const hasEffectiveTrial = Boolean(activeTrialRow) && !Boolean(activePaidRow);
+      reply.send(formatCurrentResponse(rowToSend, hasEffectiveTrial ? false : trialEligible));
     } catch (e) {
       if (e.message === "NO_AUTH" || e.message === "BAD_TOKEN") {
         return reply.code(401).send({ error: "Neautorizat" });
@@ -559,7 +604,7 @@ export async function registerSubscriptionRoutes(app) {
         `SELECT id
          FROM subscriptions
          WHERE user_id = ?
-           AND type IN ('basic','premium','vip')
+           AND type IN ('basic','premium','vip','pro')
            AND (ends_at IS NULL OR ends_at > NOW())
          LIMIT 1`,
         [user.sub]
