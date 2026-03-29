@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,20 +12,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { levels as levelDefs } from '../challenges';
-import { getSubscription } from '../utils/subscriptionStorage';
+import { useSubscription } from '../contexts/SubscriptionContext';
 
 const { width } = Dimensions.get('window');
 
 export default function ProvocarilScreen({ navigation }) {
   const [selectedLevel, setSelectedLevel] = useState(null);
-  const [subType, setSubType] = useState(null);
-
-  useEffect(() => {
-    (async () => {
-      const sub = await getSubscription();
-      if (sub && sub.type) setSubType(sub.type);
-    })();
-  }, []);
+  const { subscription } = useSubscription();
+  const subType = subscription?.type || null;
 
   const isTrial = subType === 'trial';
 
@@ -94,28 +88,6 @@ export default function ProvocarilScreen({ navigation }) {
                 <Ionicons name="time-outline" size={16} color="#4a90e2" style={{ marginRight: 5 }} />
                 <Text style={styles.historyButtonText}>Istoric</Text>
               </TouchableOpacity>
-            </View>
-          </View>
-
-
-          {/* Progress Overview */}
-          <View style={styles.progressSection}>
-            <Text style={styles.progressTitle}>PROGRESUL TĂU</Text>
-            <View style={styles.progressStats}>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>0</Text>
-                <Text style={styles.statLabel}>Completate</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>35</Text>
-                <Text style={styles.statLabel}>Total</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>0%</Text>
-                <Text style={styles.statLabel}>Progres</Text>
-              </View>
             </View>
           </View>
 
@@ -289,51 +261,6 @@ const styles = StyleSheet.create({
     color: '#6c8096',
     textAlign: 'center',
     fontWeight: '400',
-  },
-  progressSection: {
-    marginBottom: 25,
-  },
-  progressTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    color: '#8ca8c4',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  progressStats: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.72)',
-    borderRadius: 18,
-    padding: 20,
-    justifyContent: 'space-around',
-    shadowColor: '#4a90e2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(200,220,240,0.6)',
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#4a90e2',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6c8096',
-    fontWeight: '500',
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: 'rgba(200,220,240,0.5)',
-    marginHorizontal: 10,
   },
   levelsContainer: {
     marginBottom: 25,

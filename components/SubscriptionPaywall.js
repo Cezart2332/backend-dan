@@ -19,6 +19,7 @@ const EXCLUDED_ROUTES = new Set(["Login", "Register", "Subscriptions", "Onboardi
 export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRoute }) {
   const {
     status,
+    hasProEntitlement,
     trialEligible,
     refresh,
     initializing,
@@ -41,10 +42,10 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
     if (!isAuthed) return false;
     if (!hasToken) return false;
     if (initializing) return false;
-    if (!status || status === "active") return false;
+    if (hasProEntitlement) return false;
     if (currentRoute && EXCLUDED_ROUTES.has(currentRoute)) return false;
     return true;
-  }, [isAuthed, hasToken, initializing, status, currentRoute]);
+  }, [isAuthed, hasToken, initializing, hasProEntitlement, currentRoute]);
 
   useEffect(() => {
     if (shouldShow) {
@@ -75,7 +76,6 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
     try {
       setPendingAction("paywall");
       await showPaywall();
-      await refresh();
     } catch (err) {
       const msg = err?.message || "Nu am putut deschide paywall-ul.";
       Alert.alert("Eroare", msg);
@@ -101,7 +101,6 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
     try {
       setPendingAction("trial");
       await startFreeTrial();
-      await refresh();
       Alert.alert("Trial activat", "Ai 3 zile de trial gratuit.");
     } catch (err) {
       Alert.alert("Eroare", err?.message || "Nu am putut porni trial-ul gratuit.");

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback } from "react";
 import {
   View,
   Text,
@@ -11,26 +11,19 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  getSubscription,
-  clearSubscription,
-} from "../utils/subscriptionStorage";
+import { clearSubscription } from "../utils/subscriptionStorage";
 import { clearToken } from "../utils/authStorage";
 import { clearUser } from "../utils/userStorage";
 import { clearEntries } from "../utils/progressStorage";
 import { replaceAllRuns } from "../utils/challengeStorage";
 import { logoutRevenueCatUser } from "../utils/revenuecat";
+import { useSubscription } from "../contexts/SubscriptionContext";
 
 const { width } = Dimensions.get("window");
 
 export default function DashboardScreen({ navigation, onLogout }) {
-  const [subType, setSubType] = useState(null);
-  useEffect(() => {
-    (async () => {
-      const sub = await getSubscription();
-      if (sub && sub.type) setSubType(sub.type);
-    })();
-  }, []);
+  const { subscription } = useSubscription();
+  const subType = subscription?.type || null;
 
   const handleLogout = useCallback(async () => {
     try {
@@ -42,7 +35,6 @@ export default function DashboardScreen({ navigation, onLogout }) {
         clearEntries(),
         replaceAllRuns([]),
       ]);
-      setSubType(null);
     } catch (err) {
       // Logout cleanup failed - proceed anyway
     } finally {

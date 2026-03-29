@@ -84,9 +84,11 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
       try {
         if (res?.token) {
           const subResp = await api.getCurrentSubscription(res.token);
+          const subscriptionType = String(subResp?.subscription?.type || '').toLowerCase();
+          const isBackendTrialActive = subResp?.status === 'active' && subscriptionType === 'trial';
           await saveSubscription({
             ...(subResp.subscription || {}),
-            _status: subResp.status,
+            _status: isBackendTrialActive ? 'none' : subResp.status,
             _trialEligible: subResp.trialEligible,
           });
         }

@@ -2,7 +2,6 @@ import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,7 +11,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import RevenueCatUI from "react-native-purchases-ui";
 import { useSubscription } from "../contexts/SubscriptionContext";
 import {
   getRevenueCatErrorMessage,
@@ -58,13 +56,11 @@ export default function SubscriptionsScreen({ navigation }) {
     refresh,
     purchasePackage,
     restorePermissions,
-    showPaywall,
     openCustomerCenter,
   } = useSubscription();
 
   const [processing, setProcessing] = useState("");
   const [selectedOffering, setSelectedOffering] = useState(OFFERING_IDS.basic);
-  const [showEmbeddedPaywall, setShowEmbeddedPaywall] = useState(false);
 
   const productPackages = useMemo(() => packagesByOffering || {}, [packagesByOffering]);
   const availablePackages = offerings?.current?.availablePackages || [];
@@ -77,7 +73,6 @@ export default function SubscriptionsScreen({ navigation }) {
       if (!result?.success) {
         throw new Error(result?.error || "Achizitia a esuat.");
       }
-      await refresh();
       Alert.alert("Succes", "Abonamentul a fost activat.");
     } catch (error) {
       if (isUserCancelledPurchase(error)) return;
@@ -95,18 +90,6 @@ export default function SubscriptionsScreen({ navigation }) {
       Alert.alert("Restore", "Am sincronizat achizitiile tale.");
     } catch (error) {
       Alert.alert("Eroare", getRevenueCatErrorMessage(error, "Nu am putut restaura achizitiile."));
-    } finally {
-      setProcessing("");
-    }
-  };
-
-  const handlePaywall = async () => {
-    try {
-      setProcessing("paywall");
-      await showPaywall();
-      await refresh();
-    } catch (error) {
-      Alert.alert("Eroare", getRevenueCatErrorMessage(error, "Paywall indisponibil momentan."));
     } finally {
       setProcessing("");
     }
@@ -217,26 +200,6 @@ export default function SubscriptionsScreen({ navigation }) {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.secondaryBtn, processing === "paywall" && styles.disabledBtn]}
-            onPress={handlePaywall}
-            disabled={processing === "paywall"}
-          >
-            {processing === "paywall" ? (
-              <ActivityIndicator size="small" color="#4a90e2" />
-            ) : (
-              <Text style={styles.secondaryBtnText}>Deschide RevenueCat Paywall</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.secondaryBtn, showEmbeddedPaywall && styles.disabledBtn]}
-            onPress={() => setShowEmbeddedPaywall(true)}
-            disabled={showEmbeddedPaywall}
-          >
-            <Text style={styles.secondaryBtnText}>Deschide Embedded Paywall</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
             style={[styles.secondaryBtn, processing === "restore" && styles.disabledBtn]}
             onPress={handleRestore}
             disabled={processing === "restore"}
@@ -273,25 +236,6 @@ export default function SubscriptionsScreen({ navigation }) {
             </Text>
           </View>
         </ScrollView>
-
-        <Modal
-          visible={showEmbeddedPaywall}
-          animationType="slide"
-          onRequestClose={() => setShowEmbeddedPaywall(false)}
-        >
-          <View style={styles.embeddedPaywallContainer}>
-            <RevenueCatUI.Paywall
-              options={offerings?.current ? { offering: offerings.current } : undefined}
-              onRestoreCompleted={async () => {
-                await refresh();
-              }}
-              onDismiss={async () => {
-                setShowEmbeddedPaywall(false);
-                await refresh();
-              }}
-            />
-          </View>
-        </Modal>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -403,8 +347,4 @@ const styles = StyleSheet.create({
   },
   customerInfoTitle: { color: "#1a2d45", fontWeight: "700", fontSize: 15, marginBottom: 8 },
   customerInfoText: { color: "#44586f", fontSize: 12, marginTop: 4 },
-  embeddedPaywallContainer: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-  },
 });

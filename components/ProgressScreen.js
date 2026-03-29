@@ -247,25 +247,6 @@ export default function ProgressScreen({ navigation }) {
               <Text style={styles.sendButtonText}>Trimite jurnal către Dan</Text>
             </LinearGradient>
           </TouchableOpacity>
-
-          {/* Weekly Progress Overview */}
-          <View style={styles.weeklySection}>
-            <Text style={styles.weeklySectionTitle}>Progresul acestei săptămâni</Text>
-            <View style={styles.weeklyStats}>
-              <View style={styles.statBox}>
-                <Text style={styles.statNumber}>4</Text>
-                <Text style={styles.statLabel}>Zile înregistrate</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statNumber}>5.2</Text>
-                <Text style={styles.statLabel}>Nivel mediu</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statNumber}>↓15%</Text>
-                <Text style={styles.statLabel}>Îmbunătățire</Text>
-              </View>
-            </View>
-          </View>
         </ScrollView>
       </LinearGradient>
     </SafeAreaView>
@@ -498,45 +479,5 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 18,
     fontWeight: '600',
-  },
-  weeklySection: {
-    marginBottom: 20,
-  },
-  weeklySectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1a2d45',
-    marginBottom: 14,
-    textAlign: 'center',
-  },
-  weeklyStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: 'rgba(255,255,255,0.72)',
-    borderRadius: 18,
-    padding: 20,
-    shadowColor: '#4a90e2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(200,220,240,0.6)',
-  },
-  statBox: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statNumber: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#4a90e2',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6c8096',
-    fontWeight: '500',
-    textAlign: 'center',
   },
 });

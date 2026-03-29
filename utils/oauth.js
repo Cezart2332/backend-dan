@@ -55,9 +55,11 @@ export async function handleGoogleResponse(response) {
   try {
     if (result?.token) {
       const subResp = await api.getCurrentSubscription(result.token);
+      const subscriptionType = String(subResp?.subscription?.type || '').toLowerCase();
+      const isBackendTrialActive = subResp?.status === 'active' && subscriptionType === 'trial';
       await saveSubscription({
         ...(subResp.subscription || {}),
-        _status: subResp.status,
+        _status: isBackendTrialActive ? 'none' : subResp.status,
         _trialEligible: subResp.trialEligible,
       });
     }
@@ -109,9 +111,11 @@ export async function signInWithApple() {
   try {
     if (result?.token) {
       const subResp = await api.getCurrentSubscription(result.token);
+      const subscriptionType = String(subResp?.subscription?.type || '').toLowerCase();
+      const isBackendTrialActive = subResp?.status === 'active' && subscriptionType === 'trial';
       await saveSubscription({
         ...(subResp.subscription || {}),
-        _status: subResp.status,
+        _status: isBackendTrialActive ? 'none' : subResp.status,
         _trialEligible: subResp.trialEligible,
       });
     }
