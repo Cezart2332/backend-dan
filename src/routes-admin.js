@@ -9,6 +9,10 @@ const ADMIN_STATS_CACHE_TTL_MS = Math.max(1000, Number(process.env.ADMIN_STATS_C
 
 let adminStatsCache = null;
 
+function invalidateAdminStatsCache() {
+  adminStatsCache = null;
+}
+
 // Constant-time string comparison to prevent timing attacks
 function safeCompare(a, b) {
   const hashA = createHash('sha256').update(String(a)).digest();
@@ -73,7 +77,10 @@ export async function registerAdminRoutes(app) {
           (SELECT COUNT(*) FROM questions WHERE status = 'new') AS newQuestions,
           (SELECT COUNT(*) FROM meetings) AS totalMeetings,
           (SELECT COUNT(*) FROM meetings WHERE scheduled_at > NOW()) AS upcomingMeetings,
-          (SELECT COUNT(*) FROM subscriptions WHERE ends_at IS NULL OR ends_at > NOW()) AS totalSubscriptions`
+          (SELECT COUNT(*) FROM subscriptions WHERE ends_at IS NULL OR ends_at > NOW()) AS totalSubscriptions,
+          (SELECT COUNT(*) FROM bug_reports) AS totalBugReports,
+          (SELECT COUNT(*) FROM bug_reports WHERE status IN ('new', 'in_progress')) AS openBugReports,
+          (SELECT COUNT(*) FROM bug_reports WHERE status = 'new') AS newBugReports`
       );
 
       const stats = (Array.isArray(rows) && rows.length ? rows[0] : null) || {
@@ -84,6 +91,9 @@ export async function registerAdminRoutes(app) {
         totalMeetings: 0,
         upcomingMeetings: 0,
         totalSubscriptions: 0,
+        totalBugReports: 0,
+        openBugReports: 0,
+        newBugReports: 0,
       };
 
       adminStatsCache = {
@@ -337,6 +347,34 @@ export async function registerAdminRoutes(app) {
       return reply.send({ items: rows, total, page, limit });
     } catch (e) {
       request.log.error({ err: e }, 'Admin list bug reports failed');
+      return reply.code(500).send({ error: 'Eroare server' });
+    }
+  });
+
+  app.put('/api/admin/bug-reports/:id', async (request, reply) => {
+    const auth = await adminAuth(request);
+    if (!auth) return reply.code(403).send({ error: 'Forbidden' });
+    const id = Number(request.params.id);
+    if (!Number.isFinite(id) || id <= 0) return reply.code(400).send({ error: 'ID invalid' });
+
+    const { status } = request.body || {};
+    const validStatuses = ['new', 'in_progress', 'resolved', 'closed'];
+    if (!validStatuses.includes(status)) {
+      return reply.code(400).send({ error: 'Status invalid' });
+    }
+
+    try {
+      const [result] = await mysqlPool.query(
+        'UPDATE bug_reports SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [status, id]
+      );
+      if (!result?.affectedRows) {
+        return reply.code(404).send({ error: 'Bug report inexistent' });
+      }
+      invalidateAdminStatsCache();
+      return reply.send({ ok: true });
+    } catch (e) {
+      request.log.error({ err: e }, 'Admin update bug report failed');
       return reply.code(500).send({ error: 'Eroare server' });
     }
   });
