@@ -5,7 +5,7 @@
     "scheme": "danfostanxios",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo.png",
+    "icon": "./assets/ios/Icon-Store-1024.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -14,6 +14,7 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "icon": "./assets/ios/Icon-Store-1024.png",
       "bundleIdentifier": "com.cartealuidan.danfostanxios",
       "supportsTablet": false,
       "usesAppleSignIn": true,
@@ -27,8 +28,9 @@
       }
     },
     "android": {
+      "icon": "./assets/android/mipmap-xxxhdpi/ic_launcher.png",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo.png",
+        "foregroundImage": "./assets/android/mipmap-xxxhdpi/ic_launcher_foreground.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
