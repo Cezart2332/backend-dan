@@ -18,6 +18,7 @@ const EXCLUDED_ROUTES = new Set(["Login", "Register", "Subscriptions", "Onboardi
 
 export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRoute }) {
   const {
+    subscription,
     status,
     hasProEntitlement,
     trialEligible,
@@ -39,13 +40,19 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
   }, [isAuthed, initializing, subscriptionResolved, pendingAction]);
 
   const shouldShow = useMemo(() => {
+    const isTrialSubscription = String(subscription?.type || "").toLowerCase() === "trial";
+    const trialEndsAtMs = subscription?.ends_at ? Date.parse(subscription.ends_at) : NaN;
+    const hasActiveTrialAccess =
+      isTrialSubscription && (!Number.isFinite(trialEndsAtMs) || trialEndsAtMs > Date.now());
+
     if (!isAuthed) return false;
     if (!hasToken) return false;
     if (initializing) return false;
+    if (hasActiveTrialAccess) return false;
     if (hasProEntitlement) return false;
     if (currentRoute && EXCLUDED_ROUTES.has(currentRoute)) return false;
     return true;
-  }, [isAuthed, hasToken, initializing, hasProEntitlement, currentRoute]);
+  }, [isAuthed, hasToken, initializing, subscription, hasProEntitlement, currentRoute]);
 
   useEffect(() => {
     if (shouldShow) {
