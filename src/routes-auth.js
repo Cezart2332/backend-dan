@@ -220,8 +220,12 @@ export async function registerAuthRoutes(app) {
     if (!decoded || !decoded.sub) {
       return reply.code(401).send({ error: "Token invalid" });
     }
-    const userId = decoded.sub;
+    const userId = Number(decoded.sub);
+    if (!Number.isFinite(userId) || userId <= 0) {
+      return reply.code(401).send({ error: "Token invalid" });
+    }
 
+    let conn;
     try {
       // Cancel active Stripe subscriptions (best-effort; do not fail account deletion if Stripe is unavailable)
       if (stripeSecretKey) {
@@ -238,24 +242,41 @@ export async function registerAuthRoutes(app) {
           }
         }
       }
+
+      conn = await mysqlPool.getConnection();
+      await conn.beginTransaction();
+
       // Delete user's related data first (due to foreign key constraints)
-      await mysqlPool.query("DELETE FROM user_questions WHERE user_id = ?", [userId]);
-      await mysqlPool.query("DELETE FROM questions WHERE user_id = ?", [userId]);
-      await mysqlPool.query("DELETE FROM user_challenge_progress WHERE user_id = ?", [userId]);
-      await mysqlPool.query("DELETE FROM user_challenge_completions WHERE user_id = ?", [userId]);
-      await mysqlPool.query("DELETE FROM progress_entries WHERE user_id = ?", [userId]);
-      await mysqlPool.query("DELETE FROM subscriptions WHERE user_id = ?", [userId]);
+      await conn.query("DELETE FROM user_questions WHERE user_id = ?", [userId]);
+      await conn.query("DELETE FROM questions WHERE user_id = ?", [userId]);
+      await conn.query("DELETE FROM user_challenge_progress WHERE user_id = ?", [userId]);
+      await conn.query("DELETE FROM user_challenge_completions WHERE user_id = ?", [userId]);
+      await conn.query("DELETE FROM progress_entries WHERE user_id = ?", [userId]);
+      await conn.query("DELETE FROM subscriptions WHERE user_id = ?", [userId]);
       
       // Finally delete the user
-      const [result] = await mysqlPool.query("DELETE FROM users WHERE id = ?", [userId]);
+      const [result] = await conn.query("DELETE FROM users WHERE id = ?", [userId]);
       
       if (result.affectedRows === 0) {
+        await conn.rollback();
         return reply.code(404).send({ error: "Utilizator negăsit" });
       }
+
+      await conn.commit();
       
       return reply.send({ success: true, message: "Cont șters cu succes" });
     } catch (error) {
+      if (conn) {
+        try {
+          await conn.rollback();
+        } catch (rollbackError) {
+          request.log.error({ err: rollbackError }, 'Rollback failed during account deletion');
+        }
+      }
+      request.log.error({ err: error, userId }, 'Account deletion failed');
       return reply.code(500).send({ error: "Eroare la ștergerea contului" });
+    } finally {
+      if (conn) conn.release();
     }
   });
 

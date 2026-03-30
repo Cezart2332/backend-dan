@@ -8,10 +8,12 @@
     "start": "node src/index.js",
     "migrate": "npx @better-auth/cli migrate",
     "migrate:custom": "node -e \"import('./src/migrate.js').then(m=>m.runMigrations())\"",
-    "encode:hls": "node src/encode-videos.js"
+    "encode:hls": "node src/encode-videos.js",
+    "load:test": "node scripts/load-test.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
+    "@fastify/compress": "^8.3.1",
     "@fastify/cors": "^10.0.0",
     "@fastify/rate-limit": "^10.3.0",
     "bcryptjs": "^2.4.3",

@@ -15,6 +15,10 @@ const KNOWN_PRODUCT_ALIASES = {
 
 const PRO_ENTITLEMENT_ID = process.env.REVENUECAT_ENTITLEMENT_ID || "Dan Fost Anxios Pro";
 const REVENUECAT_SECRET_API_KEY = process.env.REVENUECAT_SECRET_API_KEY || "";
+const REVENUECAT_CURRENT_CACHE_TTL_MS = Math.max(0, Number(process.env.REVENUECAT_CURRENT_CACHE_TTL_MS || 30000));
+const REVENUECAT_CACHE_MAX_ENTRIES = Math.max(100, Number(process.env.REVENUECAT_CACHE_MAX_ENTRIES || 5000));
+
+const revenueCatSubscriberCache = new Map();
 
 const ACTIVE_EVENT_TYPES = new Set([
   "INITIAL_PURCHASE",
@@ -165,6 +169,67 @@ async function fetchRevenueCatSubscriber(appUserId) {
 
   const payload = await response.json();
   return payload?.subscriber || null;
+}
+
+function normalizeCacheKey(appUserId) {
+  return String(appUserId || "").trim();
+}
+
+function readRevenueCatSubscriberCache(appUserId) {
+  const key = normalizeCacheKey(appUserId);
+  if (!key) return { hit: false, subscriber: null };
+  const cached = revenueCatSubscriberCache.get(key);
+  if (!cached) return { hit: false, subscriber: null };
+  if (cached.expiresAt <= Date.now()) {
+    revenueCatSubscriberCache.delete(key);
+    return { hit: false, subscriber: null };
+  }
+  return { hit: true, subscriber: cached.subscriber };
+}
+
+function writeRevenueCatSubscriberCache(appUserId, subscriber) {
+  if (REVENUECAT_CURRENT_CACHE_TTL_MS <= 0) return;
+  const key = normalizeCacheKey(appUserId);
+  if (!key) return;
+
+  if (revenueCatSubscriberCache.size >= REVENUECAT_CACHE_MAX_ENTRIES) {
+    for (const [cacheKey, cacheValue] of revenueCatSubscriberCache) {
+      if (cacheValue.expiresAt <= Date.now()) {
+        revenueCatSubscriberCache.delete(cacheKey);
+      }
+    }
+  }
+  if (revenueCatSubscriberCache.size >= REVENUECAT_CACHE_MAX_ENTRIES) {
+    const oldestKey = revenueCatSubscriberCache.keys().next().value;
+    if (oldestKey) revenueCatSubscriberCache.delete(oldestKey);
+  }
+
+  revenueCatSubscriberCache.set(key, {
+    subscriber,
+    expiresAt: Date.now() + REVENUECAT_CURRENT_CACHE_TTL_MS,
+  });
+}
+
+function invalidateRevenueCatSubscriberCache(appUserId) {
+  const key = normalizeCacheKey(appUserId);
+  if (!key) return;
+  revenueCatSubscriberCache.delete(key);
+}
+
+async function fetchRevenueCatSubscriberCached(appUserId) {
+  if (REVENUECAT_CURRENT_CACHE_TTL_MS <= 0) {
+    const subscriber = await fetchRevenueCatSubscriber(appUserId);
+    return { subscriber, cacheHit: false };
+  }
+
+  const cached = readRevenueCatSubscriberCache(appUserId);
+  if (cached.hit) {
+    return { subscriber: cached.subscriber, cacheHit: true };
+  }
+
+  const subscriber = await fetchRevenueCatSubscriber(appUserId);
+  writeRevenueCatSubscriberCache(appUserId, subscriber);
+  return { subscriber, cacheHit: false };
 }
 
 async function getLatestSubscriptionRow(userId) {
@@ -443,7 +508,10 @@ export async function registerSubscriptionRoutes(app) {
       const appUserId = String(user.sub || userRow.email || "").trim();
 
       try {
-        const subscriber = await fetchRevenueCatSubscriber(appUserId);
+        const { subscriber, cacheHit } = await fetchRevenueCatSubscriberCached(appUserId);
+        if (cacheHit) {
+          request.log.debug({ appUserId }, "RevenueCat cache hit for current subscription");
+        }
         const entitlement = getEntitlementFromRevenueCat(subscriber, PRO_ENTITLEMENT_ID);
         const status = entitlement
           ? entitlement.isActive
@@ -520,9 +588,12 @@ export async function registerSubscriptionRoutes(app) {
         appUserId = null,
       } = request.body || {};
 
+      const syncAppUserId = String(appUserId || user.sub).trim();
+      invalidateRevenueCatSubscriberCache(syncAppUserId);
+
       await persistRevenueCatSnapshot({
         userId: user.sub,
-        appUserId: appUserId || String(user.sub),
+        appUserId: syncAppUserId,
         entitlementId,
         productId,
         status,
@@ -692,6 +763,8 @@ export async function registerSubscriptionRoutes(app) {
         // We identify users by numeric appUserID (user.id). Ignore other aliases safely.
         return reply.send({ received: true, ignored: true, reason: "NON_NUMERIC_APP_USER_ID" });
       }
+
+      invalidateRevenueCatSubscriberCache(appUserId);
 
       const userRow = await getUserById(userId);
       if (!userRow) {

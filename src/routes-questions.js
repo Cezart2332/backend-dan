@@ -41,11 +41,16 @@ export async function registerQuestionRoutes(app) {
     const user = authMiddleware(request);
     if (!user) return reply.code(401).send({ error: 'Neautorizat' });
     try {
+      const page = Math.max(1, Number(request.query?.page) || 1);
+      const limit = Math.min(100, Math.max(1, Number(request.query?.limit) || 50));
+      const offset = (page - 1) * limit;
       const [rows] = await mysqlPool.query(
-        'SELECT id, name, email, question, consent, status, created_at FROM questions WHERE user_id = ? ORDER BY created_at DESC LIMIT 500',
-        [Number(user.sub)]
+        'SELECT id, name, email, question, consent, status, created_at FROM questions WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
+        [Number(user.sub), limit + 1, offset]
       );
-      return reply.send({ items: rows });
+      const hasMore = Array.isArray(rows) && rows.length > limit;
+      const items = hasMore ? rows.slice(0, limit) : rows;
+      return reply.send({ items, page, limit, hasMore });
     } catch (e) {
       request.log.error({ err: e }, 'List my questions failed');
       return reply.code(500).send({ error: 'Eroare server' });

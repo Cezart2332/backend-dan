@@ -1,6 +1,7 @@
 import "dotenv/config";
 import Fastify from "fastify";
 import fastifyCors from "@fastify/cors";
+import fastifyCompress from "@fastify/compress";
 import fastifyRawBody from "fastify-raw-body";
 import rateLimit from "@fastify/rate-limit";
 import { auth } from "./auth.js";
@@ -16,7 +17,10 @@ import { runMigrations } from "./migrate.js";
 import { registerAuthRoutes } from "./routes-auth.js";
 import { registerAdminRoutes } from "./routes-admin.js";
 
-const app = Fastify({ logger: true, bodyLimit: 1048576 }); // 1MB max body
+const logLevel = process.env.LOG_LEVEL || "info";
+const app = Fastify({ logger: { level: logLevel }, bodyLimit: 1048576 }); // 1MB max body
+let isShuttingDown = false;
+let isReady = false;
 
 // Allow empty JSON bodies (treat as {}) instead of throwing parser errors
 app.removeContentTypeParser("application/json");
@@ -88,8 +92,22 @@ await app.register(fastifyCors, {
   maxAge: 86400,
 });
 
+const compressionThreshold = Number(process.env.COMPRESS_THRESHOLD_BYTES || 1024);
+await app.register(fastifyCompress, {
+  global: true,
+  threshold: Number.isFinite(compressionThreshold) && compressionThreshold >= 0 ? compressionThreshold : 1024,
+});
+
 // Health check
-app.get("/health", async () => ({ ok: true }));
+app.get("/health", async () => ({ ok: true, shuttingDown: isShuttingDown }));
+
+// Readiness check for orchestrators
+app.get("/health/ready", async (_request, reply) => {
+  if (!isReady || isShuttingDown) {
+    return reply.code(503).send({ ok: false, ready: false, shuttingDown: isShuttingDown });
+  }
+  return { ok: true, ready: true };
+});
 
 // DB health check (simple status only - no sensitive info)
 app.get("/health/db", async (request, reply) => {
@@ -135,10 +153,47 @@ await registerProgressRoutes(app);
 await registerQuestionRoutes(app);
 await registerMeetingRoutes(app);
 await registerChallengeRoutes(app);
-await registerMediaRoutes(app);
+
+const enableNodeMediaStreamingRaw = process.env.ENABLE_NODE_MEDIA_STREAMING;
+const enableNodeMediaStreaming =
+  (typeof enableNodeMediaStreamingRaw === "string" && enableNodeMediaStreamingRaw.toLowerCase() === "true") ||
+  (enableNodeMediaStreamingRaw === undefined && process.env.NODE_ENV !== "production");
+
+if (enableNodeMediaStreaming) {
+  await registerMediaRoutes(app);
+  app.log.info("Node media byte serving enabled");
+} else {
+  app.log.info("Node media byte serving disabled; expecting Nginx to serve /api/media/*");
+}
+
 await registerSubscriptionRoutes(app);
 await registerVideoRoutes(app);
 await registerAdminRoutes(app);
+
+async function shutdown(signal) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  app.log.warn({ signal }, "Shutdown signal received");
+  try {
+    await app.close();
+  } catch (err) {
+    app.log.error({ err }, "Failed to close Fastify app cleanly");
+  }
+  try {
+    await mysqlPool.end();
+  } catch (err) {
+    app.log.error({ err }, "Failed to close MySQL pool cleanly");
+  }
+  process.exit(0);
+}
+
+process.on("SIGTERM", () => {
+  void shutdown("SIGTERM");
+});
+
+process.on("SIGINT", () => {
+  void shutdown("SIGINT");
+});
 
 const port = Number(process.env.CORE_PORT || process.env.PORT || 3000);
 try {
@@ -151,8 +206,10 @@ try {
   }
   try {
     await runMigrations();
+    isReady = true;
   } catch (e) {
     app.log.error({ err: e }, "DB migrations failed");
+    isReady = false;
   }
   app.log.info(`Auth server running on port ${port}`);
 } catch (err) {

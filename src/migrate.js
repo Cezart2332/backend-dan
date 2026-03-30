@@ -10,7 +10,8 @@ export async function runMigrations() {
       name VARCHAR(255),
       provider ENUM('local','google','facebook','apple') NOT NULL DEFAULT 'local',
       provider_id VARCHAR(255),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_users_created_at (created_at)
     )
   `);
 
@@ -97,6 +98,9 @@ export async function runMigrations() {
   } catch {
     // Column already exists
   }
+  try {
+    await mysqlPool.query(`ALTER TABLE users ADD INDEX idx_users_created_at (created_at)`);
+  } catch {}
 
   // subscriptions table
   await mysqlPool.query(`
@@ -164,7 +168,19 @@ export async function runMigrations() {
       status ENUM('new', 'in_progress', 'resolved', 'closed') DEFAULT 'new',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      CONSTRAINT fk_bug_reports_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+      CONSTRAINT fk_bug_reports_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+      INDEX idx_bug_reports_created_at (created_at),
+      INDEX idx_bug_reports_status_created (status, created_at),
+      INDEX idx_bug_reports_user_id (user_id)
     )
   `);
+  try {
+    await mysqlPool.query(`ALTER TABLE bug_reports ADD INDEX idx_bug_reports_created_at (created_at)`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE bug_reports ADD INDEX idx_bug_reports_status_created (status, created_at)`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE bug_reports ADD INDEX idx_bug_reports_user_id (user_id)`);
+  } catch {}
 }

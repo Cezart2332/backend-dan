@@ -5,6 +5,9 @@ import { mysqlPool } from './mysql.js';
 const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
 if (!JWT_SECRET) throw new Error('CRITICAL: JWT_SECRET is required');
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || process.env.CORE_ADMIN_TOKEN || null;
+const ADMIN_STATS_CACHE_TTL_MS = Math.max(1000, Number(process.env.ADMIN_STATS_CACHE_TTL_MS || 15000));
+
+let adminStatsCache = null;
 
 // Constant-time string comparison to prevent timing attacks
 function safeCompare(a, b) {
@@ -58,20 +61,37 @@ export async function registerAdminRoutes(app) {
     const auth = await adminAuth(request);
     if (!auth) return reply.code(403).send({ error: 'Forbidden' });
     try {
-      const [[{ totalUsers }]] = await mysqlPool.query('SELECT COUNT(*) AS totalUsers FROM users');
-      const [[{ totalEntries }]] = await mysqlPool.query('SELECT COUNT(*) AS totalEntries FROM progress_entries');
-      const [[{ totalQuestions }]] = await mysqlPool.query('SELECT COUNT(*) AS totalQuestions FROM questions');
-      const [[{ newQuestions }]] = await mysqlPool.query("SELECT COUNT(*) AS newQuestions FROM questions WHERE status = 'new'");
-      let totalMeetings = 0;
-      let upcomingMeetings = 0;
-      try {
-        const [[m1]] = await mysqlPool.query('SELECT COUNT(*) AS c FROM meetings');
-        const [[m2]] = await mysqlPool.query('SELECT COUNT(*) AS c FROM meetings WHERE scheduled_at > NOW()');
-        totalMeetings = m1.c;
-        upcomingMeetings = m2.c;
-      } catch {}
-      const [[{ totalSubscriptions }]] = await mysqlPool.query("SELECT COUNT(*) AS totalSubscriptions FROM subscriptions WHERE ends_at IS NULL OR ends_at > NOW()");
-      return reply.send({ totalUsers, totalEntries, totalQuestions, newQuestions, totalMeetings, upcomingMeetings, totalSubscriptions });
+      if (adminStatsCache && adminStatsCache.expiresAt > Date.now()) {
+        return reply.send(adminStatsCache.value);
+      }
+
+      const [rows] = await mysqlPool.query(
+        `SELECT
+          (SELECT COUNT(*) FROM users) AS totalUsers,
+          (SELECT COUNT(*) FROM progress_entries) AS totalEntries,
+          (SELECT COUNT(*) FROM questions) AS totalQuestions,
+          (SELECT COUNT(*) FROM questions WHERE status = 'new') AS newQuestions,
+          (SELECT COUNT(*) FROM meetings) AS totalMeetings,
+          (SELECT COUNT(*) FROM meetings WHERE scheduled_at > NOW()) AS upcomingMeetings,
+          (SELECT COUNT(*) FROM subscriptions WHERE ends_at IS NULL OR ends_at > NOW()) AS totalSubscriptions`
+      );
+
+      const stats = (Array.isArray(rows) && rows.length ? rows[0] : null) || {
+        totalUsers: 0,
+        totalEntries: 0,
+        totalQuestions: 0,
+        newQuestions: 0,
+        totalMeetings: 0,
+        upcomingMeetings: 0,
+        totalSubscriptions: 0,
+      };
+
+      adminStatsCache = {
+        value: stats,
+        expiresAt: Date.now() + ADMIN_STATS_CACHE_TTL_MS,
+      };
+
+      return reply.send(stats);
     } catch (e) {
       request.log.error({ err: e }, 'Admin stats failed');
       return reply.code(500).send({ error: 'Eroare server' });
@@ -302,11 +322,19 @@ export async function registerAdminRoutes(app) {
     const auth = await adminAuth(request);
     if (!auth) return reply.code(403).send({ error: 'Forbidden' });
     try {
+      const page = Math.max(1, Number(request.query?.page) || 1);
+      const limit = Math.min(100, Math.max(1, Number(request.query?.limit) || 50));
+      const offset = (page - 1) * limit;
+
+      const [[{ total }]] = await mysqlPool.query('SELECT COUNT(*) AS total FROM bug_reports');
       const [rows] = await mysqlPool.query(
         `SELECT b.id, b.user_id, b.user_email, b.contact_email, b.description, b.status, b.created_at
-         FROM bug_reports b ORDER BY b.created_at DESC LIMIT 500`
+         FROM bug_reports b
+         ORDER BY b.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [limit, offset]
       );
-      return reply.send({ items: rows });
+      return reply.send({ items: rows, total, page, limit });
     } catch (e) {
       request.log.error({ err: e }, 'Admin list bug reports failed');
       return reply.code(500).send({ error: 'Eroare server' });

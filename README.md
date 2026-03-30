@@ -1,6 +1,6 @@
-# Dan Anxiety Auth Server (Fastify + Better Auth)
+# Dan Anxiety Auth Server (Fastify + Better Auth + MySQL)
 
-A minimal Fastify server providing authentication using Better Auth with SQLite.
+A Fastify backend for authentication, subscriptions, admin APIs, and media metadata.
 
 ## Prerequisites
 - Node.js 18+
@@ -15,6 +15,7 @@ A minimal Fastify server providing authentication using Better Auth with SQLite.
 - `npm start` — start
 - `npm run migrate` — Better Auth CLI migrate (if using Better Auth's CLI-managed migrations)
 - `npm run encode:hls` — offline HLS transcoder for videos in `/media/original`
+- `npm run load:test` — lightweight latency/load check with optional MySQL env recommendation
 
 ## Environment Variables
 
@@ -23,14 +24,30 @@ Copy `.env.example` to `.env` and fill in real values (never commit the real `.e
 Key groups:
 - Auth: `BETTER_AUTH_SECRET`, `JWT_SECRET`
 - Database: `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`
+- Database tuning for 2 vCPU / 4 GB VPS:
+	- `MYSQL_CONNECT_TIMEOUT=5000`
+	- `MYSQL_CONNECTION_LIMIT=24`
+	- `MYSQL_MAX_IDLE=12`
+	- `MYSQL_IDLE_TIMEOUT=60000`
+	- `MYSQL_QUEUE_LIMIT=96`
+	- `MYSQL_WAIT_FOR_CONNECTIONS=true`
+	- `MYSQL_ENABLE_KEEP_ALIVE=true`
+	- `MYSQL_KEEP_ALIVE_INITIAL_DELAY=10000`
 - RevenueCat:
 	- `REVENUECAT_SECRET_API_KEY` (server secret key for subscriber lookup)
 	- `REVENUECAT_ENTITLEMENT_ID` (default: `Dan Fost Anxios Pro`)
 	- `REVENUECAT_WEBHOOK_AUTH` (optional shared secret for webhook authorization)
 - Media storage and caching:
 	- `FileStorage__BasePath` (or `FILESTORAGE__BASEPATH` / `FILE_STORAGE_BASE_PATH`): absolute folder root, e.g. `/media`.
-	- `MEDIA_CACHE_CONTROL`: optional override for media routes (default `public, max-age=86400, immutable`). For HLS VOD you can set `public, max-age=31536000, immutable`.
+	- `ENABLE_NODE_MEDIA_STREAMING=false` in production (recommended, offload media bytes to Nginx)
+	- `MEDIA_CACHE_CONTROL`: optional override for Node media fallback route (dev/testing)
 	- Optional tuning for the transcoder: `HLS_CRF` (default 22), `HLS_SCALE` (default `scale=-2:720`), `HLS_SEGMENT_TIME` (default 4 seconds).
+
+General perf settings:
+- `LOG_LEVEL` (default `info`)
+- `COMPRESS_THRESHOLD_BYTES` (default `1024`)
+- `ADMIN_STATS_CACHE_TTL_MS` (default `15000`)
+- `REVENUECAT_CURRENT_CACHE_TTL_MS` (default `30000`)
 
 The app-side RevenueCat product identifiers used by this project are:
 - `dan_basic`
@@ -80,7 +97,7 @@ Suggested cron (logs to file, runs every 5 minutes):
 ```
 
 API additions:
-- `GET /api/media/*` — unchanged: streams mp4/mov/m3u8/ts with Range/ETag/Cache-Control.
+- `GET /api/media/*` — in production should be served by Nginx directly (Node media serving is optional/fallback).
 - `GET /api/videos/:id` — returns `{ id, hlsUrl }` if `/media/hls/<id>/master.m3u8` exists; otherwise 404.
 
 React Native example (using `react-native-video`):
@@ -119,4 +136,50 @@ const styles = StyleSheet.create({
 Lifecycle for a new video `123.mp4`:
 1) Place `123.mp4` into `/media/original` on the VPS (SCP/SFTP or other upload method).
 2) Cron/worker (`encode-videos.js`) sees it and produces `/media/hls/123/master.m3u8` + segments.
-3) Mobile app requests `https://<domain>/api/media/hls/123/master.m3u8` (served by the existing streaming route with Range/ETag/caching).
+3) Mobile app requests `https://<domain>/api/media/hls/123/master.m3u8` (served directly by Nginx for low CPU usage on Node).
+
+## Nginx Media Offload (same VPS, recommended)
+
+Use [nginx/api-media-offload.conf](nginx/api-media-offload.conf) as your site config.
+
+What it does:
+1. Serves `/api/media/*` directly from `/media` (byte-range friendly, no Node hop).
+2. Proxies everything else to Node at `127.0.0.1:3000`.
+3. Adds media cache headers and file cache settings.
+
+Deployment notes:
+1. Mount your media path at `/media` on the VPS.
+2. Set `ENABLE_NODE_MEDIA_STREAMING=false` for backend runtime.
+3. Keep backend bound to localhost (or private network), let Nginx be the public entrypoint.
+
+## Lightweight Load Test + MySQL Tuning
+
+Run a basic API latency test:
+
+```bash
+npm run load:test -- --base-url=http://127.0.0.1:3000 --endpoints=GET:/health,GET:/api/subscriptions/current --concurrency=30 --duration-sec=60
+```
+
+If endpoint needs auth, provide a token:
+
+```bash
+npm run load:test -- --base-url=http://127.0.0.1:3000 --endpoints=GET:/api/subscriptions/current --token=<JWT> --concurrency=25 --duration-sec=60
+```
+
+Include VPS usage to auto-generate MySQL env recommendations:
+
+```bash
+npm run load:test -- --base-url=http://127.0.0.1:3000 --endpoints=GET:/health --concurrency=30 --duration-sec=60 --cpu=68 --ram=61
+```
+
+Or collect CPU/RAM automatically from Docker stats:
+
+```bash
+npm run load:test -- --base-url=http://127.0.0.1:3000 --endpoints=GET:/health --concurrency=30 --duration-sec=60 --docker-container=dan-api
+```
+
+Optional JSON output:
+
+```bash
+npm run load:test -- --base-url=http://127.0.0.1:3000 --endpoints=GET:/health --out=./load-test-result.json
+```

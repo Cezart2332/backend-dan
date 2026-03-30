@@ -62,13 +62,28 @@ function resolveOptions() {
       password: dsn.password || "",
     };
     // Generic pool tunables (env-configurable)
-    const connectTimeout = Number(process.env.MYSQL_CONNECT_TIMEOUT || process.env.DB_CONNECT_TIMEOUT || 8000);
-    const connectionLimit = Number(process.env.MYSQL_CONNECTION_LIMIT || process.env.DB_CONNECTION_LIMIT || 10);
+    const connectTimeout = Number(process.env.MYSQL_CONNECT_TIMEOUT || process.env.DB_CONNECT_TIMEOUT || 5000);
+    const connectionLimit = Number(process.env.MYSQL_CONNECTION_LIMIT || process.env.DB_CONNECTION_LIMIT || 24);
     const waitForConnections =
       (process.env.MYSQL_WAIT_FOR_CONNECTIONS || process.env.DB_WAIT_FOR_CONNECTIONS || "true").toString().toLowerCase() !==
       "false";
-    const queueLimit = Number(process.env.MYSQL_QUEUE_LIMIT || process.env.DB_QUEUE_LIMIT || 0);
-    Object.assign(poolOptions, { connectTimeout, connectionLimit, waitForConnections, queueLimit });
+    const queueLimit = Number(process.env.MYSQL_QUEUE_LIMIT || process.env.DB_QUEUE_LIMIT || 96);
+    const maxIdleDefault = Math.max(4, Math.min(connectionLimit, 12));
+    const maxIdle = Number(process.env.MYSQL_MAX_IDLE || process.env.DB_MAX_IDLE || maxIdleDefault);
+    const idleTimeout = Number(process.env.MYSQL_IDLE_TIMEOUT || process.env.DB_IDLE_TIMEOUT || 60000);
+    const enableKeepAlive =
+      (process.env.MYSQL_ENABLE_KEEP_ALIVE || process.env.DB_ENABLE_KEEP_ALIVE || "true").toString().toLowerCase() !== "false";
+    const keepAliveInitialDelay = Number(process.env.MYSQL_KEEP_ALIVE_INITIAL_DELAY || process.env.DB_KEEP_ALIVE_INITIAL_DELAY || 10000);
+    Object.assign(poolOptions, {
+      connectTimeout,
+      connectionLimit,
+      waitForConnections,
+      queueLimit,
+      maxIdle,
+      idleTimeout,
+      enableKeepAlive,
+      keepAliveInitialDelay,
+    });
     if (dsn.allowPublicKeyRetrieval) Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
     if (dsn.useSSL && (!dsn.sslMode || dsn.sslMode.toLowerCase() !== "none")) {
       Object.assign(poolOptions, { ssl: { rejectUnauthorized: true } });
@@ -107,13 +122,28 @@ function resolveOptions() {
     const useSSL = (sslParam === "true" || sslParam === "1") && (!sslModeParam || sslModeParam.toLowerCase() !== "none");
     const poolOptions = { host, port, database, user, password };
     // Generic pool tunables (env-configurable)
-    const connectTimeout = Number(process.env.MYSQL_CONNECT_TIMEOUT || process.env.DB_CONNECT_TIMEOUT || 8000);
-    const connectionLimit = Number(process.env.MYSQL_CONNECTION_LIMIT || process.env.DB_CONNECTION_LIMIT || 10);
+    const connectTimeout = Number(process.env.MYSQL_CONNECT_TIMEOUT || process.env.DB_CONNECT_TIMEOUT || 5000);
+    const connectionLimit = Number(process.env.MYSQL_CONNECTION_LIMIT || process.env.DB_CONNECTION_LIMIT || 24);
     const waitForConnections =
       (process.env.MYSQL_WAIT_FOR_CONNECTIONS || process.env.DB_WAIT_FOR_CONNECTIONS || "true").toString().toLowerCase() !==
       "false";
-    const queueLimit = Number(process.env.MYSQL_QUEUE_LIMIT || process.env.DB_QUEUE_LIMIT || 0);
-    Object.assign(poolOptions, { connectTimeout, connectionLimit, waitForConnections, queueLimit });
+    const queueLimit = Number(process.env.MYSQL_QUEUE_LIMIT || process.env.DB_QUEUE_LIMIT || 96);
+    const maxIdleDefault = Math.max(4, Math.min(connectionLimit, 12));
+    const maxIdle = Number(process.env.MYSQL_MAX_IDLE || process.env.DB_MAX_IDLE || maxIdleDefault);
+    const idleTimeout = Number(process.env.MYSQL_IDLE_TIMEOUT || process.env.DB_IDLE_TIMEOUT || 60000);
+    const enableKeepAlive =
+      (process.env.MYSQL_ENABLE_KEEP_ALIVE || process.env.DB_ENABLE_KEEP_ALIVE || "true").toString().toLowerCase() !== "false";
+    const keepAliveInitialDelay = Number(process.env.MYSQL_KEEP_ALIVE_INITIAL_DELAY || process.env.DB_KEEP_ALIVE_INITIAL_DELAY || 10000);
+    Object.assign(poolOptions, {
+      connectTimeout,
+      connectionLimit,
+      waitForConnections,
+      queueLimit,
+      maxIdle,
+      idleTimeout,
+      enableKeepAlive,
+      keepAliveInitialDelay,
+    });
     if (allowPublicKeyRetrieval) Object.assign(poolOptions, { allowPublicKeyRetrieval: true });
     if (useSSL) Object.assign(poolOptions, { ssl: { rejectUnauthorized: true } });
     // Env overrides
@@ -144,13 +174,28 @@ function resolveOptions() {
   }
   const poolOptions = { host, port, database, user, password };
   // Generic pool tunables (env-configurable)
-  const connectTimeout = Number(process.env.MYSQL_CONNECT_TIMEOUT || process.env.DB_CONNECT_TIMEOUT || 8000);
-  const connectionLimit = Number(process.env.MYSQL_CONNECTION_LIMIT || process.env.DB_CONNECTION_LIMIT || 10);
+  const connectTimeout = Number(process.env.MYSQL_CONNECT_TIMEOUT || process.env.DB_CONNECT_TIMEOUT || 5000);
+  const connectionLimit = Number(process.env.MYSQL_CONNECTION_LIMIT || process.env.DB_CONNECTION_LIMIT || 24);
   const waitForConnections =
     (process.env.MYSQL_WAIT_FOR_CONNECTIONS || process.env.DB_WAIT_FOR_CONNECTIONS || "true").toString().toLowerCase() !==
     "false";
-  const queueLimit = Number(process.env.MYSQL_QUEUE_LIMIT || process.env.DB_QUEUE_LIMIT || 0);
-  Object.assign(poolOptions, { connectTimeout, connectionLimit, waitForConnections, queueLimit });
+  const queueLimit = Number(process.env.MYSQL_QUEUE_LIMIT || process.env.DB_QUEUE_LIMIT || 96);
+  const maxIdleDefault = Math.max(4, Math.min(connectionLimit, 12));
+  const maxIdle = Number(process.env.MYSQL_MAX_IDLE || process.env.DB_MAX_IDLE || maxIdleDefault);
+  const idleTimeout = Number(process.env.MYSQL_IDLE_TIMEOUT || process.env.DB_IDLE_TIMEOUT || 60000);
+  const enableKeepAlive =
+    (process.env.MYSQL_ENABLE_KEEP_ALIVE || process.env.DB_ENABLE_KEEP_ALIVE || "true").toString().toLowerCase() !== "false";
+  const keepAliveInitialDelay = Number(process.env.MYSQL_KEEP_ALIVE_INITIAL_DELAY || process.env.DB_KEEP_ALIVE_INITIAL_DELAY || 10000);
+  Object.assign(poolOptions, {
+    connectTimeout,
+    connectionLimit,
+    waitForConnections,
+    queueLimit,
+    maxIdle,
+    idleTimeout,
+    enableKeepAlive,
+    keepAliveInitialDelay,
+  });
   const allowPk = process.env.MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL ?? process.env.CORE_MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL;
   if (allowPk !== undefined && allowPk !== null) {
     Object.assign(poolOptions, { allowPublicKeyRetrieval: truthy(allowPk) && !falsy(allowPk) });
@@ -180,6 +225,10 @@ export const effectiveDbConfig = {
   connectionLimit: _resolvedOptions.connectionLimit,
   waitForConnections: _resolvedOptions.waitForConnections,
   queueLimit: _resolvedOptions.queueLimit,
+  maxIdle: _resolvedOptions.maxIdle,
+  idleTimeout: _resolvedOptions.idleTimeout,
+  enableKeepAlive: _resolvedOptions.enableKeepAlive,
+  keepAliveInitialDelay: _resolvedOptions.keepAliveInitialDelay,
 };
 
 export const mysqlPool = mysql.createPool(_resolvedOptions);
