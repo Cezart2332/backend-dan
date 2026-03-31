@@ -121,7 +121,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
   ];
 
   // Items locked during free trial (only available with paid subscription)
-  const trialLockedIds = new Set([4, 5, 6, 7]);
+  const trialLockedIds = new Set([4, 5, 6, 7, 10]);
   const isTrial = subType === 'trial';
 
   const handleMenuPress = (item) => {

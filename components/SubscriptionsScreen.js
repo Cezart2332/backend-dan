@@ -18,7 +18,34 @@ import {
   OFFERING_IDS,
 } from "../utils/revenuecat";
 
-function ProductCard({ title, subtitle, packageItem, selected, onSelect }) {
+const PLAN_FEATURES = {
+  basic: [
+    { text: "Acces la biblioteca audio", included: true },
+    { text: "Provocari zilnice/saptamanale", included: true },
+    { text: "Jurnal personal (fara feedback)", included: true },
+    { text: "Feedback personalizat la jurnal", included: false },
+    { text: "Webinarii live + arhiva", included: false },
+    { text: "Audio-uri exclusive", included: false },
+    { text: "Reducere sedinte 1:1", included: false },
+  ],
+  premium: [
+    { text: "Tot ce include Basic", included: true },
+    { text: "Feedback personalizat la jurnal (1/saptamana)", included: true },
+    { text: "Acces la webinarii live + arhiva lor", included: true },
+    { text: "Audio-uri exclusive", included: true },
+    { text: "Reducere 20% la sedintele 1:1", included: true },
+  ],
+  vip: [
+    { text: "Tot ce include Premium", included: true },
+    { text: "Feedback extins la jurnale (2-3/saptamana)", included: true },
+    { text: "Intrebari directe (1-2/saptamana)", included: true },
+    { text: "Webinar lunar VIP (grup restrans)", included: true },
+    { text: "Reducere 40% la sedintele 1:1", included: true },
+    { text: "Resurse extra / ghidaje avansate", included: true },
+  ],
+};
+
+function ProductCard({ title, subtitle, packageItem, selected, onSelect, features }) {
   const product = packageItem?.product;
   const priceText = product?.priceString || "Indisponibil momentan";
 
@@ -39,6 +66,22 @@ function ProductCard({ title, subtitle, packageItem, selected, onSelect }) {
       <Text style={styles.cardSubtitle}>{subtitle}</Text>
       <Text style={styles.cardPrice}>{priceText}</Text>
       <Text style={styles.cardSku}>{product?.identifier || "Fara SKU mapat"}</Text>
+
+      <View style={styles.featureList}>
+        {features?.map((feature, index) => (
+          <View key={`${title}-feature-${index}`} style={styles.featureRow}>
+            <Ionicons
+              name={feature.included ? "checkmark-circle" : "close-circle"}
+              size={18}
+              color={feature.included ? "#2fa36b" : "#d86767"}
+              style={styles.featureIcon}
+            />
+            <Text style={[styles.featureText, !feature.included && styles.featureTextExcluded]}>
+              {feature.text}
+            </Text>
+          </View>
+        ))}
+      </View>
     </TouchableOpacity>
   );
 }
@@ -167,6 +210,7 @@ export default function SubscriptionsScreen({ navigation }) {
             title="Basic"
             subtitle="Plan Basic"
             packageItem={productPackages?.[OFFERING_IDS.basic] || productPackages?.basic}
+            features={PLAN_FEATURES.basic}
             selected={selectedOffering === OFFERING_IDS.basic}
             onSelect={() => setSelectedOffering(OFFERING_IDS.basic)}
           />
@@ -175,6 +219,7 @@ export default function SubscriptionsScreen({ navigation }) {
             title="Premium"
             subtitle="Plan Premium"
             packageItem={productPackages?.[OFFERING_IDS.premium] || productPackages?.premium}
+            features={PLAN_FEATURES.premium}
             selected={selectedOffering === OFFERING_IDS.premium}
             onSelect={() => setSelectedOffering(OFFERING_IDS.premium)}
           />
@@ -183,6 +228,7 @@ export default function SubscriptionsScreen({ navigation }) {
             title="VIP"
             subtitle="Plan VIP"
             packageItem={productPackages?.[OFFERING_IDS.vip] || productPackages?.vip}
+            features={PLAN_FEATURES.vip}
             selected={selectedOffering === OFFERING_IDS.vip}
             onSelect={() => setSelectedOffering(OFFERING_IDS.vip)}
           />
@@ -309,6 +355,30 @@ const styles = StyleSheet.create({
   cardSubtitle: { fontSize: 13, color: "#6c8096", marginTop: 4 },
   cardPrice: { fontSize: 20, color: "#4a90e2", fontWeight: "700", marginTop: 8 },
   cardSku: { fontSize: 12, color: "#6c8096", marginTop: 6 },
+  featureList: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(74,144,226,0.15)",
+    paddingTop: 10,
+  },
+  featureRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 8,
+  },
+  featureIcon: {
+    marginTop: 1,
+    marginRight: 8,
+  },
+  featureText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#1a2d45",
+    lineHeight: 18,
+  },
+  featureTextExcluded: {
+    color: "#76879a",
+  },
   selectedPill: {
     paddingHorizontal: 10,
     paddingVertical: 4,

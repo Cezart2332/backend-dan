@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { StatusBar } from "expo-status-bar";
-import { View, ActivityIndicator, Text } from "react-native";
 import LoginScreen from "./components/LoginScreen";
 import RegisterScreen from "./components/RegisterScreen";
 import DashboardScreen from "./components/DashboardScreen";
@@ -49,8 +48,10 @@ import { clearUser } from "./utils/userStorage";
 import { clearEntries } from "./utils/progressStorage";
 import { replaceAllRuns } from "./utils/challengeStorage";
 import { api } from "./utils/api";
+import AppSplashScreen from "./components/AppSplashScreen";
 
 const Stack = createStackNavigator();
+const MIN_SPLASH_MS = 1400;
 
 export default function App() {
   const [booting, setBooting] = useState(true);
@@ -60,6 +61,9 @@ export default function App() {
 
   useEffect(() => {
     let mounted = true;
+    const startedAt = Date.now();
+    let bootTimer = null;
+
     (async () => {
       try {
         const token = await getToken();
@@ -92,30 +96,22 @@ export default function App() {
       } catch {
         if (mounted) setIsAuthed(false);
       } finally {
-        if (mounted) setBooting(false);
+        const elapsed = Date.now() - startedAt;
+        const waitMs = Math.max(0, MIN_SPLASH_MS - elapsed);
+        bootTimer = setTimeout(() => {
+          if (mounted) setBooting(false);
+        }, waitMs);
       }
     })();
+
     return () => {
       mounted = false;
+      if (bootTimer) clearTimeout(bootTimer);
     };
   }, []);
 
   if (booting) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#f0f8ff",
-        }}
-      >
-        <ActivityIndicator size="large" color="#4a90e2" />
-        <Text style={{ marginTop: 12, color: "#4a90e2" }}>
-          Se pregătește aplicația...
-        </Text>
-      </View>
-    );
+    return <AppSplashScreen />;
   }
 
   const handleNavUpdate = () => {
@@ -289,6 +285,7 @@ export default function App() {
         isAuthed={isAuthed}
         navigationRef={navigationRef}
         currentRoute={currentRoute}
+        onLogout={() => setIsAuthed(false)}
       />
     </SubscriptionProvider>
   );

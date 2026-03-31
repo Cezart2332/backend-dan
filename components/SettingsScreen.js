@@ -19,6 +19,8 @@ import { api } from "../utils/api";
 import { getToken, clearToken } from "../utils/authStorage";
 import { clearUser } from "../utils/userStorage";
 import { clearSubscription } from "../utils/subscriptionStorage";
+import { clearEntries } from "../utils/progressStorage";
+import { replaceAllRuns } from "../utils/challengeStorage";
 import { logoutRevenueCatUser } from "../utils/revenuecat";
 
 export default function SettingsScreen({ navigation, onLogout }) {
@@ -51,6 +53,8 @@ export default function SettingsScreen({ navigation, onLogout }) {
         await clearToken();
         await clearUser();
         await clearSubscription();
+        await clearEntries();
+        await replaceAllRuns([]);
         
         Alert.alert(
           "Cont șters",
@@ -62,6 +66,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
                 if (typeof onLogout === "function") {
                   onLogout();
                 }
+                navigation.reset({ index: 0, routes: [{ name: "Login" }] });
               },
             },
           ]

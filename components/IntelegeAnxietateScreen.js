@@ -1,8 +1,9 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import React, { useEffect } from "react";
+import { Alert, View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { useSubscription } from "../contexts/SubscriptionContext";
 
 const options = [
   {
@@ -17,6 +18,25 @@ const options = [
 ];
 
 export default function IntelegeAnxietateScreen({ navigation }) {
+  const { subscription } = useSubscription();
+  const isTrial = String(subscription?.type || "").toLowerCase() === "trial";
+
+  useEffect(() => {
+    if (!isTrial) return;
+    Alert.alert(
+      "Funcție restricționată",
+      "Înțelege anxietatea este disponibil doar cu un abonament activ.",
+      [
+        { text: "Vezi abonamente", onPress: () => navigation.replace("Subscriptions") },
+        { text: "OK", onPress: () => navigation.goBack(), style: "cancel" },
+      ]
+    );
+  }, [isTrial, navigation]);
+
+  if (isTrial) {
+    return null;
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={["#ddeeff", "#eaf4ff", "#f5f9ff"]} style={styles.background}>

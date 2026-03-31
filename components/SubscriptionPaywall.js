@@ -12,11 +12,17 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSubscription } from "../contexts/SubscriptionContext";
+import { clearToken } from "../utils/authStorage";
+import { clearUser } from "../utils/userStorage";
+import { clearSubscription } from "../utils/subscriptionStorage";
+import { clearEntries } from "../utils/progressStorage";
+import { replaceAllRuns } from "../utils/challengeStorage";
+import { logoutRevenueCatUser } from "../utils/revenuecat";
 
 const { width } = Dimensions.get("window");
 const EXCLUDED_ROUTES = new Set(["Login", "Register", "Subscriptions", "Onboarding"]);
 
-export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRoute }) {
+export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRoute, onLogout }) {
   const {
     subscription,
     status,
@@ -125,6 +131,28 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      setPendingAction("logout");
+      await Promise.all([
+        logoutRevenueCatUser(),
+        clearToken(),
+        clearUser(),
+        clearSubscription(),
+        clearEntries(),
+        replaceAllRuns([]),
+      ]);
+    } finally {
+      setPendingAction(null);
+      if (typeof onLogout === "function") onLogout();
+      if (navigationRef?.current?.reset) {
+        navigationRef.current.reset({ index: 0, routes: [{ name: "Login" }] });
+      } else if (navigationRef?.current?.navigate) {
+        navigationRef.current.navigate("Login");
+      }
+    }
+  };
+
   if (shouldShowLoading) {
     return (
       <Modal visible transparent animationType="fade">
@@ -224,6 +252,18 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
               disabled={Boolean(pendingAction)}
             >
               <Text style={styles.secondaryText}>Vezi ecranul de abonamente</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.logoutButton, pendingAction && styles.disabledButton]}
+              onPress={handleLogout}
+              disabled={Boolean(pendingAction)}
+            >
+              {pendingAction === "logout" ? (
+                <ActivityIndicator color="#c43c3c" />
+              ) : (
+                <Text style={styles.logoutText}>Schimba contul (Logout)</Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -348,6 +388,21 @@ const styles = StyleSheet.create({
   secondaryText: {
     color: "#1a2d45",
     fontSize: 16,
+    fontWeight: "600",
+  },
+  logoutButton: {
+    width: "100%",
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: "rgba(216, 74, 74, 0.35)",
+    paddingVertical: 14,
+    alignItems: "center",
+    marginBottom: 10,
+    backgroundColor: "rgba(255, 237, 237, 0.8)",
+  },
+  logoutText: {
+    color: "#c43c3c",
+    fontSize: 15,
     fontWeight: "600",
   },
   infoBox: {
