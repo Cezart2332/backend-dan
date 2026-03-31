@@ -232,7 +232,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
               </Text>
             </View>
 
-            {trialEligible ? (
+            {trialEligible || status === "none" || status === "expired" ? (
               <TouchableOpacity
                 style={[styles.secondaryButton, pendingAction && styles.disabledButton]}
                 onPress={handleStartTrial}
@@ -241,7 +241,11 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
                 {pendingAction === "trial" ? (
                   <ActivityIndicator color="#4a90e2" />
                 ) : (
-                  <Text style={styles.secondaryText}>Porneste trial gratuit (3 zile)</Text>
+                  <Text style={styles.secondaryText}>
+                    {trialEligible
+                      ? "Porneste trial gratuit (3 zile)"
+                      : "Porneste free trial (verificam eligibilitatea)"}
+                  </Text>
                 )}
               </TouchableOpacity>
             ) : null}

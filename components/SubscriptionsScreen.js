@@ -91,6 +91,7 @@ export default function SubscriptionsScreen({ navigation }) {
     status,
     hasProEntitlement,
     subscription,
+    trialEligible,
     packages,
     packagesByOffering,
     customerInfo,
@@ -100,6 +101,7 @@ export default function SubscriptionsScreen({ navigation }) {
     purchasePackage,
     restorePermissions,
     openCustomerCenter,
+    startFreeTrial,
   } = useSubscription();
 
   const [processing, setProcessing] = useState("");
@@ -152,6 +154,26 @@ export default function SubscriptionsScreen({ navigation }) {
       setProcessing("");
     }
   };
+
+  const handleStartTrial = async () => {
+    try {
+      setProcessing("trial");
+      await startFreeTrial();
+      await refresh();
+      Alert.alert("Trial activat", "Ai 3 zile de trial gratuit.");
+    } catch (error) {
+      Alert.alert("Eroare", error?.message || "Nu am putut porni trial-ul gratuit.");
+    } finally {
+      setProcessing("");
+    }
+  };
+
+  const isTrialSubscription = String(subscription?.type || "").toLowerCase() === "trial";
+  const trialEndsAtMs = subscription?.ends_at ? Date.parse(subscription.ends_at) : NaN;
+  const hasActiveTrialAccess =
+    isTrialSubscription && (!Number.isFinite(trialEndsAtMs) || trialEndsAtMs > Date.now());
+  const canShowTrialAction =
+    !hasActiveTrialAccess && (trialEligible || status === "none" || status === "expired");
 
   const entitlementLine = hasProEntitlement
     ? `Dan Fost Anxios Pro activ (${subscription?.product_id || "entitlement"})`
@@ -268,6 +290,24 @@ export default function SubscriptionsScreen({ navigation }) {
               <Text style={styles.secondaryBtnText}>Open Customer Center</Text>
             )}
           </TouchableOpacity>
+
+          {canShowTrialAction ? (
+            <TouchableOpacity
+              style={[styles.secondaryBtn, processing === "trial" && styles.disabledBtn]}
+              onPress={handleStartTrial}
+              disabled={processing === "trial"}
+            >
+              {processing === "trial" ? (
+                <ActivityIndicator size="small" color="#4a90e2" />
+              ) : (
+                <Text style={styles.secondaryBtnText}>
+                  {trialEligible
+                    ? "Porneste trial gratuit (3 zile)"
+                    : "Porneste free trial (verificam eligibilitatea)"}
+                </Text>
+              )}
+            </TouchableOpacity>
+          ) : null}
 
           <View style={styles.customerInfoBox}>
             <Text style={styles.customerInfoTitle}>Customer Info</Text>

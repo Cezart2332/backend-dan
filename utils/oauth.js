@@ -17,7 +17,6 @@ const GOOGLE_WEB_CLIENT_ID = '109371475889-q2keqvuk0ho5rqb1fqdtbh3fli03sc5u.apps
 // Replace these with your actual iOS and Android client IDs:
 const GOOGLE_IOS_CLIENT_ID = '109371475889-sdet3ch6r3lf1n2voto4cjfcggjhc84k.apps.googleusercontent.com';
 const GOOGLE_ANDROID_CLIENT_ID = '109371475889-eadfpt9ovu6bkur2scatm063ht6uvqrv.apps.googleusercontent.com';
-const GOOGLE_NATIVE_REDIRECT_URI = 'danfostanxios:/oauthredirect';
 
 /**
  * Hook for Google sign-in. Call this at the top level of a component.
@@ -30,11 +29,6 @@ export function useGoogleAuth() {
     androidClientId: GOOGLE_ANDROID_CLIENT_ID,
     // Helps account switching without stale Google session reuse.
     selectAccount: true,
-  }, {
-    // Force redirect URI that matches app.json scheme to avoid Android custom URI mismatches.
-    native: GOOGLE_NATIVE_REDIRECT_URI,
-    scheme: 'danfostanxios',
-    path: 'oauthredirect',
   });
 
   return { request, response, promptAsync };
