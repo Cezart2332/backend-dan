@@ -246,13 +246,31 @@ export async function registerAuthRoutes(app) {
       conn = await mysqlPool.getConnection();
       await conn.beginTransaction();
 
-      // Delete user's related data first (due to foreign key constraints)
-      await conn.query("DELETE FROM user_questions WHERE user_id = ?", [userId]);
-      await conn.query("DELETE FROM questions WHERE user_id = ?", [userId]);
-      await conn.query("DELETE FROM user_challenge_progress WHERE user_id = ?", [userId]);
-      await conn.query("DELETE FROM user_challenge_completions WHERE user_id = ?", [userId]);
-      await conn.query("DELETE FROM progress_entries WHERE user_id = ?", [userId]);
-      await conn.query("DELETE FROM subscriptions WHERE user_id = ?", [userId]);
+      // Keep compatibility with older/newer schemas by ignoring missing legacy tables.
+      const deleteByUserId = async (tableName, columnName = "user_id") => {
+        try {
+          await conn.query(`DELETE FROM ${tableName} WHERE ${columnName} = ?`, [userId]);
+        } catch (err) {
+          if (err?.code === "ER_NO_SUCH_TABLE") {
+            request.log.warn({ tableName }, "Skipping missing table during account deletion");
+            return;
+          }
+          throw err;
+        }
+      };
+
+      // Delete user's related data first (due to foreign key constraints).
+      // Includes current schema + legacy tables kept for backwards compatibility.
+      await deleteByUserId("user_questions");
+      await deleteByUserId("questions");
+      await deleteByUserId("user_challenge_progress");
+      await deleteByUserId("user_challenge_completions");
+      await deleteByUserId("challenge_runs");
+      await deleteByUserId("progress_entries");
+      await deleteByUserId("meetings");
+      await deleteByUserId("subscriptions");
+      await deleteByUserId("bug_reports");
+      await deleteByUserId("sessions");
       
       // Finally delete the user
       const [result] = await conn.query("DELETE FROM users WHERE id = ?", [userId]);
