@@ -31,6 +31,7 @@ async function request(path, { method = 'GET', body, token, timeoutMs = 15000 } 
 export const api = {
   register: (payload) => request('/api/custom-auth/register', { method: 'POST', body: payload }),
   login: (payload) => request('/api/custom-auth/login', { method: 'POST', body: payload }),
+  validateSession: (token) => request('/api/custom-auth/session', { method: 'GET', token }),
   oauthGoogle: (id_token) => request('/api/custom-auth/oauth/google', { method: 'POST', body: { id_token } }),
   oauthFacebook: (payload) => request('/api/custom-auth/oauth/facebook', { method: 'POST', body: payload }),
   oauthApple: (id_token, name) => request('/api/custom-auth/oauth/apple', { method: 'POST', body: { id_token, name } }),

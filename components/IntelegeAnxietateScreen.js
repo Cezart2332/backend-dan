@@ -3,7 +3,7 @@ import { Alert, View, Text, TouchableOpacity, StyleSheet, ScrollView } from "rea
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { useSubscription } from "../contexts/SubscriptionContext";
+import { useSubscriptionAccessState } from "../contexts/SubscriptionContext";
 
 const options = [
   {
@@ -18,7 +18,7 @@ const options = [
 ];
 
 export default function IntelegeAnxietateScreen({ navigation }) {
-  const { subscription } = useSubscription();
+  const { subscription } = useSubscriptionAccessState();
   const isTrial = String(subscription?.type || "").toLowerCase() === "trial";
 
   useEffect(() => {

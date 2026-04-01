@@ -30,7 +30,10 @@ import {
   restoreRevenueCatPurchases,
 } from "../utils/revenuecat";
 
-const SubscriptionContext = createContext(null);
+const SubscriptionAccessStateContext = createContext(null);
+const SubscriptionSessionStateContext = createContext(null);
+const SubscriptionCatalogStateContext = createContext(null);
+const SubscriptionActionsContext = createContext(null);
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -79,6 +82,13 @@ export function SubscriptionProvider({ children, isAuthed }) {
   const refreshPromiseRef = useRef(null);
   const listenerRef = useRef(null);
   const appStateRef = useRef(AppState.currentState);
+  const subscriptionRef = useRef(subscription);
+  const hasProEntitlementRef = useRef(hasProEntitlement);
+
+  useEffect(() => {
+    subscriptionRef.current = subscription;
+    hasProEntitlementRef.current = hasProEntitlement;
+  }, [subscription, hasProEntitlement]);
 
   const applyCustomerInfo = useCallback(async (info, { expectedAppUserId } = {}) => {
     setCustomerInfo(info || null);
@@ -461,14 +471,15 @@ export function SubscriptionProvider({ children, isAuthed }) {
     [applyCustomerInfo, getPackagesByOffering, offerings, refreshAfterAccessChange]
   );
 
-  const restorePurchases = useCallback(async () => {
+  const restoreWithOwnershipChecks = useCallback(async () => {
     const token = await getToken();
     if (!token) throw new Error("Nu esti autentificat.");
 
     const historyPayload = await api.getSubscriptionHistory(token).catch(() => null);
     const historyRows = Array.isArray(historyPayload?.history) ? historyPayload.history : [];
     const hasPaidHistory = hasPaidHistoryRows(historyRows);
-    const hasPaidSnapshot = hasProEntitlement || isPaidSubscriptionType(subscription?.type);
+    const hasPaidSnapshot =
+      hasProEntitlementRef.current || isPaidSubscriptionType(subscriptionRef.current?.type);
 
     if (!hasPaidHistory && !hasPaidSnapshot) {
       throw new Error(
@@ -484,7 +495,11 @@ export function SubscriptionProvider({ children, isAuthed }) {
       );
     }
     return info;
-  }, [applyCustomerInfo, hasProEntitlement, subscription]);
+  }, [applyCustomerInfo]);
+
+  const restorePurchases = useCallback(async () => {
+    return restoreWithOwnershipChecks();
+  }, [restoreWithOwnershipChecks]);
 
   const showPaywall = useCallback(async () => {
     const result = await presentRevenueCatPaywall();
@@ -552,45 +567,49 @@ export function SubscriptionProvider({ children, isAuthed }) {
   );
 
   const restorePermissions = useCallback(async () => {
-    const token = await getToken();
-    if (!token) throw new Error("Nu esti autentificat.");
+    return restoreWithOwnershipChecks();
+  }, [restoreWithOwnershipChecks]);
 
-    const historyPayload = await api.getSubscriptionHistory(token).catch(() => null);
-    const historyRows = Array.isArray(historyPayload?.history) ? historyPayload.history : [];
-    const hasPaidHistory = hasPaidHistoryRows(historyRows);
-    const hasPaidSnapshot = hasProEntitlement || isPaidSubscriptionType(subscription?.type);
-
-    if (!hasPaidHistory && !hasPaidSnapshot) {
-      throw new Error(
-        "Restore purchases este permis doar pentru contul care a cumparat initial abonamentul. Conecteaza-te cu acel cont."
-      );
-    }
-
-    const info = await restoreRevenueCatPurchases();
-    const applyResult = await applyCustomerInfo(info);
-    if (applyResult?.ownershipMismatch) {
-      throw new Error(
-        "Abonamentul detectat este asociat altui cont din aplicatie. Conecteaza-te cu contul original pentru restore purchases."
-      );
-    }
-    return info;
-  }, [applyCustomerInfo, hasProEntitlement, subscription]);
-
-  const value = useMemo(
+  const accessStateValue = useMemo(
     () => ({
-      user,
-      packages,
-      packagesByOffering,
       subscription,
       status,
       trialEligible,
       hasProEntitlement,
-      customerInfo,
-      offerings,
+    }),
+    [subscription, status, trialEligible, hasProEntitlement]
+  );
+
+  const sessionStateValue = useMemo(
+    () => ({
       loading,
       initializing,
       subscriptionResolved,
       hasToken,
+    }),
+    [loading, initializing, subscriptionResolved, hasToken]
+  );
+
+  const catalogStateValue = useMemo(
+    () => ({
+      user,
+      packages,
+      packagesByOffering,
+      customerInfo,
+      offerings,
+      offeringsLoaded: Boolean(offerings),
+    }),
+    [
+      user,
+      packages,
+      packagesByOffering,
+      customerInfo,
+      offerings,
+    ]
+  );
+
+  const actionsValue = useMemo(
+    () => ({
       refresh,
       purchaseByOfferingId,
       restorePurchases,
@@ -600,26 +619,12 @@ export function SubscriptionProvider({ children, isAuthed }) {
       openCustomerCenter,
       startFreeTrial,
       getPackagesByOffering,
-      offeringsLoaded: Boolean(offerings),
       // Backward-compatible aliases for existing screens.
       purchaseByProductId: purchaseByOfferingId,
       getPackagesByProduct: getPackagesByOffering,
       setTrialEligible: (eligible) => setTrialEligible(Boolean(eligible)),
     }),
     [
-      user,
-      packages,
-      packagesByOffering,
-      subscription,
-      status,
-      trialEligible,
-      hasProEntitlement,
-      customerInfo,
-      offerings,
-      loading,
-      initializing,
-      subscriptionResolved,
-      hasToken,
       refresh,
       purchaseByOfferingId,
       restorePurchases,
@@ -633,16 +638,56 @@ export function SubscriptionProvider({ children, isAuthed }) {
   );
 
   return (
-    <SubscriptionContext.Provider value={value}>
-      {children}
-    </SubscriptionContext.Provider>
+    <SubscriptionAccessStateContext.Provider value={accessStateValue}>
+      <SubscriptionSessionStateContext.Provider value={sessionStateValue}>
+        <SubscriptionCatalogStateContext.Provider value={catalogStateValue}>
+          <SubscriptionActionsContext.Provider value={actionsValue}>
+            {children}
+          </SubscriptionActionsContext.Provider>
+        </SubscriptionCatalogStateContext.Provider>
+      </SubscriptionSessionStateContext.Provider>
+    </SubscriptionAccessStateContext.Provider>
+  );
+}
+
+export function useSubscriptionAccessState() {
+  const ctx = useContext(SubscriptionAccessStateContext);
+  if (!ctx) throw new Error("useSubscriptionAccessState must be used within SubscriptionProvider");
+  return ctx;
+}
+
+export function useSubscriptionSessionState() {
+  const ctx = useContext(SubscriptionSessionStateContext);
+  if (!ctx) throw new Error("useSubscriptionSessionState must be used within SubscriptionProvider");
+  return ctx;
+}
+
+export function useSubscriptionCatalogState() {
+  const ctx = useContext(SubscriptionCatalogStateContext);
+  if (!ctx) throw new Error("useSubscriptionCatalogState must be used within SubscriptionProvider");
+  return ctx;
+}
+
+export function useSubscriptionActions() {
+  const ctx = useContext(SubscriptionActionsContext);
+  if (!ctx) throw new Error("useSubscriptionActions must be used within SubscriptionProvider");
+  return ctx;
+}
+
+export function useSubscriptionState() {
+  const accessState = useSubscriptionAccessState();
+  const sessionState = useSubscriptionSessionState();
+  const catalogState = useSubscriptionCatalogState();
+  return useMemo(
+    () => ({ ...accessState, ...sessionState, ...catalogState }),
+    [accessState, sessionState, catalogState]
   );
 }
 
 export function useSubscription() {
-  const ctx = useContext(SubscriptionContext);
-  if (!ctx) throw new Error("useSubscription must be used within SubscriptionProvider");
-  return ctx;
+  const state = useSubscriptionState();
+  const actions = useSubscriptionActions();
+  return useMemo(() => ({ ...state, ...actions }), [state, actions]);
 }
 
 // RevenueCat-style alias for easier migration from examples/docs.
