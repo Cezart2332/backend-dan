@@ -588,7 +588,20 @@ export async function registerSubscriptionRoutes(app) {
         appUserId = null,
       } = request.body || {};
 
+      const normalizedStatus = ["active", "expired", "none"].includes(String(status || "").toLowerCase())
+        ? String(status || "none").toLowerCase()
+        : "none";
       const syncAppUserId = String(appUserId || user.sub).trim();
+      const authenticatedAppUserId = String(user.sub || "").trim();
+
+      if (normalizedStatus === "active" && syncAppUserId && syncAppUserId !== authenticatedAppUserId) {
+        return reply.code(409).send({
+          error:
+            "Abonamentul RevenueCat este asociat altui cont din aplicatie. Conecteaza-te cu contul original pentru restore purchases.",
+          code: "SUBSCRIPTION_ACCOUNT_MISMATCH",
+        });
+      }
+
       invalidateRevenueCatSubscriberCache(syncAppUserId);
 
       await persistRevenueCatSnapshot({
@@ -596,7 +609,7 @@ export async function registerSubscriptionRoutes(app) {
         appUserId: syncAppUserId,
         entitlementId,
         productId,
-        status,
+        status: normalizedStatus,
         startsAt,
         endsAt,
         store,
