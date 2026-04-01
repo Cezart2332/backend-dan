@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "602132945680",
+    "project_id": "dan-fost-anxios-bb90d",
+    "storage_bucket": "dan-fost-anxios-bb90d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:602132945680:android:d57302f065e77384e42395",
+        "android_client_info": {
+          "package_name": "com.cartealuidan.danfostanxios"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA5I7AmnwoiU17UpYSyfDjrJ5v722jQWT0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

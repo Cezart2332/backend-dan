@@ -14,6 +14,7 @@ server/
 videos/
 paneldan
 
+
 # Native
 .kotlin/
 *.orig.*
@@ -47,4 +48,5 @@ yarn-error.*
 
 # Google Cloud credentials
 dan-fost-anxios-c63c6c5b4d6a.json
+dan-fost-anxios-bb90d-firebase-adminsdk-fbsvc-fe75e6fef7.json
 *-c63c6c5b4d6a.json

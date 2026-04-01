@@ -14,11 +14,33 @@ export default function IntrebariScreen({ navigation }) {
   const [consent, setConsent] = useState(true);
   const [loading, setLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [myQuestions, setMyQuestions] = useState([]);
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
+
+  const loadMyQuestions = async (showLoader = true) => {
+    const token = await getToken();
+    if (!token) {
+      setMyQuestions([]);
+      return;
+    }
+    if (showLoader) setLoadingQuestions(true);
+    try {
+      const result = await api.listMyQuestions(token);
+      setMyQuestions(Array.isArray(result?.items) ? result.items : []);
+    } catch {
+      // Keep the form usable even if history loading fails.
+    } finally {
+      if (showLoader) setLoadingQuestions(false);
+    }
+  };
 
   React.useEffect(() => {
     (async () => {
       const [u, t] = await Promise.all([getUser(), getToken()]);
-      if (t) setIsLoggedIn(true);
+      if (t) {
+        setIsLoggedIn(true);
+        await loadMyQuestions(true);
+      }
       if (u?.name) setName(u.name);
       if (u?.email) setEmail(u.email);
     })();
@@ -37,7 +59,7 @@ export default function IntrebariScreen({ navigation }) {
       if (name) payload.name = name;
       if (email) payload.email = email;
       await api.createQuestion(payload, token || undefined);
-      Alert.alert('Întrebare trimisă', 'Îți mulțumesc! Voi reveni în curând.');
+      Alert.alert('Întrebare trimisă', 'Multumesc pentru intrebare. Eu, Dan , iti voi raspunde in cel mult 24 ore.');
       setQuestion('');
       setConsent(true);
       if (!token) {
@@ -45,6 +67,7 @@ export default function IntrebariScreen({ navigation }) {
         setName('');
         setEmail('');
       } else {
+        await loadMyQuestions(false);
         // Logged-in: keep identity; refresh from storage in case state was changed
         const u = await getUser();
         if (u?.name) setName(u.name);
@@ -129,10 +152,71 @@ export default function IntrebariScreen({ navigation }) {
               </LinearGradient>
             </TouchableOpacity>
           </View>
+
+          {isLoggedIn && (
+            <View style={styles.card}>
+              <View style={styles.historyHeader}>
+                <Text style={styles.cardTitle}>Întrebările tale</Text>
+                <TouchableOpacity onPress={() => loadMyQuestions(true)}>
+                  <Text style={styles.historyRefresh}>Reîncarcă</Text>
+                </TouchableOpacity>
+              </View>
+
+              {loadingQuestions ? (
+                <View style={{ paddingVertical: 16 }}>
+                  <ActivityIndicator color="#4a90e2" />
+                </View>
+              ) : myQuestions.length === 0 ? (
+                <Text style={styles.historyEmpty}>Nu ai întrebări trimise încă.</Text>
+              ) : (
+                myQuestions.map((item) => (
+                  <View key={item.id} style={styles.historyItem}>
+                    <View style={styles.historyTopRow}>
+                      <Text style={styles.historyDate}>{fmtDate(item.created_at)}</Text>
+                      <View style={[styles.statusBadge, styles[`statusBadge_${item.status || 'new'}`]]}>
+                        <Text style={styles.statusBadgeText}>{statusLabel(item.status)}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.historyQuestion}>{item.question}</Text>
+
+                    {item.admin_response ? (
+                      <View style={styles.answerBox}>
+                        <Text style={styles.answerTitle}>Răspuns de la Dan</Text>
+                        <Text style={styles.answerText}>{item.admin_response}</Text>
+                        {item.responded_at ? <Text style={styles.answerDate}>{fmtDate(item.responded_at)}</Text> : null}
+                      </View>
+                    ) : (
+                      <Text style={styles.pendingAnswer}>Așteaptă răspunsul lui Dan.</Text>
+                    )}
+                  </View>
+                ))
+              )}
+            </View>
+          )}
         </ScrollView>
       </LinearGradient>
     </SafeAreaView>
   );
+}
+
+function statusLabel(status) {
+  return {
+    new: 'Nouă',
+    read: 'Citită',
+    answered: 'Răspunsă',
+    archived: 'Arhivată',
+  }[status] || 'Nouă';
+}
+
+function fmtDate(value) {
+  if (!value) return '–';
+  return new Date(value).toLocaleDateString('ro-RO', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 const styles = StyleSheet.create({
@@ -171,4 +255,36 @@ const styles = StyleSheet.create({
   primaryText: { color: '#fff', fontWeight: '700' },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
   consentText: { fontSize: 12, color: '#6c8096' },
+  historyHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
+  historyRefresh: { color: '#4a90e2', fontWeight: '600', fontSize: 13 },
+  historyEmpty: { fontSize: 13, color: '#6c8096', marginTop: 4 },
+  historyItem: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(200,220,240,0.75)',
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    padding: 12,
+  },
+  historyTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  historyDate: { fontSize: 11, color: '#8ca8c4' },
+  statusBadge: { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 },
+  statusBadge_new: { backgroundColor: 'rgba(74,144,226,0.16)' },
+  statusBadge_read: { backgroundColor: 'rgba(111,103,255,0.16)' },
+  statusBadge_answered: { backgroundColor: 'rgba(20,184,110,0.16)' },
+  statusBadge_archived: { backgroundColor: 'rgba(108,128,150,0.16)' },
+  statusBadgeText: { fontSize: 11, color: '#1a2d45', fontWeight: '600' },
+  historyQuestion: { marginTop: 8, fontSize: 14, color: '#1a2d45', lineHeight: 21 },
+  answerBox: {
+    marginTop: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(20,184,110,0.28)',
+    backgroundColor: 'rgba(20,184,110,0.08)',
+    padding: 10,
+  },
+  answerTitle: { fontSize: 12, color: '#0f8f56', fontWeight: '700', marginBottom: 4 },
+  answerText: { fontSize: 13, color: '#1a2d45', lineHeight: 20 },
+  answerDate: { marginTop: 6, fontSize: 11, color: '#6c8096' },
+  pendingAnswer: { marginTop: 10, fontSize: 12, color: '#6c8096' },
 });

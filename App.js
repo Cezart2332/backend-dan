@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { StatusBar } from "expo-status-bar";
+import * as Notifications from "expo-notifications";
 import LoginScreen from "./components/LoginScreen";
 import RegisterScreen from "./components/RegisterScreen";
 import DashboardScreen from "./components/DashboardScreen";
@@ -52,6 +53,14 @@ import AppSplashScreen from "./components/AppSplashScreen";
 
 const Stack = createStackNavigator();
 const MIN_SPLASH_MS = 1400;
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 export default function App() {
   const [booting, setBooting] = useState(true);
@@ -107,6 +116,19 @@ export default function App() {
     return () => {
       mounted = false;
       if (bootTimer) clearTimeout(bootTimer);
+    };
+  }, []);
+
+  useEffect(() => {
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const type = response?.notification?.request?.content?.data?.type;
+      if (type === "question_response") {
+        navigationRef.current?.navigate?.("Intrebari");
+      }
+    });
+
+    return () => {
+      responseSubscription.remove();
     };
   }, []);
 

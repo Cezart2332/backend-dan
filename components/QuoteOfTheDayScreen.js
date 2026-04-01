@@ -1,18 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform, Switch, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
+import { api } from '../utils/api';
+import { getToken } from '../utils/authStorage';
 
-// Configure handler so notifications show when app is foregrounded
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
+const QUOTE_NOTIFICATIONS_ENABLED_KEY = 'quote_notifications_enabled';
+const QUOTE_NOTIFICATIONS_ID_KEY = 'quote_notifications_schedule_id';
+const QUOTE_PUSH_TOKEN_KEY = 'quote_push_token';
+const DAILY_QUOTE_HOUR = 9;
+const DAILY_QUOTE_MINUTE = 0;
 
 const QUOTES = [
   'Anxietatea scade atunci când încetezi să te mai lupți cu ea și o lași să fie.',
@@ -41,42 +42,133 @@ export default function QuoteOfTheDayScreen({ navigation }) {
   const [quote, setQuote] = useState(pickRandom(QUOTES));
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [pushToken, setPushToken] = useState(null);
+  const [hydrated, setHydrated] = useState(false);
+
+  const syncPushTokenWithBackend = async (expoPushToken, enabled) => {
+    if (!expoPushToken) return;
+    const authToken = await getToken();
+    if (!authToken) return;
+
+    try {
+      if (enabled) {
+        await api.registerPushToken({ token: expoPushToken, platform: Platform.OS, enabled: true }, authToken);
+      } else {
+        await api.unregisterPushToken({ token: expoPushToken }, authToken);
+      }
+    } catch (error) {
+      console.warn('Push token sync failed:', error?.message || error);
+    }
+  };
+
+  const scheduleDailyQuoteNotification = async () => {
+    const currentId = await AsyncStorage.getItem(QUOTE_NOTIFICATIONS_ID_KEY);
+    if (currentId) {
+      await Notifications.cancelScheduledNotificationAsync(currentId).catch(() => {});
+    }
+
+    const trigger = Platform.OS === 'android'
+      ? { hour: DAILY_QUOTE_HOUR, minute: DAILY_QUOTE_MINUTE, repeats: true, channelId: 'daily' }
+      : { hour: DAILY_QUOTE_HOUR, minute: DAILY_QUOTE_MINUTE, repeats: true };
+
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Gândul de azi de la Dan',
+        body: 'Deschide aplicația pentru gândul de azi.',
+        sound: 'default',
+      },
+      trigger,
+    });
+
+    await AsyncStorage.setItem(QUOTE_NOTIFICATIONS_ID_KEY, id);
+  };
+
+  const enableQuoteNotifications = async () => {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== 'granted') {
+      await AsyncStorage.setItem(QUOTE_NOTIFICATIONS_ENABLED_KEY, '0');
+      Alert.alert('Permisiune necesară', 'Activează notificările pentru a primi gândul zilnic.');
+      setNotificationsEnabled(false);
+      return;
+    }
+
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('daily', {
+        name: 'Daily',
+        importance: Notifications.AndroidImportance.DEFAULT,
+        sound: 'default',
+      });
+    }
+
+    let newPushToken = null;
+    try {
+      const projectId = Constants?.expoConfig?.extra?.eas?.projectId || Constants?.easConfig?.projectId;
+      const tokenResult = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
+      newPushToken = tokenResult?.data || null;
+      setPushToken(newPushToken);
+      if (newPushToken) {
+        await AsyncStorage.setItem(QUOTE_PUSH_TOKEN_KEY, newPushToken);
+        await syncPushTokenWithBackend(newPushToken, true);
+      }
+    } catch {
+      console.warn('Expo push token unavailable in this environment.');
+      setPushToken(null);
+    }
+
+    await scheduleDailyQuoteNotification();
+    await AsyncStorage.setItem(QUOTE_NOTIFICATIONS_ENABLED_KEY, '1');
+  };
+
+  const disableQuoteNotifications = async () => {
+    const scheduledId = await AsyncStorage.getItem(QUOTE_NOTIFICATIONS_ID_KEY);
+    if (scheduledId) {
+      await Notifications.cancelScheduledNotificationAsync(scheduledId).catch(() => {});
+      await AsyncStorage.removeItem(QUOTE_NOTIFICATIONS_ID_KEY);
+    }
+
+    const storedPushToken = (await AsyncStorage.getItem(QUOTE_PUSH_TOKEN_KEY)) || pushToken;
+    if (storedPushToken) {
+      await syncPushTokenWithBackend(storedPushToken, false);
+    }
+
+    await AsyncStorage.setItem(QUOTE_NOTIFICATIONS_ENABLED_KEY, '0');
+  };
 
   useEffect(() => {
-    // Ask for permissions when toggled on
-    if (!notificationsEnabled) return;
-
+    let active = true;
     (async () => {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-
-      if (finalStatus !== 'granted') {
-        Alert.alert('Permisiune necesară', 'Activează notificările pentru a primi gândul zilnic.');
-        setNotificationsEnabled(false);
-        return;
-      }
-
-      // Android channel
-      if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('daily', {
-          name: 'Daily', importance: Notifications.AndroidImportance.DEFAULT,
-        });
-      }
-
-      // Token (optional): may require projectId in some setups; ignore failures
       try {
-        const token = await Notifications.getExpoPushTokenAsync();
-        setPushToken(token?.data || null);
-      } catch (e) {
-        console.warn('Expo push token unavailable in this environment.');
-        setPushToken(null);
+        const [enabledRaw, storedPushToken] = await Promise.all([
+          AsyncStorage.getItem(QUOTE_NOTIFICATIONS_ENABLED_KEY),
+          AsyncStorage.getItem(QUOTE_PUSH_TOKEN_KEY),
+        ]);
+        if (!active) return;
+        if (storedPushToken) setPushToken(storedPushToken);
+        setNotificationsEnabled(enabledRaw === '1');
+      } finally {
+        if (active) setHydrated(true);
       }
     })();
-  }, [notificationsEnabled]);
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    (async () => {
+      if (notificationsEnabled) {
+        await enableQuoteNotifications();
+      } else {
+        await disableQuoteNotifications();
+      }
+    })();
+  }, [notificationsEnabled, hydrated]);
 
   const toggleNotifications = () => setNotificationsEnabled((v) => !v);
 
@@ -132,7 +224,8 @@ export default function QuoteOfTheDayScreen({ navigation }) {
               <Text style={styles.notifyTitle}>Notificări zilnice</Text>
               <Switch value={notificationsEnabled} onValueChange={toggleNotifications} />
             </View>
-            <Text style={styles.notifyDesc}>Primește zilnic un gând de la Dan. Poți dezactiva oricând.</Text>
+            <Text style={styles.notifyDesc}>Primește zilnic un gând de la Dan la 09:00 și răspunsuri când Dan îți răspunde la întrebare.</Text>
+            {!!pushToken && <Text style={styles.notifyHint}>Push activ pe acest dispozitiv.</Text>}
 
             {/* Temporary test button (to be deleted later) */}
             <TouchableOpacity style={styles.testBtn} onPress={scheduleTestNotification}>
@@ -187,6 +280,7 @@ const styles = StyleSheet.create({
   notifyRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   notifyTitle: { fontSize: 15, fontWeight: '600', color: '#1a2d45' },
   notifyDesc: { fontSize: 13, color: '#6c8096', marginTop: 4 },
+  notifyHint: { fontSize: 12, color: '#4a90e2', marginTop: 8, fontWeight: '600' },
   testBtn: {
     marginTop: 14, borderRadius: 12, alignSelf: 'flex-start',
     backgroundColor: '#4a90e2', paddingVertical: 10, paddingHorizontal: 18,

@@ -41,6 +41,9 @@ export const api = {
   // Questions
   createQuestion: (payload, token) => request('/api/questions', { method: 'POST', body: payload, token }),
   listMyQuestions: (token) => request('/api/questions', { method: 'GET', token }),
+  // Notifications
+  registerPushToken: (payload, token) => request('/api/notifications/push-token', { method: 'POST', body: payload, token }),
+  unregisterPushToken: (payload, token) => request('/api/notifications/push-token', { method: 'DELETE', body: payload, token }),
   // Meetings
   createMeeting: (payload, token) => request('/api/meetings', { method: 'POST', body: payload, token }),
   listMyMeetings: (token) => request('/api/meetings', { method: 'GET', token }),
