@@ -1,11 +1,5 @@
+import jwt from "jsonwebtoken";
 import { mysqlPool } from "./mysql.js";
-import { requireAuth } from "./request-auth.js";
-import {
-  constantTimeCompare,
-  createWebhookDeduper,
-  getWebhookAuthToken,
-  getWebhookEventKey,
-} from "./webhook-security.js";
 
 const PRODUCT_IDS = {
   basic: "dan_basic",
@@ -23,14 +17,8 @@ const PRO_ENTITLEMENT_ID = process.env.REVENUECAT_ENTITLEMENT_ID || "Dan Fost An
 const REVENUECAT_SECRET_API_KEY = process.env.REVENUECAT_SECRET_API_KEY || "";
 const REVENUECAT_CURRENT_CACHE_TTL_MS = Math.max(0, Number(process.env.REVENUECAT_CURRENT_CACHE_TTL_MS || 30000));
 const REVENUECAT_CACHE_MAX_ENTRIES = Math.max(100, Number(process.env.REVENUECAT_CACHE_MAX_ENTRIES || 5000));
-const REVENUECAT_WEBHOOK_DEDUP_TTL_MS = Math.max(0, Number(process.env.REVENUECAT_WEBHOOK_DEDUP_TTL_MS || 600000));
-const REVENUECAT_WEBHOOK_DEDUP_MAX_ENTRIES = Math.max(100, Number(process.env.REVENUECAT_WEBHOOK_DEDUP_MAX_ENTRIES || 10000));
 
 const revenueCatSubscriberCache = new Map();
-const webhookDeduper = createWebhookDeduper({
-  ttlMs: REVENUECAT_WEBHOOK_DEDUP_TTL_MS,
-  maxEntries: REVENUECAT_WEBHOOK_DEDUP_MAX_ENTRIES,
-});
 
 const ACTIVE_EVENT_TYPES = new Set([
   "INITIAL_PURCHASE",
@@ -47,6 +35,20 @@ const INACTIVE_EVENT_TYPES = new Set([
   "REFUND",
   "SUBSCRIPTION_PAUSED",
 ]);
+
+function requireAuth(request) {
+  const auth = request.headers.authorization || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token) throw new Error("NO_AUTH");
+  const secret = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
+  if (!secret) throw new Error("SERVER_CONFIG_ERROR");
+  try {
+    const decoded = jwt.verify(token, secret);
+    return decoded;
+  } catch {
+    throw new Error("BAD_TOKEN");
+  }
+}
 
 async function getUserById(userId) {
   const [rows] = await mysqlPool.query(`SELECT id, email FROM users WHERE id = ? LIMIT 1`, [userId]);
@@ -486,6 +488,14 @@ function formatCurrentResponse(row, trialEligible) {
   return { subscription, status, trialEligible };
 }
 
+function getWebhookToken(request) {
+  const auth = request.headers.authorization || "";
+  if (auth.startsWith("Bearer ")) return auth.slice(7).trim();
+  const xToken = request.headers["x-revenuecat-auth"] || request.headers["x-webhook-auth"];
+  if (typeof xToken === "string") return xToken.trim();
+  return auth.trim();
+}
+
 export async function registerSubscriptionRoutes(app) {
   app.get("/api/subscriptions/current", async (request, reply) => {
     try {
@@ -743,8 +753,8 @@ export async function registerSubscriptionRoutes(app) {
     try {
       const expectedToken = process.env.REVENUECAT_WEBHOOK_AUTH || "";
       if (expectedToken) {
-        const provided = getWebhookAuthToken(request);
-        if (!provided || !constantTimeCompare(provided, expectedToken)) {
+        const provided = getWebhookToken(request);
+        if (!provided || provided !== expectedToken) {
           return reply.code(401).send({ error: "Unauthorized webhook" });
         }
       }
@@ -761,11 +771,6 @@ export async function registerSubscriptionRoutes(app) {
         return reply.code(400).send({ error: "Missing app_user_id" });
       }
 
-      const eventKey = getWebhookEventKey(event, eventType, appUserId);
-      if (webhookDeduper.isDuplicate(eventKey)) {
-        return reply.send({ received: true, duplicate: true });
-      }
-
       const userId = Number(appUserId);
       if (!Number.isFinite(userId) || userId <= 0) {
         // We identify users by numeric appUserID (user.id). Ignore other aliases safely.
@@ -779,13 +784,10 @@ export async function registerSubscriptionRoutes(app) {
         return reply.send({ received: true, ignored: true, reason: "USER_NOT_FOUND" });
       }
 
-      let status = null;
+      let status = "none";
       if (ACTIVE_EVENT_TYPES.has(eventType)) status = "active";
       if (INACTIVE_EVENT_TYPES.has(eventType)) status = "expired";
       if (eventType === "BILLING_ISSUE") status = "active";
-      if (!status) {
-        return reply.send({ received: true, ignored: true, reason: "UNSUPPORTED_EVENT_TYPE" });
-      }
 
       const startsAt =
         parseMillisOrDate(event?.purchased_at_ms) ||
@@ -809,8 +811,6 @@ export async function registerSubscriptionRoutes(app) {
         willRenew: status === "active" ? true : false,
         eventType: eventType || "WEBHOOK",
       });
-
-      webhookDeduper.markProcessed(eventKey);
 
       reply.send({ received: true });
     } catch (err) {

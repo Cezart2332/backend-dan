@@ -1,11 +1,17 @@
+import jwt from 'jsonwebtoken';
 import { mysqlPool } from './mysql.js';
-import { requireAuth } from './request-auth.js';
 
-function requireUser(request, reply) {
+const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
+if (!JWT_SECRET) throw new Error('CRITICAL: JWT_SECRET is required');
+
+function authMiddleware(request) {
+  const auth = request.headers['authorization'] || request.headers['Authorization'];
+  if (!auth || !auth.startsWith('Bearer ')) return null;
+  const token = auth.slice(7);
   try {
-    return requireAuth(request);
+    const payload = jwt.verify(token, JWT_SECRET);
+    return payload; // { sub, email, name }
   } catch {
-    reply.code(401).send({ error: 'Neautorizat' });
     return null;
   }
 }
@@ -13,8 +19,8 @@ function requireUser(request, reply) {
 export async function registerProgressRoutes(app) {
   // Create a progress entry
   app.post('/api/progress', async (request, reply) => {
-    const user = requireUser(request, reply);
-    if (!user) return;
+    const user = authMiddleware(request);
+    if (!user) return reply.code(401).send({ error: 'Neautorizat' });
     const { level, description, actions, date } = request.body || {};
     if (!level || isNaN(Number(level))) return reply.code(400).send({ error: 'Nivel invalid' });
     try {
@@ -33,8 +39,8 @@ export async function registerProgressRoutes(app) {
 
   // List progress entries (newest first)
   app.get('/api/progress', async (request, reply) => {
-    const user = requireUser(request, reply);
-    if (!user) return;
+    const user = authMiddleware(request);
+    if (!user) return reply.code(401).send({ error: 'Neautorizat' });
     try {
       const page = Math.max(1, Number(request.query?.page) || 1);
       const limit = Math.min(100, Math.max(1, Number(request.query?.limit) || 50));
@@ -54,8 +60,8 @@ export async function registerProgressRoutes(app) {
 
   // Get one entry
   app.get('/api/progress/:id', async (request, reply) => {
-    const user = requireUser(request, reply);
-    if (!user) return;
+    const user = authMiddleware(request);
+    if (!user) return reply.code(401).send({ error: 'Neautorizat' });
     const id = Number(request.params.id);
     if (!id) return reply.code(400).send({ error: 'ID invalid' });
     try {
@@ -73,8 +79,8 @@ export async function registerProgressRoutes(app) {
 
   // One-time cleanup: delete mock/seed progress entries that were accidentally synced
   app.delete('/api/progress/cleanup-mock', async (request, reply) => {
-    const user = requireUser(request, reply);
-    if (!user) return;
+    const user = authMiddleware(request);
+    if (!user) return reply.code(401).send({ error: 'Neautorizat' });
     const mockDescriptions = [
       'Am simțit presiune la muncă dar am respirat 4-7-8.',
       'Zi liniștită, am meditat dimineața.',
