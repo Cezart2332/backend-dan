@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,6 +18,9 @@ import {
   isUserCancelledPurchase,
   OFFERING_IDS,
 } from "../utils/revenuecat";
+
+const TERMS_OF_USE_URL = "https://danfostanxios.ro/termeni-si-conditii-2/";
+const PRIVACY_POLICY_URL = "https://danfostanxios.ro/politica-cookie-uri-ue/";
 
 const PLAN_FEATURES = {
   basic: [
@@ -168,6 +172,16 @@ export default function SubscriptionsScreen({ navigation }) {
     }
   };
 
+  const openLegalLink = async (url, label) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) throw new Error("URL_NOT_SUPPORTED");
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert("Eroare", `Nu am putut deschide ${label}.`);
+    }
+  };
+
   const isTrialSubscription = String(subscription?.type || "").toLowerCase() === "trial";
   const trialEndsAtMs = subscription?.ends_at ? Date.parse(subscription.ends_at) : NaN;
   const hasActiveTrialAccess =
@@ -309,6 +323,21 @@ export default function SubscriptionsScreen({ navigation }) {
             </TouchableOpacity>
           ) : null}
 
+          <View style={styles.legalLinksRow}>
+            <TouchableOpacity
+              style={styles.legalLinkBtn}
+              onPress={() => openLegalLink(TERMS_OF_USE_URL, "Terms of use")}
+            >
+              <Text style={styles.legalLinkText}>Terms of use</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.legalLinkBtn}
+              onPress={() => openLegalLink(PRIVACY_POLICY_URL, "Privacy policy")}
+            >
+              <Text style={styles.legalLinkText}>Privacy policy</Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.customerInfoBox}>
             <Text style={styles.customerInfoTitle}>Customer Info</Text>
             <Text style={styles.customerInfoText}>
@@ -447,6 +476,26 @@ const styles = StyleSheet.create({
   },
   secondaryBtnText: { color: "#1a2d45", fontSize: 14, fontWeight: "600" },
   disabledBtn: { opacity: 0.6 },
+  legalLinksRow: {
+    marginTop: 14,
+    flexDirection: "row",
+    gap: 10,
+  },
+  legalLinkBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "rgba(74,144,226,0.3)",
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.72)",
+  },
+  legalLinkText: {
+    color: "#2f67c4",
+    fontSize: 13,
+    fontWeight: "700",
+  },
   customerInfoBox: {
     marginTop: 16,
     backgroundColor: "rgba(255,255,255,0.8)",
