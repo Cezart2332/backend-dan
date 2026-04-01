@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { createHash, timingSafeEqual } from 'crypto';
 import { mysqlPool } from './mysql.js';
+import { isExpoPushToken, sendPushToExpoTokens } from './push.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
 if (!JWT_SECRET) throw new Error('CRITICAL: JWT_SECRET is required');
@@ -186,16 +187,22 @@ export async function registerAdminRoutes(app) {
       if (status) {
         [[{ total }]] = await mysqlPool.query('SELECT COUNT(*) AS total FROM questions WHERE status = ?', [status]);
         [rows] = await mysqlPool.query(
-          `SELECT q.id, q.user_id, u.email, u.name AS user_name, q.name, q.email AS q_email, q.question, q.consent, q.status, q.created_at
-           FROM questions q LEFT JOIN users u ON u.id = q.user_id
+          `SELECT q.id, q.user_id, u.email, u.name AS user_name, q.name, q.email AS q_email, q.question, q.consent, q.status,
+                  q.admin_response, q.responded_at, q.responded_by, responder.name AS responder_name, q.created_at
+           FROM questions q
+           LEFT JOIN users u ON u.id = q.user_id
+           LEFT JOIN users responder ON responder.id = q.responded_by
            WHERE q.status = ? ORDER BY q.created_at DESC LIMIT ? OFFSET ?`,
           [status, limit, offset]
         );
       } else {
         [[{ total }]] = await mysqlPool.query('SELECT COUNT(*) AS total FROM questions');
         [rows] = await mysqlPool.query(
-          `SELECT q.id, q.user_id, u.email, u.name AS user_name, q.name, q.email AS q_email, q.question, q.consent, q.status, q.created_at
-           FROM questions q LEFT JOIN users u ON u.id = q.user_id
+          `SELECT q.id, q.user_id, u.email, u.name AS user_name, q.name, q.email AS q_email, q.question, q.consent, q.status,
+                  q.admin_response, q.responded_at, q.responded_by, responder.name AS responder_name, q.created_at
+           FROM questions q
+           LEFT JOIN users u ON u.id = q.user_id
+           LEFT JOIN users responder ON responder.id = q.responded_by
            ORDER BY q.created_at DESC LIMIT ? OFFSET ?`,
           [limit, offset]
         );
@@ -207,17 +214,101 @@ export async function registerAdminRoutes(app) {
     }
   });
 
-  // Update question status
+  // Update question status and/or admin response
   app.put('/api/admin/questions/:id', async (request, reply) => {
     const auth = await adminAuth(request);
     if (!auth) return reply.code(403).send({ error: 'Forbidden' });
     const id = Number(request.params.id);
-    const { status } = request.body || {};
+    if (!Number.isFinite(id) || id <= 0) return reply.code(400).send({ error: 'ID invalid' });
+
+    const { status, admin_response: adminResponseRaw } = request.body || {};
     const valid = ['new', 'read', 'answered', 'archived'];
-    if (!valid.includes(status)) return reply.code(400).send({ error: 'Status invalid' });
+    if (status !== undefined && !valid.includes(status)) return reply.code(400).send({ error: 'Status invalid' });
+    if (status === undefined && adminResponseRaw === undefined) {
+      return reply.code(400).send({ error: 'Niciun camp de actualizat' });
+    }
+
     try {
-      await mysqlPool.query('UPDATE questions SET status = ? WHERE id = ?', [status, id]);
-      return reply.send({ ok: true });
+      const [existingRows] = await mysqlPool.query(
+        'SELECT id, user_id, status, admin_response FROM questions WHERE id = ? LIMIT 1',
+        [id]
+      );
+      if (!Array.isArray(existingRows) || !existingRows.length) {
+        return reply.code(404).send({ error: 'Intrebare inexistenta' });
+      }
+
+      const existingQuestion = existingRows[0];
+      const fields = [];
+      const values = [];
+
+      if (status !== undefined) {
+        fields.push('status = ?');
+        values.push(status);
+      }
+
+      let normalizedResponse = null;
+      let shouldNotify = false;
+
+      if (adminResponseRaw !== undefined) {
+        normalizedResponse = String(adminResponseRaw || '').trim();
+        if (normalizedResponse) {
+          fields.push('admin_response = ?');
+          values.push(normalizedResponse);
+          fields.push('responded_at = CURRENT_TIMESTAMP');
+          fields.push('responded_by = ?');
+          values.push(auth?.user?.id ? Number(auth.user.id) : null);
+          if (status === undefined) {
+            fields.push('status = ?');
+            values.push('answered');
+          }
+          shouldNotify = normalizedResponse !== String(existingQuestion.admin_response || '').trim();
+        } else {
+          fields.push('admin_response = NULL');
+          fields.push('responded_at = NULL');
+          fields.push('responded_by = NULL');
+        }
+      }
+
+      if (!fields.length) return reply.send({ ok: true, notified: 0 });
+
+      values.push(id);
+      await mysqlPool.query(`UPDATE questions SET ${fields.join(', ')} WHERE id = ?`, values);
+      invalidateAdminStatsCache();
+
+      let notified = 0;
+      if (shouldNotify && normalizedResponse && existingQuestion.user_id) {
+        const [tokenRows] = await mysqlPool.query(
+          'SELECT expo_push_token FROM user_push_tokens WHERE user_id = ? AND enabled = 1',
+          [Number(existingQuestion.user_id)]
+        );
+        const pushTokens = (Array.isArray(tokenRows) ? tokenRows : [])
+          .map((row) => row.expo_push_token)
+          .filter((token) => isExpoPushToken(token));
+
+        if (pushTokens.length) {
+          const pushResult = await sendPushToExpoTokens({
+            tokens: pushTokens,
+            title: 'Dan ti-a raspuns la intrebare',
+            body: 'Ai primit un raspuns nou la intrebarea ta.',
+            data: { type: 'question_response', questionId: id },
+            logger: request.log,
+          });
+          notified = Number(pushResult?.sentCount || 0);
+
+          const invalidTokens = Array.isArray(pushResult?.invalidTokens) ? pushResult.invalidTokens : [];
+          if (invalidTokens.length) {
+            const placeholders = invalidTokens.map(() => '?').join(', ');
+            await mysqlPool.query(
+              `UPDATE user_push_tokens
+               SET enabled = 0, updated_at = CURRENT_TIMESTAMP
+               WHERE expo_push_token IN (${placeholders})`,
+              invalidTokens
+            );
+          }
+        }
+      }
+
+      return reply.send({ ok: true, notified });
     } catch (e) {
       request.log.error({ err: e }, 'Admin update question failed');
       return reply.code(500).send({ error: 'Eroare server' });

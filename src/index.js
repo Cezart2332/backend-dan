@@ -13,6 +13,7 @@ import { registerChallengeRoutes } from "./routes-challenges.js";
 import { registerMediaRoutes } from "./routes-media.js";
 import { registerSubscriptionRoutes } from "./routes-subscriptions.js";
 import { registerVideoRoutes } from "./routes-videos.js";
+import { registerNotificationRoutes } from "./routes-notifications.js";
 import { runMigrations } from "./migrate.js";
 import { registerAuthRoutes } from "./routes-auth.js";
 import { registerAdminRoutes } from "./routes-admin.js";
@@ -168,6 +169,7 @@ if (enableNodeMediaStreaming) {
 
 await registerSubscriptionRoutes(app);
 await registerVideoRoutes(app);
+await registerNotificationRoutes(app);
 await registerAdminRoutes(app);
 
 async function shutdown(signal) {

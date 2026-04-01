@@ -45,7 +45,7 @@ export async function registerQuestionRoutes(app) {
       const limit = Math.min(100, Math.max(1, Number(request.query?.limit) || 50));
       const offset = (page - 1) * limit;
       const [rows] = await mysqlPool.query(
-        'SELECT id, name, email, question, consent, status, created_at FROM questions WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
+        'SELECT id, name, email, question, consent, status, admin_response, responded_at, created_at FROM questions WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
         [Number(user.sub), limit + 1, offset]
       );
       const hasMore = Array.isArray(rows) && rows.length > limit;

@@ -51,12 +51,65 @@ export async function runMigrations() {
       question TEXT NOT NULL,
       consent TINYINT(1) NOT NULL DEFAULT 0,
       status ENUM('new','read','answered','archived') NOT NULL DEFAULT 'new',
+      admin_response TEXT NULL,
+      responded_at TIMESTAMP NULL,
+      responded_by BIGINT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       CONSTRAINT fk_questions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+      CONSTRAINT fk_questions_responded_by FOREIGN KEY (responded_by) REFERENCES users(id) ON DELETE SET NULL,
       INDEX idx_questions_created_at (created_at),
-      INDEX idx_questions_user (user_id)
+      INDEX idx_questions_user (user_id),
+      INDEX idx_questions_status_created (status, created_at)
     )
   `);
+
+  // Backward-compatible schema upgrades for older deployments
+  try {
+    await mysqlPool.query(`ALTER TABLE questions ADD COLUMN admin_response TEXT NULL`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE questions ADD COLUMN responded_at TIMESTAMP NULL`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE questions ADD COLUMN responded_by BIGINT NULL`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE questions ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE questions ADD INDEX idx_questions_status_created (status, created_at)`);
+  } catch {}
+
+  await mysqlPool.query(`
+    CREATE TABLE IF NOT EXISTS user_push_tokens (
+      id BIGINT PRIMARY KEY AUTO_INCREMENT,
+      user_id BIGINT NOT NULL,
+      expo_push_token VARCHAR(255) NOT NULL,
+      platform ENUM('ios','android','unknown') NOT NULL DEFAULT 'unknown',
+      enabled TINYINT(1) NOT NULL DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT fk_user_push_tokens_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE KEY uq_user_push_token (expo_push_token),
+      INDEX idx_user_push_tokens_user_enabled (user_id, enabled)
+    )
+  `);
+  try {
+    await mysqlPool.query(`ALTER TABLE user_push_tokens ADD COLUMN platform ENUM('ios','android','unknown') NOT NULL DEFAULT 'unknown'`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE user_push_tokens ADD COLUMN enabled TINYINT(1) NOT NULL DEFAULT 1`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE user_push_tokens ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE user_push_tokens ADD UNIQUE INDEX uq_user_push_token (expo_push_token)`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE user_push_tokens ADD INDEX idx_user_push_tokens_user_enabled (user_id, enabled)`);
+  } catch {}
 
   // challenge runs table
   await mysqlPool.query(`
