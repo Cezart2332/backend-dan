@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import Stripe from "stripe";
 import { mysqlPool } from "./mysql.js";
+import { verifyJwtToken } from "./request-auth.js";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || '';
 
@@ -167,14 +168,6 @@ function signToken(user) {
 }
 
 // Middleware to verify JWT token
-function verifyToken(token) {
-  try {
-    return jwt.verify(token, JWT_SECRET);
-  } catch {
-    return null;
-  }
-}
-
 export async function registerAuthRoutes(app) {
   app.post("/api/custom-auth/register", async (request, reply) => {
     const { email, password, name } = request.body || {};
@@ -209,6 +202,45 @@ export async function registerAuthRoutes(app) {
     return reply.send({ token, user: { id: u.id, email: u.email, name: u.name } });
   });
 
+  // Validate current auth token independently of subscription APIs.
+  app.get("/api/custom-auth/session", async (request, reply) => {
+    const authHeader = request.headers.authorization || request.headers.Authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return reply.code(401).send({ error: "Neautorizat", code: "NO_AUTH" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const decoded = verifyJwtToken(token);
+    if (!decoded || !decoded.sub) {
+      return reply.code(401).send({ error: "Neautorizat", code: "BAD_TOKEN" });
+    }
+
+    try {
+      const [rows] = await mysqlPool.query(
+        "SELECT id, email, name, is_admin FROM users WHERE id = ? LIMIT 1",
+        [Number(decoded.sub)]
+      );
+
+      if (!Array.isArray(rows) || rows.length === 0) {
+        return reply.code(401).send({ error: "Neautorizat", code: "USER_NOT_FOUND" });
+      }
+
+      const user = rows[0];
+      return reply.send({
+        ok: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          is_admin: Boolean(user.is_admin),
+        },
+      });
+    } catch (err) {
+      request.log.error({ err }, "Session validation failed");
+      return reply.code(500).send({ error: "Eroare server" });
+    }
+  });
+
   // Delete account endpoint
   app.delete("/api/custom-auth/account", async (request, reply) => {
     const authHeader = request.headers.authorization;
@@ -216,7 +248,7 @@ export async function registerAuthRoutes(app) {
       return reply.code(401).send({ error: "Token necesar" });
     }
     const token = authHeader.split(" ")[1];
-    const decoded = verifyToken(token);
+    const decoded = verifyJwtToken(token);
     if (!decoded || !decoded.sub) {
       return reply.code(401).send({ error: "Token invalid" });
     }
@@ -401,7 +433,7 @@ export async function registerAuthRoutes(app) {
     const authHeader = request.headers.authorization;
     if (authHeader && authHeader.startsWith("Bearer ")) {
       const token = authHeader.split(" ")[1];
-      const decoded = verifyToken(token);
+      const decoded = verifyJwtToken(token);
       if (decoded) {
         userId = decoded.sub;
         userEmail = decoded.email;

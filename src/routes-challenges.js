@@ -1,17 +1,11 @@
-import jwt from 'jsonwebtoken';
 import { mysqlPool } from './mysql.js';
+import { requireAuth } from './request-auth.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
-if (!JWT_SECRET) throw new Error('CRITICAL: JWT_SECRET is required');
-
-function authMiddleware(request) {
-  const auth = request.headers['authorization'] || request.headers['Authorization'];
-  if (!auth || !auth.startsWith('Bearer ')) return null;
-  const token = auth.slice(7);
+function requireUser(request, reply) {
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    return payload; // { sub, email, name }
+    return requireAuth(request);
   } catch {
+    reply.code(401).send({ error: 'Neautorizat' });
     return null;
   }
 }
@@ -19,8 +13,8 @@ function authMiddleware(request) {
 export async function registerChallengeRoutes(app) {
   // Create a challenge run
   app.post('/api/challenges/run', async (request, reply) => {
-    const user = authMiddleware(request);
-    if (!user) return reply.code(401).send({ error: 'Neautorizat' });
+    const user = requireUser(request, reply);
+    if (!user) return;
     const { challenge_id, difficulty, notes, date } = request.body || {};
     if (!challenge_id || typeof challenge_id !== 'string') return reply.code(400).send({ error: 'ID provocare lipsă' });
     try {
@@ -40,8 +34,8 @@ export async function registerChallengeRoutes(app) {
 
   // List challenge runs (newest first)
   app.get('/api/challenges/run', async (request, reply) => {
-    const user = authMiddleware(request);
-    if (!user) return reply.code(401).send({ error: 'Neautorizat' });
+    const user = requireUser(request, reply);
+    if (!user) return;
     try {
       const page = Math.max(1, Number(request.query?.page) || 1);
       const limit = Math.min(100, Math.max(1, Number(request.query?.limit) || 50));
@@ -61,8 +55,8 @@ export async function registerChallengeRoutes(app) {
 
   // Get one run
   app.get('/api/challenges/run/:id', async (request, reply) => {
-    const user = authMiddleware(request);
-    if (!user) return reply.code(401).send({ error: 'Neautorizat' });
+    const user = requireUser(request, reply);
+    if (!user) return;
     const id = Number(request.params.id);
     if (!id) return reply.code(400).send({ error: 'ID invalid' });
     try {

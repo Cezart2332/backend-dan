@@ -1,17 +1,11 @@
-import jwt from 'jsonwebtoken';
 import { mysqlPool } from './mysql.js';
+import { optionalAuth, requireAuth } from './request-auth.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
-if (!JWT_SECRET) throw new Error('CRITICAL: JWT_SECRET is required');
-
-function authMiddleware(request) {
-  const auth = request.headers['authorization'] || request.headers['Authorization'];
-  if (!auth || !auth.startsWith('Bearer ')) return null;
-  const token = auth.slice(7);
+function requireUser(request, reply) {
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    return payload; // { sub, email, name }
+    return requireAuth(request);
   } catch {
+    reply.code(401).send({ error: 'Neautorizat' });
     return null;
   }
 }
@@ -19,7 +13,7 @@ function authMiddleware(request) {
 export async function registerQuestionRoutes(app) {
   // Create a question (optionally authenticated)
   app.post('/api/questions', async (request, reply) => {
-    const user = authMiddleware(request);
+    const user = optionalAuth(request);
     const { name, email, question, consent } = request.body || {};
     if (!question || !String(question).trim()) return reply.code(400).send({ error: 'Întrebare lipsă' });
     const consentVal = consent ? 1 : 0;
@@ -38,8 +32,8 @@ export async function registerQuestionRoutes(app) {
 
   // List my questions (requires auth)
   app.get('/api/questions', async (request, reply) => {
-    const user = authMiddleware(request);
-    if (!user) return reply.code(401).send({ error: 'Neautorizat' });
+    const user = requireUser(request, reply);
+    if (!user) return;
     try {
       const page = Math.max(1, Number(request.query?.page) || 1);
       const limit = Math.min(100, Math.max(1, Number(request.query?.limit) || 50));
