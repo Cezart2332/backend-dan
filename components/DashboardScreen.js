@@ -17,12 +17,12 @@ import { clearUser } from "../utils/userStorage";
 import { clearEntries } from "../utils/progressStorage";
 import { replaceAllRuns } from "../utils/challengeStorage";
 import { logoutRevenueCatUser } from "../utils/revenuecat";
-import { useSubscriptionAccessState } from "../contexts/SubscriptionContext";
+import { useSubscription } from "../contexts/SubscriptionContext";
 
 const { width } = Dimensions.get("window");
 
 export default function DashboardScreen({ navigation, onLogout }) {
-  const { subscription } = useSubscriptionAccessState();
+  const { subscription } = useSubscription();
   const subType = subscription?.type || null;
 
   const handleLogout = useCallback(async () => {

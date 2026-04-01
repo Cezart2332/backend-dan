@@ -11,11 +11,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  useSubscriptionAccessState,
-  useSubscriptionActions,
-  useSubscriptionSessionState,
-} from "../contexts/SubscriptionContext";
+import { useSubscription } from "../contexts/SubscriptionContext";
 import { clearToken } from "../utils/authStorage";
 import { clearUser } from "../utils/userStorage";
 import { clearSubscription } from "../utils/subscriptionStorage";
@@ -31,18 +27,15 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
     subscription,
     status,
     hasProEntitlement,
-  } = useSubscriptionAccessState();
-  const {
+    trialEligible,
+    refresh,
     initializing,
     subscriptionResolved,
     hasToken,
-  } = useSubscriptionSessionState();
-  const {
-    refresh,
     showPaywall,
     restorePermissions,
     startFreeTrial,
-  } = useSubscriptionActions();
+  } = useSubscription();
   const [pendingAction, setPendingAction] = useState(null);
   const scaleAnim = useRef(new Animated.Value(0)).current;
 

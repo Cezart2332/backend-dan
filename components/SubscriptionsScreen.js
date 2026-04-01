@@ -12,12 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import {
-  useSubscriptionAccessState,
-  useSubscriptionActions,
-  useSubscriptionCatalogState,
-  useSubscriptionSessionState,
-} from "../contexts/SubscriptionContext";
+import { useSubscription } from "../contexts/SubscriptionContext";
 import {
   getRevenueCatErrorMessage,
   isUserCancelledPurchase,
@@ -101,23 +96,17 @@ export default function SubscriptionsScreen({ navigation }) {
     hasProEntitlement,
     subscription,
     trialEligible,
-  } = useSubscriptionAccessState();
-  const {
-    loading,
-  } = useSubscriptionSessionState();
-  const {
     packages,
     packagesByOffering,
     customerInfo,
     offerings,
-  } = useSubscriptionCatalogState();
-  const {
+    loading,
     refresh,
     purchasePackage,
     restorePermissions,
     openCustomerCenter,
     startFreeTrial,
-  } = useSubscriptionActions();
+  } = useSubscription();
 
   const [processing, setProcessing] = useState("");
   const [selectedOffering, setSelectedOffering] = useState(OFFERING_IDS.basic);

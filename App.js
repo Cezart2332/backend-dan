@@ -71,9 +71,10 @@ export default function App() {
           if (mounted) setIsAuthed(false);
           return;
         }
-        // Validate auth token without depending on subscription state.
+        // Validate token against server — if the account was deleted or
+        // the DB was wiped, the server returns 401 and we force logout.
         try {
-          await api.validateSession(token);
+          await api.getCurrentSubscription(token);
           if (mounted) setIsAuthed(true);
         } catch (err) {
           const msg = err?.message || '';

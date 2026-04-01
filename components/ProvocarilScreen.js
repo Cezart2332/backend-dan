@@ -12,13 +12,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { levels as levelDefs } from '../challenges';
-import { useSubscriptionAccessState } from '../contexts/SubscriptionContext';
+import { useSubscription } from '../contexts/SubscriptionContext';
 
 const { width } = Dimensions.get('window');
 
 export default function ProvocarilScreen({ navigation }) {
   const [selectedLevel, setSelectedLevel] = useState(null);
-  const { subscription } = useSubscriptionAccessState();
+  const { subscription } = useSubscription();
   const subType = subscription?.type || null;
 
   const isTrial = subType === 'trial';
