@@ -148,12 +148,31 @@ export async function registerAdminRoutes(app) {
     const limit = Math.min(100, Math.max(1, Number(request.query.limit) || 50));
     const offset = (page - 1) * limit;
     const userId = request.query.user_id ? Number(request.query.user_id) : null;
+    const subscriptionTypeSql = `
+      COALESCE((
+        SELECT
+          CASE
+            WHEN s.type = 'pro' THEN 'premium'
+            ELSE s.type
+          END
+        FROM subscriptions s
+        WHERE s.user_id = p.user_id
+          AND s.type IN ('trial', 'basic', 'premium', 'vip', 'pro')
+          AND (s.ends_at IS NULL OR s.ends_at > NOW())
+        ORDER BY
+          CASE WHEN s.type = 'trial' THEN 1 ELSE 0 END ASC,
+          s.starts_at DESC,
+          s.id DESC
+        LIMIT 1
+      ), 'none')
+    `;
     try {
       let rows, total;
       if (userId) {
         [[{ total }]] = await mysqlPool.query('SELECT COUNT(*) AS total FROM progress_entries WHERE user_id = ?', [userId]);
         [rows] = await mysqlPool.query(
-          `SELECT p.id, p.user_id, u.email, u.name AS user_name, p.level, p.description, p.actions, p.client_date, p.created_at
+          `SELECT p.id, p.user_id, u.email, u.name AS user_name, p.level, p.description, p.actions, p.client_date, p.created_at,
+                  ${subscriptionTypeSql} AS subscription_type
            FROM progress_entries p LEFT JOIN users u ON u.id = p.user_id
            WHERE p.user_id = ? ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
           [userId, limit, offset]
@@ -161,7 +180,8 @@ export async function registerAdminRoutes(app) {
       } else {
         [[{ total }]] = await mysqlPool.query('SELECT COUNT(*) AS total FROM progress_entries');
         [rows] = await mysqlPool.query(
-          `SELECT p.id, p.user_id, u.email, u.name AS user_name, p.level, p.description, p.actions, p.client_date, p.created_at
+          `SELECT p.id, p.user_id, u.email, u.name AS user_name, p.level, p.description, p.actions, p.client_date, p.created_at,
+                  ${subscriptionTypeSql} AS subscription_type
            FROM progress_entries p LEFT JOIN users u ON u.id = p.user_id
            ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
           [limit, offset]
