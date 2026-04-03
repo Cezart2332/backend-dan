@@ -60,7 +60,13 @@ export default function IntelegeAnxietateScreen({ navigation }) {
                     if (item.screen) {
                       navigation.navigate(item.screen);
                     } else {
-                      navigation.navigate("IntelegeAnxietateVideo", { title: item.title, videoFile: item.video });
+                      navigation.navigate("IntelegeAnxietateVideo", {
+                        title: item.title,
+                        videoFile: item.video,
+                        nowPlayingTitle: item.title,
+                        nowPlayingArtist: "Dan fost anxios · Înțelege anxietatea",
+                        nowPlayingAccent: item.iconColor,
+                      });
                     }
                   }}
                   activeOpacity={0.7}

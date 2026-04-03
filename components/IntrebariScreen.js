@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Switch, Keyboard, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Switch, Keyboard, ActivityIndicator, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { api } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { getUser } from '../utils/userStorage';
+
+const SHARED_PUSH_TOKEN_KEY = 'quote_push_token';
 
 export default function IntrebariScreen({ navigation }) {
   const [question, setQuestion] = useState('');
@@ -16,6 +21,36 @@ export default function IntrebariScreen({ navigation }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [myQuestions, setMyQuestions] = useState([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
+
+  const enableQuestionReplyNotifications = async (authToken) => {
+    if (!authToken) return;
+
+    try {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') return;
+
+      let expoPushToken = await AsyncStorage.getItem(SHARED_PUSH_TOKEN_KEY);
+      if (!expoPushToken) {
+        const projectId = Constants?.expoConfig?.extra?.eas?.projectId || Constants?.easConfig?.projectId;
+        const tokenResult = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
+        expoPushToken = tokenResult?.data || null;
+        if (expoPushToken) {
+          await AsyncStorage.setItem(SHARED_PUSH_TOKEN_KEY, expoPushToken);
+        }
+      }
+
+      if (expoPushToken) {
+        await api.registerPushToken({ token: expoPushToken, platform: Platform.OS, enabled: true }, authToken);
+      }
+    } catch (error) {
+      console.warn('Question notifications setup failed:', error?.message || error);
+    }
+  };
 
   const loadMyQuestions = async (showLoader = true) => {
     const token = await getToken();
@@ -59,6 +94,9 @@ export default function IntrebariScreen({ navigation }) {
       if (name) payload.name = name;
       if (email) payload.email = email;
       await api.createQuestion(payload, token || undefined);
+      if (token) {
+        await enableQuestionReplyNotifications(token);
+      }
       Alert.alert('Întrebare trimisă', 'Multumesc pentru intrebare. Eu, Dan , iti voi raspunde in cel mult 24 ore.');
       setQuestion('');
       setConsent(true);

@@ -9,6 +9,9 @@ export default function AboutDanCineVideoScreen({ navigation }) {
       subtitle="Video de prezentare"
       videoFile="about_dan_cine.mp4"
       playButtonText="Redă video"
+      nowPlayingTitle="Cine sunt eu?"
+      nowPlayingArtist="Dan fost anxios · Povestea lui Dan"
+      nowPlayingAccent="#9b59b6"
     />
   );
 }

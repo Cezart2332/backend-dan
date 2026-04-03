@@ -46,7 +46,13 @@
     },
     "plugins": [
       "expo-notifications",
-      "expo-video",
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": true,
+          "supportsPictureInPicture": true
+        }
+      ],
       "expo-font",
       "expo-apple-authentication",
       [

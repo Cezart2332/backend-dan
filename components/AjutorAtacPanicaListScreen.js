@@ -75,7 +75,15 @@ export default function AjutorAtacPanicaListScreen({ navigation }) {
                 {index > 0 && <View style={styles.separator} />}
                 <TouchableOpacity
                   style={styles.row}
-                  onPress={() => navigation.navigate("AjutorAtacPanicaVideo", { title: item.title, videoFile: item.videoFile })}
+                  onPress={() =>
+                    navigation.navigate("AjutorAtacPanicaVideo", {
+                      title: item.title,
+                      videoFile: item.videoFile,
+                      nowPlayingTitle: item.title,
+                      nowPlayingArtist: "Dan fost anxios · Ajutor atac de panică",
+                      nowPlayingAccent: item.iconColor,
+                    })
+                  }
                   activeOpacity={0.7}
                 >
                   <View style={[styles.iconWrap, { backgroundColor: item.iconBg }]}>

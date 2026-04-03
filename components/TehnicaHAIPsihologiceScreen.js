@@ -83,7 +83,15 @@ export default function TehnicaHAIPsihologiceScreen({ navigation }) {
                 {index > 0 && <View style={styles.separator} />}
                 <TouchableOpacity
                   style={styles.row}
-                  onPress={() => navigation.navigate("TehnicaHAIVideo", { title: item.title, videoFile: item.videoFile })}
+                  onPress={() =>
+                    navigation.navigate("TehnicaHAIVideo", {
+                      title: item.title,
+                      videoFile: item.videoFile,
+                      nowPlayingTitle: item.title,
+                      nowPlayingArtist: "Dan fost anxios · HAI stări psihologice",
+                      nowPlayingAccent: item.iconColor,
+                    })
+                  }
                   activeOpacity={0.7}
                 >
                   <View style={[styles.iconWrap, { backgroundColor: item.iconBg }]}>

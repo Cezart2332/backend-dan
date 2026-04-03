@@ -148,7 +148,15 @@ export default function TehniciScreen({ navigation }) {
                 {index > 0 && <View style={styles.separator} />}
                 <TouchableOpacity
                   style={styles.row}
-                  onPress={() => navigation.navigate("IntelegeAnxietateVideo", { title: item.title, videoFile: item.video })}
+                  onPress={() =>
+                    navigation.navigate("IntelegeAnxietateVideo", {
+                      title: item.title,
+                      videoFile: item.video,
+                      nowPlayingTitle: item.title,
+                      nowPlayingArtist: "Dan fost anxios · Tehnica HAI",
+                      nowPlayingAccent: item.iconColor,
+                    })
+                  }
                   activeOpacity={0.7}
                 >
                   <View style={[styles.iconWrap, { backgroundColor: item.iconBg }]}>

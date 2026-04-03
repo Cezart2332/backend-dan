@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -6,16 +6,14 @@ import {
   TouchableOpacity,
   Dimensions,
   ActivityIndicator,
-  AppState,
-  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEvent } from "expo";
-import { Audio } from "expo-av";
 import Constants from "expo-constants";
+import Slider from "@react-native-community/slider";
 import HeadphonesDisclaimer from "./HeadphonesDisclaimer";
 
 const { width } = Dimensions.get("window");
@@ -27,33 +25,8 @@ const BASE_URL =
   fromConstants || process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
 
 /**
- * Configure the global audio session once at module level.
- * staysActiveInBackground = true  →  audio continues when phone is locked
- *                                     or app is in the background.
- * NOTE: Background audio requires a **development build** or **production build**.
- *       It does NOT work inside Expo Go.
- */
-async function ensureAudioSession() {
-  try {
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      staysActiveInBackground: true,
-      playsInSilentModeIOS: true,
-      shouldDuckAndroid: true,
-      playThroughEarpieceAndroid: false,
-    });
-  } catch (e) {
-    console.warn("Audio.setAudioModeAsync failed:", e);
-  }
-}
-
-// Call once at import time so the session is ready before any component mounts
-ensureAudioSession();
-
-/**
- * Reusable Video Player Screen component with audio-only background mode.
- * When "audio-only" is active the video view is hidden, playback uses expo-av
- * Audio.Sound which continues in the background (phone locked / app minimised).
+ * Reusable Video Player Screen component with audio-only background mode and
+ * lock-screen / notification controls powered by expo-video.
  */
 export default function VideoPlayerScreen({
   navigation,
@@ -61,20 +34,69 @@ export default function VideoPlayerScreen({
   subtitle = "",
   videoFile,
   playButtonText = "Redă video",
+  nowPlayingTitle,
+  nowPlayingArtist,
+  nowPlayingArtwork,
+  nowPlayingAccent,
 }) {
-  // ─── shared state ───
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [audioOnly, setAudioOnly] = useState(false);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [seekValue, setSeekValue] = useState(0);
 
-  // Always keep the direct MP4 URL for audio (HLS doesn't work with Audio.Sound)
+  // Keep direct MP4 for audio-only mode so seeking stays predictable.
   const directMp4Uri = `${BASE_URL}/api/media/${encodeURIComponent(videoFile)}`;
   const videoId = videoFile.replace(/\.[^.]+$/, "");
-  const [sourceUri, setSourceUri] = useState(directMp4Uri);
+  const [videoSourceUri, setVideoSourceUri] = useState(directMp4Uri);
 
-  // ─── VIDEO player (expo-video) ───
-  const player = useVideoPlayer(sourceUri, (p) => {
+  const resolvedNowPlayingArtwork = useMemo(() => {
+    const rawArtwork = nowPlayingArtwork?.trim?.() || "";
+    if (rawArtwork) {
+      if (/^https?:\/\//i.test(rawArtwork)) return rawArtwork;
+      if (rawArtwork.startsWith("/")) return `${BASE_URL}${rawArtwork}`;
+      return `${BASE_URL}/api/media/${rawArtwork.replace(/^\/+/, "")}`;
+    }
+
+    const params = new URLSearchParams();
+    params.set("title", nowPlayingTitle?.trim?.() || title?.trim?.() || "Dan fost anxios");
+    params.set("artist", nowPlayingArtist?.trim?.() || subtitle?.trim?.() || "Dan fost anxios");
+    if (nowPlayingAccent) {
+      params.set("accent", nowPlayingAccent);
+    }
+
+    return `${BASE_URL}/api/videos/${encodeURIComponent(videoId)}/artwork?${params.toString()}`;
+  }, [
+    nowPlayingArtwork,
+    nowPlayingTitle,
+    nowPlayingArtist,
+    nowPlayingAccent,
+    title,
+    subtitle,
+    videoId,
+  ]);
+
+  const nowPlayingMetadata = useMemo(
+    () => ({
+      title: nowPlayingTitle?.trim?.() || title?.trim?.() || "Dan fost anxios",
+      artist: nowPlayingArtist?.trim?.() || subtitle?.trim?.() || "Dan fost anxios",
+      artwork: resolvedNowPlayingArtwork,
+    }),
+    [nowPlayingTitle, title, nowPlayingArtist, subtitle, resolvedNowPlayingArtwork]
+  );
+
+  const activeSource = useMemo(
+    () => ({
+      uri: audioOnly ? directMp4Uri : videoSourceUri,
+      metadata: nowPlayingMetadata,
+    }),
+    [audioOnly, directMp4Uri, videoSourceUri, nowPlayingMetadata]
+  );
+
+  const player = useVideoPlayer(activeSource, (p) => {
     p.loop = false;
+    p.timeUpdateEventInterval = 0.25;
+    p.audioMixingMode = "auto";
   });
 
   const { isPlaying: videoIsPlaying } = useEvent(player, "playingChange", {
@@ -85,31 +107,52 @@ export default function VideoPlayerScreen({
     status: player.status,
   });
 
-  // ─── AUDIO player (expo-av) ───
-  const soundRef = useRef(null);
-  const [audioIsPlaying, setAudioIsPlaying] = useState(false);
-  const [audioIsLoaded, setAudioIsLoaded] = useState(false);
-  const [audioDuration, setAudioDuration] = useState(0);
-  const [audioPosition, setAudioPosition] = useState(0);
+  const { currentTime } = useEvent(player, "timeUpdate", {
+    currentTime: 0,
+    currentLiveTimestamp: null,
+    currentOffsetFromLive: null,
+    bufferedPosition: 0,
+  });
 
-  // Derived helpers
-  const isPlaying = audioOnly ? audioIsPlaying : videoIsPlaying;
+  const { duration: sourceDuration } = useEvent(player, "sourceLoad", {
+    videoSource: null,
+    duration: 0,
+    availableVideoTracks: [],
+    availableSubtitleTracks: [],
+    availableAudioTracks: [],
+  });
 
-  // ── Re-activate audio session when app returns to foreground ──
+  const durationSeconds = sourceDuration || player.duration || 0;
+  const positionSeconds = Math.min(
+    Math.max(currentTime || player.currentTime || 0, 0),
+    durationSeconds > 0 ? durationSeconds : Number.MAX_SAFE_INTEGER
+  );
+  const displayedPositionSeconds = isSeeking ? seekValue : positionSeconds;
+  const sliderMaximum = durationSeconds > 0 ? durationSeconds : 1;
+  const sliderValue = Math.min(
+    Math.max(displayedPositionSeconds, 0),
+    sliderMaximum
+  );
+
+  // Enable media notification and background playback only in audio-only mode.
   useEffect(() => {
-    const sub = AppState.addEventListener("change", (nextState) => {
-      if (nextState === "active" && audioOnly) {
-        // Re-assert audio session — iOS sometimes deactivates it
-        ensureAudioSession();
-      }
-    });
-    return () => sub.remove();
-  }, [audioOnly]);
+    player.staysActiveInBackground = audioOnly;
+    player.showNowPlayingNotification = audioOnly;
+    player.keepScreenOnWhilePlaying = !audioOnly;
+    player.audioMixingMode = audioOnly ? "doNotMix" : "auto";
+  }, [audioOnly, player]);
 
-  // ── Resolve best source URL (HLS → fallback) — only for VIDEO mode ──
+  useEffect(() => {
+    if (audioOnly) {
+      player.play();
+    }
+  }, [audioOnly, player, activeSource]);
+
+  // Resolve best source URL (HLS -> fallback) for video mode.
   useEffect(() => {
     let isMounted = true;
     const controller = new AbortController();
+
     async function pickSource() {
       setIsLoading(true);
       setError(null);
@@ -125,175 +168,115 @@ export default function VideoPlayerScreen({
             const absolute = maybeUrl.startsWith("http")
               ? maybeUrl
               : `${BASE_URL}${maybeUrl}`;
-            if (isMounted) setSourceUri(absolute);
+            if (isMounted) setVideoSourceUri(absolute);
             return;
           }
         }
       } catch {
-        // ignore – use fallback
+        // Ignore and use direct MP4 fallback.
       }
-      if (isMounted) setSourceUri(directMp4Uri);
+
+      if (isMounted) setVideoSourceUri(directMp4Uri);
     }
+
     pickSource();
+
     return () => {
       isMounted = false;
       controller.abort();
     };
   }, [videoId, directMp4Uri]);
 
-  // ── Video status → loading/error tracking ──
   useEffect(() => {
-    if (audioOnly) return;
     if (videoStatus === "readyToPlay") {
       setIsLoading(false);
       setError(null);
     } else if (videoStatus === "error") {
       setIsLoading(false);
-      setError("Nu s-a putut încărca videoclipul");
-    } else if (videoStatus === "loading") {
+      setError(
+        audioOnly
+          ? "Nu s-a putut încărca audio-ul"
+          : "Nu s-a putut încărca videoclipul"
+      );
+    } else if (videoStatus === "loading" || videoStatus === "idle") {
       setIsLoading(true);
     }
   }, [videoStatus, audioOnly]);
 
-  // ── Audio status callback ──
-  const onAudioStatus = useCallback((status) => {
-    if (!status.isLoaded) {
-      setAudioIsPlaying(false);
-      return;
-    }
-    setAudioIsPlaying(status.isPlaying);
-    setAudioDuration(status.durationMillis || 0);
-    setAudioPosition(status.positionMillis || 0);
-  }, []);
-
-  // ── Load / unload Audio.Sound when audioOnly toggles ──
-  useEffect(() => {
-    if (!audioOnly) {
-      // Unload sound when switching back to video
-      if (soundRef.current) {
-        soundRef.current.unloadAsync().catch(() => {});
-        soundRef.current = null;
-        setAudioIsPlaying(false);
-        setAudioIsLoaded(false);
-      }
-      return;
-    }
-
-    // Pause the video player when entering audio-only mode
-    try {
-      player.pause();
-    } catch {}
-
-    let cancelled = false;
-
-    async function loadSound() {
-      setIsLoading(true);
-      setError(null);
-
-      // Ensure audio session is configured before creating the sound
-      await ensureAudioSession();
-
-      try {
-        // Always use the direct MP4 URL — HLS doesn't work with Audio.Sound
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: directMp4Uri },
-          {
-            shouldPlay: true, // auto-play when entering audio mode
-            progressUpdateIntervalMillis: 500,
-            androidImplementation: "MediaPlayer",
-          },
-          onAudioStatus
-        );
-        if (cancelled) {
-          await sound.unloadAsync();
-          return;
-        }
-        soundRef.current = sound;
-        setAudioIsLoaded(true);
-        setIsLoading(false);
-      } catch (e) {
-        console.warn("Audio.Sound.createAsync failed:", e);
-        if (!cancelled) {
-          setError("Nu s-a putut încărca audio-ul");
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadSound();
-
-    return () => {
-      cancelled = true;
-      if (soundRef.current) {
-        soundRef.current.unloadAsync().catch(() => {});
-        soundRef.current = null;
-      }
-    };
-  }, [audioOnly, directMp4Uri, onAudioStatus]);
-
-  // ── Clean up sound on unmount ──
   useEffect(() => {
     return () => {
-      if (soundRef.current) {
-        soundRef.current.unloadAsync().catch(() => {});
-        soundRef.current = null;
-      }
-    };
-  }, []);
-
-  // ── Play / Pause ──
-  const handlePlayPause = useCallback(async () => {
-    if (audioOnly) {
-      if (!soundRef.current) return;
       try {
-        if (audioIsPlaying) {
-          await soundRef.current.pauseAsync();
-        } else {
-          await ensureAudioSession();
-          await soundRef.current.playAsync();
-        }
-      } catch (e) {
-        console.warn("Audio play/pause error:", e);
-      }
-    } else {
-      if (videoIsPlaying) {
         player.pause();
-      } else {
-        player.play();
-      }
-    }
-  }, [audioOnly, audioIsPlaying, videoIsPlaying, player]);
+        player.staysActiveInBackground = false;
+        player.showNowPlayingNotification = false;
+      } catch {}
+    };
+  }, [player]);
 
-  // ── Retry ──
-  const handleRetry = useCallback(async () => {
+  const handlePlayPause = useCallback(() => {
+    if (videoIsPlaying) {
+      player.pause();
+    } else {
+      player.play();
+    }
+  }, [videoIsPlaying, player]);
+
+  const seekTo = useCallback(
+    (nextSeconds) => {
+      const maxDuration = player.duration || durationSeconds;
+      let target = Math.max(nextSeconds, 0);
+      if (maxDuration > 0) {
+        target = Math.min(target, maxDuration);
+      }
+      player.currentTime = target;
+      setSeekValue(target);
+    },
+    [durationSeconds, player]
+  );
+
+  const handleSeekBy = useCallback(
+    (deltaSeconds) => {
+      seekTo((player.currentTime || 0) + deltaSeconds);
+    },
+    [player, seekTo]
+  );
+
+  const handleSeekStart = useCallback(() => {
+    setIsSeeking(true);
+    setSeekValue(player.currentTime || 0);
+  }, [player]);
+
+  const handleSeekChange = useCallback(
+    (nextValue) => {
+      if (isSeeking) {
+        setSeekValue(nextValue);
+      }
+    },
+    [isSeeking]
+  );
+
+  const handleSeekComplete = useCallback(
+    (nextValue) => {
+      seekTo(nextValue);
+      setIsSeeking(false);
+    },
+    [seekTo]
+  );
+
+  const handleRetry = useCallback(() => {
     setError(null);
     setIsLoading(true);
-    if (audioOnly) {
-      // Re-toggle to reload
-      setAudioOnly(false);
-      setTimeout(() => setAudioOnly(true), 100);
-    } else {
-      player.replace(sourceUri);
-    }
-  }, [audioOnly, player, sourceUri]);
+    player.replace(activeSource);
+    player.play();
+  }, [activeSource, player]);
 
-  // ── Toggle audio-only ──
-  const toggleAudioOnly = useCallback(async () => {
-    if (audioOnly) {
-      // Switch back to video
-      if (soundRef.current) {
-        await soundRef.current.stopAsync().catch(() => {});
-      }
-      setAudioOnly(false);
-    } else {
-      setAudioOnly(true);
-    }
-  }, [audioOnly]);
+  const toggleAudioOnly = useCallback(() => {
+    setAudioOnly((prev) => !prev);
+  }, []);
 
-  // ── Format time helper ──
-  function formatTime(ms) {
-    if (!ms || ms <= 0) return "0:00";
-    const totalSec = Math.floor(ms / 1000);
+  function formatTime(seconds) {
+    if (!seconds || seconds <= 0) return "0:00";
+    const totalSec = Math.floor(seconds);
     const min = Math.floor(totalSec / 60);
     const sec = totalSec % 60;
     return `${min}:${sec < 10 ? "0" : ""}${sec}`;
@@ -308,10 +291,9 @@ export default function VideoPlayerScreen({
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => {
-              // Stop audio before going back so it doesn't keep playing
-              if (soundRef.current) {
-                soundRef.current.stopAsync().catch(() => {});
-              }
+              player.pause();
+              player.staysActiveInBackground = false;
+              player.showNowPlayingNotification = false;
               navigation.goBack();
             }}
             style={styles.backBtn}
@@ -323,7 +305,6 @@ export default function VideoPlayerScreen({
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         </View>
 
-        {/* ─── VIDEO VIEW (hidden in audio-only mode) ─── */}
         {!audioOnly && (
           <View style={styles.playerWrap}>
             {isLoading && (
@@ -350,7 +331,6 @@ export default function VideoPlayerScreen({
           </View>
         )}
 
-        {/* ─── AUDIO-ONLY VIEW ─── */}
         {audioOnly && (
           <View style={styles.audioWrap}>
             {isLoading && (
@@ -371,35 +351,68 @@ export default function VideoPlayerScreen({
               <>
                 <View style={styles.audioIconWrap}>
                   <Ionicons
-                    name={audioIsPlaying ? "musical-notes-outline" : "headset-outline"}
+                    name={videoIsPlaying ? "musical-notes-outline" : "headset-outline"}
                     size={36}
                     color="#4a90e2"
                   />
                 </View>
-                <Text style={styles.audioLabel}>Mod audio – ecranul poate fi blocat</Text>
+                <Text style={styles.audioLabel}>Mod audio - ecranul poate fi blocat</Text>
                 <Text style={styles.audioTime}>
-                  {formatTime(audioPosition)} / {formatTime(audioDuration)}
+                  {formatTime(displayedPositionSeconds)} / {formatTime(durationSeconds)}
                 </Text>
-                {/* Simple progress bar */}
-                <View style={styles.progressBarBg}>
-                  <View
-                    style={[
-                      styles.progressBarFill,
-                      {
-                        width:
-                          audioDuration > 0
-                            ? `${(audioPosition / audioDuration) * 100}%`
-                            : "0%",
-                      },
-                    ]}
-                  />
+
+                <Slider
+                  style={styles.audioSlider}
+                  minimumValue={0}
+                  maximumValue={sliderMaximum}
+                  value={sliderValue}
+                  onSlidingStart={handleSeekStart}
+                  onValueChange={handleSeekChange}
+                  onSlidingComplete={handleSeekComplete}
+                  minimumTrackTintColor="#4a90e2"
+                  maximumTrackTintColor="#d7e9f9"
+                  thumbTintColor="#4a90e2"
+                  disabled={isLoading || !!error || durationSeconds <= 0}
+                />
+                <View style={styles.audioTimesRow}>
+                  <Text style={styles.audioTimeSmall}>{formatTime(displayedPositionSeconds)}</Text>
+                  <Text style={styles.audioTimeSmall}>{formatTime(durationSeconds)}</Text>
+                </View>
+
+                <View style={styles.skipControlsRow}>
+                  <TouchableOpacity
+                    style={[styles.skipBtn, (isLoading || !!error) && styles.btnDisabled]}
+                    onPress={() => handleSeekBy(-15)}
+                    disabled={isLoading || !!error}
+                  >
+                    <Ionicons
+                      name="play-back"
+                      size={16}
+                      color="#4a90e2"
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={styles.skipBtnText}>-15s</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.skipBtn, (isLoading || !!error) && styles.btnDisabled]}
+                    onPress={() => handleSeekBy(15)}
+                    disabled={isLoading || !!error}
+                  >
+                    <Ionicons
+                      name="play-forward"
+                      size={16}
+                      color="#4a90e2"
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={styles.skipBtnText}>+15s</Text>
+                  </TouchableOpacity>
                 </View>
               </>
             )}
           </View>
         )}
 
-        {/* ─── PLAY / PAUSE ─── */}
         <TouchableOpacity
           style={[styles.primaryBtn, (isLoading || error) && styles.btnDisabled]}
           disabled={isLoading || !!error}
@@ -410,12 +423,11 @@ export default function VideoPlayerScreen({
             style={styles.btnInner}
           >
             <Text style={styles.primaryText}>
-              {isPlaying ? "Pauză" : playButtonText}
+              {videoIsPlaying ? "Pauză" : audioOnly ? "Redă audio" : playButtonText}
             </Text>
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* ─── AUDIO-ONLY TOGGLE ─── */}
         <TouchableOpacity
           style={styles.audioToggleBtn}
           onPress={toggleAudioOnly}
@@ -452,12 +464,20 @@ const styles = StyleSheet.create({
   gradient: { flex: 1, padding: 20 },
   header: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
   backBtn: {
-    width: 38, height: 38, borderRadius: 19,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: "rgba(255,255,255,0.75)",
-    alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: "rgba(74,144,226,0.15)",
-    shadowColor: "#4a90e2", shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12, shadowRadius: 6, elevation: 3, marginRight: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(74,144,226,0.15)",
+    shadowColor: "#4a90e2",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+    marginRight: 14,
   },
   title: {
     flex: 1,
@@ -470,7 +490,6 @@ const styles = StyleSheet.create({
     color: "#6c8096",
     marginTop: 6,
   },
-  /* ── video ── */
   playerWrap: {
     alignItems: "center",
     justifyContent: "center",
@@ -524,7 +543,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryText: { color: "#fff", fontWeight: "600" },
-  /* ── audio-only ── */
   audioWrap: {
     alignItems: "center",
     justifyContent: "center",
@@ -540,7 +558,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 4,
-    minHeight: 180,
+    minHeight: 220,
   },
   audioLoadingWrap: {
     alignItems: "center",
@@ -559,7 +577,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 12,
   },
-  audioIcon: { fontSize: 32 },
   audioLabel: {
     fontSize: 14,
     color: "#6c8096",
@@ -570,21 +587,45 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#1a2d45",
     fontWeight: "600",
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  progressBarBg: {
+  audioSlider: {
     width: "100%",
-    height: 4,
-    backgroundColor: "#e8f4fd",
-    borderRadius: 2,
-    overflow: "hidden",
+    height: 36,
   },
-  progressBarFill: {
-    height: 4,
-    backgroundColor: "#4a90e2",
-    borderRadius: 2,
+  audioTimesRow: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: -2,
+    marginBottom: 10,
   },
-  /* ── buttons ── */
+  audioTimeSmall: {
+    fontSize: 12,
+    color: "#6c8096",
+  },
+  skipControlsRow: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 4,
+  },
+  skipBtn: {
+    width: "48%",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#d7e9f9",
+    backgroundColor: "#f3f9ff",
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+  },
+  skipBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#2f6cad",
+  },
   primaryBtn: { borderRadius: 12, overflow: "hidden" },
   btnDisabled: { opacity: 0.6 },
   btnInner: { paddingVertical: 12, alignItems: "center" },
@@ -603,7 +644,6 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     paddingHorizontal: 16,
   },
-  audioToggleIcon: { fontSize: 18, marginRight: 8 },
   audioToggleText: { fontSize: 14, fontWeight: "600", color: "#1a2d45" },
   audioToggleTextActive: { color: "#fff" },
 });
