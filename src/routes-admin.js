@@ -73,6 +73,11 @@ function buildWebinarPushBody(webinar, fallbackText) {
   return fallbackText;
 }
 
+function buildWebinarHeldFinishedBody(webinar) {
+  const normalizedTitle = String(webinar?.title || 'Webinar').trim();
+  return `Webinarul ${normalizedTitle} s-a terminat, inregistrarea va fi disponibila cat de curand posibil`;
+}
+
 async function disableInvalidPushTokens(invalidTokens) {
   if (!Array.isArray(invalidTokens) || !invalidTokens.length) return;
   const placeholders = invalidTokens.map(() => '?').join(', ');
@@ -84,7 +89,7 @@ async function disableInvalidPushTokens(invalidTokens) {
   );
 }
 
-async function notifyPremiumVipUsersAboutWebinar({ request, webinar, webinarId, type }) {
+async function notifyPremiumVipUsersAboutWebinar({ request, webinar, webinarId, type, bodyOverride = null }) {
   const [tokenRows] = await mysqlPool.query(
     `SELECT DISTINCT upt.expo_push_token
      FROM user_push_tokens upt
@@ -100,10 +105,12 @@ async function notifyPremiumVipUsersAboutWebinar({ request, webinar, webinarId, 
 
   if (!pushTokens.length) return 0;
 
-  const body = buildWebinarPushBody(
-    webinar,
-    type === 'webinar_created' ? 'Am publicat un webinar nou.' : 'Webinarul a fost actualizat.'
-  );
+  const body =
+    String(bodyOverride || '').trim() ||
+    buildWebinarPushBody(
+      webinar,
+      type === 'webinar_created' ? 'Am publicat un webinar nou.' : 'Webinarul a fost actualizat.'
+    );
 
   const pushResult = await sendPushToExpoTokens({
     tokens: pushTokens,
@@ -791,11 +798,16 @@ export async function registerAdminRoutes(app) {
 
       let notified = 0;
       if (changedImportantFieldNames.size > 0) {
+        const statusChangedToHeld =
+          changedImportantFieldNames.has('status') &&
+          String(updated?.status || '').toLowerCase() === 'held';
+
         notified = await notifyPremiumVipUsersAboutWebinar({
           request,
           webinarId: id,
           webinar: updated,
           type: 'webinar_updated',
+          bodyOverride: statusChangedToHeld ? buildWebinarHeldFinishedBody(updated) : null,
         });
       }
 
