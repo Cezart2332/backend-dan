@@ -134,10 +134,10 @@ export default function VideoPlayerScreen({
     sliderMaximum
   );
 
-  // Enable media notification and background playback only in audio-only mode.
+  // Keep media playback active in background for both video and audio-only modes.
   useEffect(() => {
-    player.staysActiveInBackground = audioOnly;
-    player.showNowPlayingNotification = audioOnly;
+    player.staysActiveInBackground = true;
+    player.showNowPlayingNotification = true;
     player.keepScreenOnWhilePlaying = !audioOnly;
     player.audioMixingMode = audioOnly ? "doNotMix" : "auto";
   }, [audioOnly, player]);

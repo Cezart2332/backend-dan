@@ -17,6 +17,7 @@ import LevelChallengesScreen from "./components/LevelChallengesScreen";
 import ChallengeRunScreen from "./components/ChallengeRunScreen";
 import DirectScreen from "./components/DirectScreen";
 import IntrebariScreen from "./components/IntrebariScreen";
+import WebinariiScreen from "./components/WebinariiScreen";
 import AboutDanScreen from "./components/AboutDanScreen";
 import AboutDanSectionScreen from "./components/AboutDanSectionScreen";
 import ProgressHistoryScreen from "./components/ProgressHistoryScreen";
@@ -120,14 +121,43 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      const type = response?.notification?.request?.content?.data?.type;
-      if (type === "question_response") {
-        navigationRef.current?.navigate?.("Intrebari");
+    let active = true;
+    const handledNotificationIds = new Set();
+
+    const handleResponse = (response) => {
+      const notification = response?.notification;
+      if (!notification) return;
+
+      const notificationId = notification?.request?.identifier;
+      if (notificationId && handledNotificationIds.has(notificationId)) return;
+      if (notificationId) handledNotificationIds.add(notificationId);
+
+      const data = notification?.request?.content?.data || {};
+      const type = String(data?.type || '').toLowerCase();
+
+      if (type === 'question_response') {
+        navigationRef.current?.navigate?.('Intrebari');
+        return;
       }
-    });
+
+      if (type === 'webinar_created' || type === 'webinar_updated') {
+        const webinarId = Number(data?.webinarId);
+        navigationRef.current?.navigate?.('Webinarii', {
+          focusWebinarId: Number.isFinite(webinarId) ? webinarId : undefined,
+        });
+      }
+    };
+
+    Notifications.getLastNotificationResponseAsync()
+      .then((response) => {
+        if (active && response) handleResponse(response);
+      })
+      .catch(() => {});
+
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener(handleResponse);
 
     return () => {
+      active = false;
       responseSubscription.remove();
     };
   }, []);
@@ -204,6 +234,7 @@ export default function App() {
             />
             <Stack.Screen name="Direct" component={DirectScreen} />
             <Stack.Screen name="Intrebari" component={IntrebariScreen} />
+            <Stack.Screen name="Webinarii" component={WebinariiScreen} />
             <Stack.Screen name="AboutDan" component={AboutDanScreen} />
             <Stack.Screen
               name="AboutDanSection"

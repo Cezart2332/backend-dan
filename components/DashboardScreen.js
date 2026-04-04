@@ -7,6 +7,7 @@ import {
   ScrollView,
   Dimensions,
   Linking,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -24,6 +25,8 @@ const { width } = Dimensions.get("window");
 export default function DashboardScreen({ navigation, onLogout }) {
   const { subscription } = useSubscription();
   const subType = subscription?.type || null;
+  const normalizedSubType = String(subType || '').toLowerCase();
+  const hasWebinarAccess = ['premium', 'vip', 'pro'].includes(normalizedSubType);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -105,6 +108,13 @@ export default function DashboardScreen({ navigation, onLogout }) {
       color: "#5bc0de",
     },
     {
+      id: 11,
+      title: "Webinarii",
+      subtitle: "Acces live + înregistrări",
+      iconName: "videocam-outline",
+      color: "#6f67ff",
+    },
+    {
       id: 9,
       title: "Abonamente & Acces",
       subtitle: "Planuri Basic / Premium / VIP",
@@ -125,9 +135,20 @@ export default function DashboardScreen({ navigation, onLogout }) {
   const isTrial = subType === 'trial';
 
   const handleMenuPress = (item) => {
+    if (item.id === 11 && !hasWebinarAccess) {
+      Alert.alert(
+        'Acces Premium/VIP',
+        'Webinariile sunt disponibile doar pentru abonamente Premium sau VIP.',
+        [
+          { text: 'Vezi abonamente', onPress: () => navigation.navigate('Subscriptions') },
+          { text: 'OK', style: 'cancel' },
+        ]
+      );
+      return;
+    }
+
     // Block locked items during trial
     if (isTrial && trialLockedIds.has(item.id)) {
-      const { Alert } = require('react-native');
       Alert.alert(
         'Funcție restricționată',
         'Această funcție este disponibilă doar cu un abonament activ. Alege un plan pentru acces complet.',
@@ -168,6 +189,8 @@ export default function DashboardScreen({ navigation, onLogout }) {
       navigation.navigate("Subscriptions");
     } else if (item.id === 10) {
       navigation.navigate("IntelegeAnxietate");
+    } else if (item.id === 11) {
+      navigation.navigate("Webinarii");
     }
   };
 
@@ -204,7 +227,12 @@ export default function DashboardScreen({ navigation, onLogout }) {
             <Text style={styles.menuTitle}>Ce vrei să faci astăzi?</Text>
 
             {menuItems.map((item, index) => {
-              const locked = isTrial && trialLockedIds.has(item.id);
+              const trialLocked = isTrial && trialLockedIds.has(item.id);
+              const webinarLocked = item.id === 11 && !hasWebinarAccess;
+              const locked = trialLocked || webinarLocked;
+              const lockLabel = webinarLocked
+                ? ' Disponibil cu Premium/VIP'
+                : ' Disponibil cu abonament';
               return (
               <TouchableOpacity
                 key={item.id}
@@ -235,7 +263,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
                       {locked ? (
                         <View style={styles.lockedRow}>
                           <Ionicons name="lock-closed" size={11} color="#bbb" />
-                          <Text style={[styles.menuItemSubtitle, styles.lockedText]}> Disponibil cu abonament</Text>
+                          <Text style={[styles.menuItemSubtitle, styles.lockedText]}>{lockLabel}</Text>
                         </View>
                       ) : (
                         <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
