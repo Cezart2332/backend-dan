@@ -145,6 +145,54 @@ export async function runMigrations() {
     )
   `);
 
+  // webinars table
+  await mysqlPool.query(`
+    CREATE TABLE IF NOT EXISTS webinars (
+      id BIGINT PRIMARY KEY AUTO_INCREMENT,
+      title VARCHAR(255) NOT NULL,
+      description TEXT NULL,
+      scheduled_at DATETIME NOT NULL,
+      access_link TEXT NULL,
+      status ENUM('scheduled','live','held','cancelled') NOT NULL DEFAULT 'scheduled',
+      recording_link TEXT NULL,
+      created_by BIGINT NULL,
+      updated_by BIGINT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT fk_webinars_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+      CONSTRAINT fk_webinars_updated_by FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL,
+      INDEX idx_webinars_scheduled_at (scheduled_at),
+      INDEX idx_webinars_status_scheduled (status, scheduled_at)
+    )
+  `);
+  try {
+    await mysqlPool.query(`ALTER TABLE webinars ADD COLUMN description TEXT NULL`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE webinars ADD COLUMN access_link TEXT NULL`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE webinars ADD COLUMN status ENUM('scheduled','live','held','cancelled') NOT NULL DEFAULT 'scheduled'`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE webinars ADD COLUMN recording_link TEXT NULL`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE webinars ADD COLUMN created_by BIGINT NULL`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE webinars ADD COLUMN updated_by BIGINT NULL`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE webinars ADD COLUMN updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE webinars ADD INDEX idx_webinars_scheduled_at (scheduled_at)`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE webinars ADD INDEX idx_webinars_status_scheduled (status, scheduled_at)`);
+  } catch {}
+
   // Add is_admin column to users if not present
   try {
     await mysqlPool.query(`ALTER TABLE users ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0`);

@@ -7,11 +7,123 @@ const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
 if (!JWT_SECRET) throw new Error('CRITICAL: JWT_SECRET is required');
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || process.env.CORE_ADMIN_TOKEN || null;
 const ADMIN_STATS_CACHE_TTL_MS = Math.max(1000, Number(process.env.ADMIN_STATS_CACHE_TTL_MS || 15000));
+const WEBINAR_STATUSES = ['scheduled', 'live', 'held', 'cancelled'];
+const WEBINAR_PUSH_TIMEZONE = 'Europe/Bucharest';
 
 let adminStatsCache = null;
 
 function invalidateAdminStatsCache() {
   adminStatsCache = null;
+}
+
+function normalizeOptionalText(value) {
+  const normalized = String(value || '').trim();
+  return normalized.length ? normalized : null;
+}
+
+function parseDateTimeInput(value) {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function getBucharestDateTimeParts(value) {
+  const parsedDate = parseDateTimeInput(value);
+  if (!parsedDate) return null;
+
+  const formatter = new Intl.DateTimeFormat('ro-RO', {
+    timeZone: WEBINAR_PUSH_TIMEZONE,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(parsedDate);
+  const getPart = (type) => parts.find((part) => part.type === type)?.value || '';
+
+  return {
+    date: `${getPart('day')}.${getPart('month')}.${getPart('year')}`,
+    time: `${getPart('hour')}:${getPart('minute')}`,
+  };
+}
+
+function buildWebinarPushBody(webinar, fallbackText) {
+  const normalizedTitle = String(webinar?.title || 'Webinar').trim();
+  const status = String(webinar?.status || '').toLowerCase();
+  const recordingLink = normalizeOptionalText(webinar?.recording_link);
+
+  if (status === 'held' && recordingLink) {
+    return `Webinarul "${normalizedTitle}" este disponibil acum inregistrat.`;
+  }
+
+  if (status === 'cancelled') {
+    return `Webinarul "${normalizedTitle}" a fost anulat.`;
+  }
+
+  if (status === 'live') {
+    return `Webinarul "${normalizedTitle}" este live acum.`;
+  }
+
+  const dateParts = getBucharestDateTimeParts(webinar?.scheduled_at);
+  if (dateParts?.date && dateParts?.time) {
+    return `Voi tine un webinar cu titlul ${normalizedTitle} la data de ${dateParts.date} la ora ${dateParts.time}.`;
+  }
+
+  return fallbackText;
+}
+
+async function disableInvalidPushTokens(invalidTokens) {
+  if (!Array.isArray(invalidTokens) || !invalidTokens.length) return;
+  const placeholders = invalidTokens.map(() => '?').join(', ');
+  await mysqlPool.query(
+    `UPDATE user_push_tokens
+     SET enabled = 0, updated_at = CURRENT_TIMESTAMP
+     WHERE expo_push_token IN (${placeholders})`,
+    invalidTokens
+  );
+}
+
+async function notifyPremiumVipUsersAboutWebinar({ request, webinar, webinarId, type }) {
+  const [tokenRows] = await mysqlPool.query(
+    `SELECT DISTINCT upt.expo_push_token
+     FROM user_push_tokens upt
+     INNER JOIN subscriptions s ON s.user_id = upt.user_id
+     WHERE upt.enabled = 1
+       AND s.type IN ('premium', 'vip', 'pro')
+       AND (s.ends_at IS NULL OR s.ends_at > NOW())`
+  );
+
+  const pushTokens = (Array.isArray(tokenRows) ? tokenRows : [])
+    .map((row) => row.expo_push_token)
+    .filter((token) => isExpoPushToken(token));
+
+  if (!pushTokens.length) return 0;
+
+  const body = buildWebinarPushBody(
+    webinar,
+    type === 'webinar_created' ? 'Am publicat un webinar nou.' : 'Webinarul a fost actualizat.'
+  );
+
+  const pushResult = await sendPushToExpoTokens({
+    tokens: pushTokens,
+    title: 'Webinarii Dan',
+    body,
+    data: {
+      type,
+      webinarId,
+      status: webinar?.status || null,
+      scheduledAt: webinar?.scheduled_at || null,
+    },
+    logger: request.log,
+  });
+
+  const invalidTokens = Array.isArray(pushResult?.invalidTokens) ? pushResult.invalidTokens : [];
+  if (invalidTokens.length) {
+    await disableInvalidPushTokens(invalidTokens);
+  }
+
+  return Number(pushResult?.sentCount || 0);
 }
 
 // Constant-time string comparison to prevent timing attacks
@@ -78,6 +190,8 @@ export async function registerAdminRoutes(app) {
           (SELECT COUNT(*) FROM questions WHERE status = 'new') AS newQuestions,
           (SELECT COUNT(*) FROM meetings) AS totalMeetings,
           (SELECT COUNT(*) FROM meetings WHERE scheduled_at > NOW()) AS upcomingMeetings,
+          (SELECT COUNT(*) FROM webinars) AS totalWebinars,
+          (SELECT COUNT(*) FROM webinars WHERE status IN ('scheduled', 'live') AND scheduled_at >= NOW()) AS upcomingWebinars,
           (SELECT COUNT(*) FROM subscriptions WHERE ends_at IS NULL OR ends_at > NOW()) AS totalSubscriptions,
           (SELECT COUNT(*) FROM bug_reports) AS totalBugReports,
           (SELECT COUNT(*) FROM bug_reports WHERE status IN ('new', 'in_progress')) AS openBugReports,
@@ -91,6 +205,8 @@ export async function registerAdminRoutes(app) {
         newQuestions: 0,
         totalMeetings: 0,
         upcomingMeetings: 0,
+        totalWebinars: 0,
+        upcomingWebinars: 0,
         totalSubscriptions: 0,
         totalBugReports: 0,
         openBugReports: 0,
@@ -434,6 +550,279 @@ export async function registerAdminRoutes(app) {
       return reply.send({ ok: true });
     } catch (e) {
       request.log.error({ err: e }, 'Delete meeting failed');
+      return reply.code(500).send({ error: 'Eroare server' });
+    }
+  });
+
+  // ─── Webinars CRUD ───
+  app.get('/api/admin/webinars', async (request, reply) => {
+    const auth = await adminAuth(request);
+    if (!auth) return reply.code(403).send({ error: 'Forbidden' });
+
+    const page = Math.max(1, Number(request.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(request.query.limit) || 50));
+    const offset = (page - 1) * limit;
+    const status = normalizeOptionalText(request.query.status);
+    const upcoming = request.query.upcoming === '1';
+
+    if (status && !WEBINAR_STATUSES.includes(status)) {
+      return reply.code(400).send({ error: 'Status webinar invalid' });
+    }
+
+    try {
+      const whereParts = [];
+      const whereParams = [];
+
+      if (status) {
+        whereParts.push('w.status = ?');
+        whereParams.push(status);
+      }
+      if (upcoming) {
+        whereParts.push('w.scheduled_at >= NOW()');
+      }
+
+      const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
+      const [[{ total }]] = await mysqlPool.query(`SELECT COUNT(*) AS total FROM webinars w ${whereSql}`, whereParams);
+
+      const [rows] = await mysqlPool.query(
+        `SELECT
+          w.id,
+          w.title,
+          w.description,
+          w.scheduled_at,
+          w.access_link,
+          w.status,
+          w.recording_link,
+          w.created_by,
+          w.updated_by,
+          w.created_at,
+          w.updated_at,
+          creator.name AS created_by_name,
+          updater.name AS updated_by_name
+         FROM webinars w
+         LEFT JOIN users creator ON creator.id = w.created_by
+         LEFT JOIN users updater ON updater.id = w.updated_by
+         ${whereSql}
+         ORDER BY w.scheduled_at DESC, w.id DESC
+         LIMIT ? OFFSET ?`,
+        [...whereParams, limit, offset]
+      );
+
+      return reply.send({ items: rows, total, page, limit });
+    } catch (e) {
+      request.log.error({ err: e }, 'Admin list webinars failed');
+      return reply.code(500).send({ error: 'Eroare server' });
+    }
+  });
+
+  app.post('/api/admin/webinars', async (request, reply) => {
+    const auth = await adminAuth(request);
+    if (!auth) return reply.code(403).send({ error: 'Forbidden' });
+
+    const {
+      title,
+      description,
+      scheduled_at,
+      access_link,
+      status = 'scheduled',
+      recording_link,
+    } = request.body || {};
+
+    const normalizedTitle = String(title || '').trim();
+    if (!normalizedTitle) return reply.code(400).send({ error: 'Titlul webinarului este necesar' });
+
+    const parsedScheduledAt = parseDateTimeInput(scheduled_at);
+    if (!parsedScheduledAt) return reply.code(400).send({ error: 'Data webinarului este invalida' });
+
+    const normalizedStatus = String(status || 'scheduled').trim();
+    if (!WEBINAR_STATUSES.includes(normalizedStatus)) {
+      return reply.code(400).send({ error: 'Status webinar invalid' });
+    }
+
+    const normalizedDescription = normalizeOptionalText(description);
+    const normalizedAccessLink = normalizeOptionalText(access_link);
+    const normalizedRecordingLink = normalizeOptionalText(recording_link);
+    const adminUserId = auth?.user?.id ? Number(auth.user.id) : null;
+
+    try {
+      const [insertResult] = await mysqlPool.query(
+        `INSERT INTO webinars (
+          title,
+          description,
+          scheduled_at,
+          access_link,
+          status,
+          recording_link,
+          created_by,
+          updated_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          normalizedTitle,
+          normalizedDescription,
+          parsedScheduledAt,
+          normalizedAccessLink,
+          normalizedStatus,
+          normalizedRecordingLink,
+          adminUserId,
+          adminUserId,
+        ]
+      );
+
+      const webinarId = Number(insertResult?.insertId);
+      const notified = await notifyPremiumVipUsersAboutWebinar({
+        request,
+        webinarId,
+        webinar: {
+          title: normalizedTitle,
+          scheduled_at: parsedScheduledAt,
+          status: normalizedStatus,
+          recording_link: normalizedRecordingLink,
+        },
+        type: 'webinar_created',
+      });
+
+      invalidateAdminStatsCache();
+      return reply.send({ id: webinarId, notified });
+    } catch (e) {
+      request.log.error({ err: e }, 'Create webinar failed');
+      return reply.code(500).send({ error: 'Eroare server' });
+    }
+  });
+
+  app.put('/api/admin/webinars/:id', async (request, reply) => {
+    const auth = await adminAuth(request);
+    if (!auth) return reply.code(403).send({ error: 'Forbidden' });
+
+    const id = Number(request.params.id);
+    if (!Number.isFinite(id) || id <= 0) return reply.code(400).send({ error: 'ID invalid' });
+
+    const {
+      title,
+      description,
+      scheduled_at,
+      access_link,
+      status,
+      recording_link,
+    } = request.body || {};
+
+    const fields = [];
+    const values = [];
+    const changedImportantFieldNames = new Set();
+
+    try {
+      const [existingRows] = await mysqlPool.query(
+        `SELECT id, title, description, scheduled_at, access_link, status, recording_link
+         FROM webinars
+         WHERE id = ?
+         LIMIT 1`,
+        [id]
+      );
+
+      if (!Array.isArray(existingRows) || !existingRows.length) {
+        return reply.code(404).send({ error: 'Webinar inexistent' });
+      }
+
+      const existing = existingRows[0];
+
+      if (title !== undefined) {
+        const normalizedTitle = String(title || '').trim();
+        if (!normalizedTitle) return reply.code(400).send({ error: 'Titlul webinarului este necesar' });
+        fields.push('title = ?');
+        values.push(normalizedTitle);
+        if (normalizedTitle !== String(existing.title || '').trim()) changedImportantFieldNames.add('title');
+      }
+
+      if (description !== undefined) {
+        const normalizedDescription = normalizeOptionalText(description);
+        fields.push('description = ?');
+        values.push(normalizedDescription);
+      }
+
+      if (scheduled_at !== undefined) {
+        const parsedScheduledAt = parseDateTimeInput(scheduled_at);
+        if (!parsedScheduledAt) return reply.code(400).send({ error: 'Data webinarului este invalida' });
+        fields.push('scheduled_at = ?');
+        values.push(parsedScheduledAt);
+
+        const existingTimestamp = parseDateTimeInput(existing.scheduled_at)?.getTime() || 0;
+        if (existingTimestamp !== parsedScheduledAt.getTime()) changedImportantFieldNames.add('scheduled_at');
+      }
+
+      if (access_link !== undefined) {
+        const normalizedAccessLink = normalizeOptionalText(access_link);
+        fields.push('access_link = ?');
+        values.push(normalizedAccessLink);
+        if (normalizedAccessLink !== normalizeOptionalText(existing.access_link)) changedImportantFieldNames.add('access_link');
+      }
+
+      if (status !== undefined) {
+        const normalizedStatus = String(status || '').trim();
+        if (!WEBINAR_STATUSES.includes(normalizedStatus)) {
+          return reply.code(400).send({ error: 'Status webinar invalid' });
+        }
+        fields.push('status = ?');
+        values.push(normalizedStatus);
+        if (normalizedStatus !== String(existing.status || '').trim()) changedImportantFieldNames.add('status');
+      }
+
+      if (recording_link !== undefined) {
+        const normalizedRecordingLink = normalizeOptionalText(recording_link);
+        fields.push('recording_link = ?');
+        values.push(normalizedRecordingLink);
+        if (normalizedRecordingLink !== normalizeOptionalText(existing.recording_link)) changedImportantFieldNames.add('recording_link');
+      }
+
+      const adminUserId = auth?.user?.id ? Number(auth.user.id) : null;
+      fields.push('updated_by = ?');
+      values.push(adminUserId);
+
+      if (fields.length === 1) {
+        return reply.code(400).send({ error: 'Niciun camp de actualizat' });
+      }
+
+      values.push(id);
+      await mysqlPool.query(`UPDATE webinars SET ${fields.join(', ')} WHERE id = ?`, values);
+
+      const [updatedRows] = await mysqlPool.query(
+        'SELECT id, title, scheduled_at, status, recording_link FROM webinars WHERE id = ? LIMIT 1',
+        [id]
+      );
+      const updated = Array.isArray(updatedRows) && updatedRows.length ? updatedRows[0] : existing;
+
+      let notified = 0;
+      if (changedImportantFieldNames.size > 0) {
+        notified = await notifyPremiumVipUsersAboutWebinar({
+          request,
+          webinarId: id,
+          webinar: updated,
+          type: 'webinar_updated',
+        });
+      }
+
+      invalidateAdminStatsCache();
+      return reply.send({ ok: true, notified });
+    } catch (e) {
+      request.log.error({ err: e }, 'Update webinar failed');
+      return reply.code(500).send({ error: 'Eroare server' });
+    }
+  });
+
+  app.delete('/api/admin/webinars/:id', async (request, reply) => {
+    const auth = await adminAuth(request);
+    if (!auth) return reply.code(403).send({ error: 'Forbidden' });
+
+    const id = Number(request.params.id);
+    if (!Number.isFinite(id) || id <= 0) return reply.code(400).send({ error: 'ID invalid' });
+
+    try {
+      const [result] = await mysqlPool.query('DELETE FROM webinars WHERE id = ?', [id]);
+      if (!result?.affectedRows) {
+        return reply.code(404).send({ error: 'Webinar inexistent' });
+      }
+      invalidateAdminStatsCache();
+      return reply.send({ ok: true });
+    } catch (e) {
+      request.log.error({ err: e }, 'Delete webinar failed');
       return reply.code(500).send({ error: 'Eroare server' });
     }
   });
