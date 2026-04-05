@@ -208,7 +208,7 @@ export default function WebinariiScreen({ navigation, route }) {
             <Ionicons name="lock-closed" size={24} color="#6f67ff" />
             <Text style={styles.blockedTitle}>Acces Premium/VIP</Text>
             <Text style={styles.blockedText}>
-              Webinariile sunt disponibile pentru abonamente Premium si VIP.
+              Accesul la webinarii necesita Premium sau VIP
             </Text>
             <TouchableOpacity
               style={styles.upgradeBtn}
@@ -236,7 +236,7 @@ export default function WebinariiScreen({ navigation, route }) {
 
             {accessDenied ? (
               <View style={styles.errorCard}>
-                <Text style={styles.errorText}>Accesul la webinarii necesita Premium sau VIP.</Text>
+                <Text style={styles.errorText}>Accesul la webinarii necesita Premium sau VIP</Text>
                 <TouchableOpacity
                   style={styles.upgradeBtn}
                   onPress={() => navigation.navigate('Subscriptions')}

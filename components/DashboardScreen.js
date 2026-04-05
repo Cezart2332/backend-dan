@@ -137,8 +137,8 @@ export default function DashboardScreen({ navigation, onLogout }) {
   const handleMenuPress = (item) => {
     if (item.id === 11 && !hasWebinarAccess) {
       Alert.alert(
-        'Acces Premium/VIP',
-        'Webinariile sunt disponibile doar pentru abonamente Premium sau VIP.',
+        'Funcție restricționată',
+        'Accesul la webinarii necesita Premium sau VIP',
         [
           { text: 'Vezi abonamente', onPress: () => navigation.navigate('Subscriptions') },
           { text: 'OK', style: 'cancel' },

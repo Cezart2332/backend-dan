@@ -19,8 +19,14 @@ import {
   OFFERING_IDS,
 } from "../utils/revenuecat";
 
-const TERMS_OF_USE_URL = "https://danfostanxios.ro/termeni-si-conditii-2/";
+const TERMS_OF_USE_URL = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";
 const PRIVACY_POLICY_URL = "https://danfostanxios.ro/politica-cookie-uri-ue/";
+
+const OFFERING_DURATION_FALLBACK = {
+  [OFFERING_IDS.basic]: "Monthly subscription",
+  [OFFERING_IDS.premium]: "Yearly subscription",
+  [OFFERING_IDS.vip]: "Lifetime access",
+};
 
 const PLAN_FEATURES = {
   basic: [
@@ -49,7 +55,37 @@ const PLAN_FEATURES = {
   ],
 };
 
-function ProductCard({ title, subtitle, packageItem, selected, onSelect, features }) {
+function inferDurationLabel(packageItem, fallbackLabel) {
+  const period = packageItem?.product?.subscriptionPeriod;
+
+  if (period && typeof period === "object") {
+    const unitRaw = String(period?.unit || period?.periodUnit || "").toLowerCase();
+    const units = Number(period?.numberOfUnits || period?.value || 1);
+
+    if (unitRaw.includes("month") && units === 1) return "Monthly subscription";
+    if (unitRaw.includes("year") && units === 1) return "Yearly subscription";
+    if (unitRaw.includes("week") && units === 1) return "Weekly subscription";
+    if (Number.isFinite(units) && units > 1 && unitRaw) {
+      return `Renews every ${units} ${unitRaw}${units > 1 ? "s" : ""}`;
+    }
+  }
+
+  const periodText = String(period || "").toLowerCase();
+  if (periodText.includes("p1m") || periodText.includes("month")) return "Monthly subscription";
+  if (periodText.includes("p1y") || periodText.includes("year")) return "Yearly subscription";
+  if (periodText.includes("p1w") || periodText.includes("week")) return "Weekly subscription";
+
+  const idText = String(
+    packageItem?.identifier || packageItem?.packageType || packageItem?.product?.identifier || ""
+  ).toLowerCase();
+  if (idText.includes("month")) return "Monthly subscription";
+  if (idText.includes("year") || idText.includes("annual")) return "Yearly subscription";
+  if (idText.includes("life")) return "Lifetime access";
+
+  return fallbackLabel || "Subscription";
+}
+
+function ProductCard({ title, subtitle, durationText, packageItem, selected, onSelect, features }) {
   const product = packageItem?.product;
   const priceText = product?.priceString || "Indisponibil momentan";
 
@@ -68,6 +104,7 @@ function ProductCard({ title, subtitle, packageItem, selected, onSelect, feature
         ) : null}
       </View>
       <Text style={styles.cardSubtitle}>{subtitle}</Text>
+      <Text style={styles.cardDuration}>{durationText}</Text>
       <Text style={styles.cardPrice}>{priceText}</Text>
       <Text style={styles.cardSku}>{product?.identifier || "Fara SKU mapat"}</Text>
 
@@ -188,6 +225,9 @@ export default function SubscriptionsScreen({ navigation }) {
     isTrialSubscription && (!Number.isFinite(trialEndsAtMs) || trialEndsAtMs > Date.now());
   const canShowTrialAction =
     !hasActiveTrialAccess && (trialEligible || status === "none" || status === "expired");
+  const basicPackage = productPackages?.[OFFERING_IDS.basic] || productPackages?.basic;
+  const premiumPackage = productPackages?.[OFFERING_IDS.premium] || productPackages?.premium;
+  const vipPackage = productPackages?.[OFFERING_IDS.vip] || productPackages?.vip;
 
   const entitlementLine = hasProEntitlement
     ? `Dan Fost Anxios Pro activ (${subscription?.product_id || "entitlement"})`
@@ -245,7 +285,11 @@ export default function SubscriptionsScreen({ navigation }) {
           <ProductCard
             title="Basic"
             subtitle="Plan Basic"
-            packageItem={productPackages?.[OFFERING_IDS.basic] || productPackages?.basic}
+            durationText={inferDurationLabel(
+              basicPackage,
+              OFFERING_DURATION_FALLBACK[OFFERING_IDS.basic]
+            )}
+            packageItem={basicPackage}
             features={PLAN_FEATURES.basic}
             selected={selectedOffering === OFFERING_IDS.basic}
             onSelect={() => setSelectedOffering(OFFERING_IDS.basic)}
@@ -254,7 +298,11 @@ export default function SubscriptionsScreen({ navigation }) {
           <ProductCard
             title="Premium"
             subtitle="Plan Premium"
-            packageItem={productPackages?.[OFFERING_IDS.premium] || productPackages?.premium}
+            durationText={inferDurationLabel(
+              premiumPackage,
+              OFFERING_DURATION_FALLBACK[OFFERING_IDS.premium]
+            )}
+            packageItem={premiumPackage}
             features={PLAN_FEATURES.premium}
             selected={selectedOffering === OFFERING_IDS.premium}
             onSelect={() => setSelectedOffering(OFFERING_IDS.premium)}
@@ -263,7 +311,8 @@ export default function SubscriptionsScreen({ navigation }) {
           <ProductCard
             title="VIP"
             subtitle="Plan VIP"
-            packageItem={productPackages?.[OFFERING_IDS.vip] || productPackages?.vip}
+            durationText={inferDurationLabel(vipPackage, OFFERING_DURATION_FALLBACK[OFFERING_IDS.vip])}
+            packageItem={vipPackage}
             features={PLAN_FEATURES.vip}
             selected={selectedOffering === OFFERING_IDS.vip}
             onSelect={() => setSelectedOffering(OFFERING_IDS.vip)}
@@ -328,7 +377,7 @@ export default function SubscriptionsScreen({ navigation }) {
               style={styles.legalLinkBtn}
               onPress={() => openLegalLink(TERMS_OF_USE_URL, "Terms of use")}
             >
-              <Text style={styles.legalLinkText}>Terms of use</Text>
+              <Text style={styles.legalLinkText}>Terms of Use (EULA)</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.legalLinkBtn}
@@ -336,6 +385,16 @@ export default function SubscriptionsScreen({ navigation }) {
             >
               <Text style={styles.legalLinkText}>Privacy policy</Text>
             </TouchableOpacity>
+          </View>
+
+          <View style={styles.legalNoticeBox}>
+            <Text style={styles.legalNoticeText}>
+              Payment will be charged to your Apple ID account at confirmation of purchase.
+              Subscriptions auto-renew unless canceled at least 24 hours before the end of the
+              current period. Your account will be charged for renewal within 24 hours prior to
+              the end of the current period. You can manage or cancel subscriptions in your App
+              Store account settings.
+            </Text>
           </View>
 
           <View style={styles.customerInfoBox}>
@@ -422,6 +481,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 18, color: "#1a2d45", fontWeight: "700" },
   cardSubtitle: { fontSize: 13, color: "#6c8096", marginTop: 4 },
+  cardDuration: { fontSize: 13, color: "#1a2d45", marginTop: 6, fontWeight: "600" },
   cardPrice: { fontSize: 20, color: "#4a90e2", fontWeight: "700", marginTop: 8 },
   cardSku: { fontSize: 12, color: "#6c8096", marginTop: 6 },
   featureList: {
@@ -495,6 +555,19 @@ const styles = StyleSheet.create({
     color: "#2f67c4",
     fontSize: 13,
     fontWeight: "700",
+  },
+  legalNoticeBox: {
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(74,144,226,0.2)",
+    backgroundColor: "rgba(255,255,255,0.72)",
+    padding: 12,
+  },
+  legalNoticeText: {
+    color: "#44586f",
+    fontSize: 12,
+    lineHeight: 18,
   },
   customerInfoBox: {
     marginTop: 16,
