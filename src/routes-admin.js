@@ -7,6 +7,7 @@ const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
 if (!JWT_SECRET) throw new Error('CRITICAL: JWT_SECRET is required');
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || process.env.CORE_ADMIN_TOKEN || null;
 const ADMIN_STATS_CACHE_TTL_MS = Math.max(1000, Number(process.env.ADMIN_STATS_CACHE_TTL_MS || 15000));
+const MEETING_STATUSES = ['scheduled', 'completed', 'cancelled'];
 const WEBINAR_STATUSES = ['scheduled', 'live', 'held', 'cancelled'];
 const WEBINAR_PUSH_TIMEZONE = 'Europe/Bucharest';
 
@@ -76,6 +77,84 @@ function buildWebinarPushBody(webinar, fallbackText) {
 function buildWebinarHeldFinishedBody(webinar) {
   const normalizedTitle = String(webinar?.title || 'Webinar').trim();
   return `Webinarul ${normalizedTitle} s-a terminat, inregistrarea va fi disponibila cat de curand posibil`;
+}
+
+function getMeetingStatusLabel(status) {
+  const normalizedStatus = String(status || '').toLowerCase();
+  if (normalizedStatus === 'scheduled') return 'programata';
+  if (normalizedStatus === 'completed') return 'finalizata';
+  if (normalizedStatus === 'cancelled') return 'anulata';
+  return normalizedStatus || 'actualizat';
+}
+
+function buildMeetingPushBody({ previousMeeting, updatedMeeting, statusChanged, scheduleChanged }) {
+  const normalizedTitle = String(updatedMeeting?.title || previousMeeting?.title || 'Sedinta cu Dan').trim();
+  const status = String(updatedMeeting?.status || '').toLowerCase();
+  const dateParts = getBucharestDateTimeParts(updatedMeeting?.scheduled_at);
+  const scheduleText = dateParts?.date && dateParts?.time
+    ? ` pe ${dateParts.date} la ${dateParts.time}`
+    : '';
+
+  if (status === 'cancelled') {
+    return `Sedinta "${normalizedTitle}"${scheduleText} a fost anulata.`;
+  }
+
+  if (statusChanged && status === 'completed') {
+    return `Sedinta "${normalizedTitle}" a fost marcata ca finalizata.`;
+  }
+
+  if (scheduleChanged) {
+    return `Sedinta "${normalizedTitle}" a fost reprogramata${scheduleText}.`;
+  }
+
+  if (statusChanged) {
+    return `Statusul sedintei "${normalizedTitle}" a fost actualizat (${getMeetingStatusLabel(status)}).`;
+  }
+
+  return `Sedinta "${normalizedTitle}" a fost actualizata.`;
+}
+
+async function notifyUserAboutMeetingUpdate({
+  request,
+  meetingId,
+  userId,
+  previousMeeting,
+  updatedMeeting,
+  statusChanged,
+  scheduleChanged,
+}) {
+  const [tokenRows] = await mysqlPool.query(
+    'SELECT expo_push_token FROM user_push_tokens WHERE user_id = ? AND enabled = 1',
+    [Number(userId)]
+  );
+
+  const pushTokens = (Array.isArray(tokenRows) ? tokenRows : [])
+    .map((row) => row.expo_push_token)
+    .filter((token) => isExpoPushToken(token));
+
+  if (!pushTokens.length) return 0;
+
+  const pushResult = await sendPushToExpoTokens({
+    tokens: pushTokens,
+    title: 'Actualizare sedinta cu Dan',
+    body: buildMeetingPushBody({ previousMeeting, updatedMeeting, statusChanged, scheduleChanged }),
+    data: {
+      type: 'meeting_updated',
+      meetingId,
+      status: updatedMeeting?.status || null,
+      scheduledAt: updatedMeeting?.scheduled_at || null,
+      statusChanged,
+      scheduleChanged,
+    },
+    logger: request.log,
+  });
+
+  const invalidTokens = Array.isArray(pushResult?.invalidTokens) ? pushResult.invalidTokens : [];
+  if (invalidTokens.length) {
+    await disableInvalidPushTokens(invalidTokens);
+  }
+
+  return Number(pushResult?.sentCount || 0);
 }
 
 async function disableInvalidPushTokens(invalidTokens) {
@@ -510,6 +589,7 @@ export async function registerAdminRoutes(app) {
         'INSERT INTO meetings (user_id, title, notes, scheduled_at, duration_min) VALUES (?, ?, ?, ?, ?)',
         [user_id ? Number(user_id) : null, title || 'Ședință', notes || null, parsedScheduledAt, duration_min ? Number(duration_min) : 60]
       );
+      invalidateAdminStatsCache();
       return reply.send({ id: res.insertId });
     } catch (e) {
       request.log.error({ err: e }, 'Create meeting failed');
@@ -521,27 +601,64 @@ export async function registerAdminRoutes(app) {
     const auth = await adminAuth(request);
     if (!auth) return reply.code(403).send({ error: 'Forbidden' });
     const id = Number(request.params.id);
+    if (!Number.isFinite(id) || id <= 0) return reply.code(400).send({ error: 'ID invalid' });
     const { title, notes, scheduled_at, duration_min, status } = request.body || {};
-    const validMeetingStatuses = ['scheduled', 'completed', 'cancelled'];
-    if (status !== undefined && !validMeetingStatuses.includes(status)) {
+    if (status !== undefined && !MEETING_STATUSES.includes(status)) {
       return reply.code(400).send({ error: 'Status întâlnire invalid' });
     }
-    const fields = [];
-    const values = [];
-    if (title !== undefined) { fields.push('title = ?'); values.push(title); }
-    if (notes !== undefined) { fields.push('notes = ?'); values.push(notes); }
-    if (scheduled_at !== undefined) {
-      const parsedDate = new Date(scheduled_at);
-      if (isNaN(parsedDate.getTime())) return reply.code(400).send({ error: 'Data programării este invalidă' });
-      fields.push('scheduled_at = ?'); values.push(parsedDate);
-    }
-    if (duration_min !== undefined) { fields.push('duration_min = ?'); values.push(Number(duration_min)); }
-    if (status !== undefined) { fields.push('status = ?'); values.push(status); }
-    if (!fields.length) return reply.code(400).send({ error: 'Niciun câmp de actualizat' });
-    values.push(id);
     try {
+      const [existingRows] = await mysqlPool.query(
+        'SELECT id, user_id, title, notes, scheduled_at, duration_min, status FROM meetings WHERE id = ? LIMIT 1',
+        [id]
+      );
+
+      if (!Array.isArray(existingRows) || !existingRows.length) {
+        return reply.code(404).send({ error: 'Intalnire inexistenta' });
+      }
+
+      const existingMeeting = existingRows[0];
+      const fields = [];
+      const values = [];
+      if (title !== undefined) { fields.push('title = ?'); values.push(title); }
+      if (notes !== undefined) { fields.push('notes = ?'); values.push(notes); }
+      if (scheduled_at !== undefined) {
+        const parsedDate = new Date(scheduled_at);
+        if (isNaN(parsedDate.getTime())) return reply.code(400).send({ error: 'Data programării este invalidă' });
+        fields.push('scheduled_at = ?'); values.push(parsedDate);
+      }
+      if (duration_min !== undefined) { fields.push('duration_min = ?'); values.push(Number(duration_min)); }
+      if (status !== undefined) { fields.push('status = ?'); values.push(status); }
+      if (!fields.length) return reply.code(400).send({ error: 'Niciun câmp de actualizat' });
+
+      values.push(id);
       await mysqlPool.query(`UPDATE meetings SET ${fields.join(', ')} WHERE id = ?`, values);
-      return reply.send({ ok: true });
+
+      const [updatedRows] = await mysqlPool.query(
+        'SELECT id, user_id, title, notes, scheduled_at, duration_min, status FROM meetings WHERE id = ? LIMIT 1',
+        [id]
+      );
+      const updatedMeeting = Array.isArray(updatedRows) && updatedRows.length ? updatedRows[0] : existingMeeting;
+
+      const previousScheduleTs = parseDateTimeInput(existingMeeting.scheduled_at)?.getTime() || null;
+      const updatedScheduleTs = parseDateTimeInput(updatedMeeting.scheduled_at)?.getTime() || null;
+      const scheduleChanged = previousScheduleTs !== updatedScheduleTs;
+      const statusChanged = String(existingMeeting.status || '').trim() !== String(updatedMeeting.status || '').trim();
+
+      let notified = 0;
+      if (existingMeeting.user_id && (scheduleChanged || statusChanged)) {
+        notified = await notifyUserAboutMeetingUpdate({
+          request,
+          meetingId: id,
+          userId: existingMeeting.user_id,
+          previousMeeting: existingMeeting,
+          updatedMeeting,
+          statusChanged,
+          scheduleChanged,
+        });
+      }
+
+      invalidateAdminStatsCache();
+      return reply.send({ ok: true, notified });
     } catch (e) {
       request.log.error({ err: e }, 'Update meeting failed');
       return reply.code(500).send({ error: 'Eroare server' });
@@ -554,6 +671,7 @@ export async function registerAdminRoutes(app) {
     const id = Number(request.params.id);
     try {
       await mysqlPool.query('DELETE FROM meetings WHERE id = ?', [id]);
+      invalidateAdminStatsCache();
       return reply.send({ ok: true });
     } catch (e) {
       request.log.error({ err: e }, 'Delete meeting failed');
