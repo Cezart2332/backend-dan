@@ -145,6 +145,11 @@ export default function App() {
         navigationRef.current?.navigate?.('Webinarii', {
           focusWebinarId: Number.isFinite(webinarId) ? webinarId : undefined,
         });
+        return;
+      }
+
+      if (type === 'meeting_updated') {
+        navigationRef.current?.navigate?.('Direct');
       }
     };
 

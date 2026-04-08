@@ -10,15 +10,21 @@ import {
   TextInput,
   ActivityIndicator,
   Pressable,
+  Platform,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { api } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 
 const SLOT_TIMES = ['09:00', '10:30', '12:00', '14:00', '16:00', '18:00'];
 const DURATION_OPTIONS = [45, 60, 90];
+const SHARED_PUSH_TOKEN_KEY = 'quote_push_token';
+const DIRECT_PUSH_REGISTERED_KEY = 'direct_push_registered_v1';
 
 export default function DirectScreen({ navigation }) {
   const [bookingVisible, setBookingVisible] = React.useState(false);
@@ -34,6 +40,40 @@ export default function DirectScreen({ navigation }) {
     d.setDate(d.getDate() + selectedDayOffset);
     return d;
   }, [selectedDayOffset]);
+
+  const enableMeetingUpdateNotifications = React.useCallback(async (authToken) => {
+    if (!authToken) return;
+
+    try {
+      const alreadyRegistered = await AsyncStorage.getItem(DIRECT_PUSH_REGISTERED_KEY);
+      if (alreadyRegistered === '1') return;
+
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') return;
+
+      let expoPushToken = await AsyncStorage.getItem(SHARED_PUSH_TOKEN_KEY);
+      if (!expoPushToken) {
+        const projectId = Constants?.expoConfig?.extra?.eas?.projectId || Constants?.easConfig?.projectId;
+        const tokenResult = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
+        expoPushToken = tokenResult?.data || null;
+        if (expoPushToken) {
+          await AsyncStorage.setItem(SHARED_PUSH_TOKEN_KEY, expoPushToken);
+        }
+      }
+
+      if (expoPushToken) {
+        await api.registerPushToken({ token: expoPushToken, platform: Platform.OS, enabled: true }, authToken);
+        await AsyncStorage.setItem(DIRECT_PUSH_REGISTERED_KEY, '1');
+      }
+    } catch (error) {
+      console.warn('Direct meeting notifications setup failed:', error?.message || error);
+    }
+  }, []);
 
   const openBookingModal = () => {
     setBookingVisible(true);
@@ -66,6 +106,8 @@ export default function DirectScreen({ navigation }) {
         },
         token
       );
+
+      await enableMeetingUpdateNotifications(token);
 
       setBookingVisible(false);
       setNotes('');
