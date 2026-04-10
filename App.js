@@ -42,6 +42,7 @@ import TehnicaHAIPsihologiceScreen from "./components/TehnicaHAIPsihologiceScree
 import TehnicaHAIFiziceScreen from "./components/TehnicaHAIFiziceScreen";
 import TehnicaHAIVideoScreen from "./components/TehnicaHAIVideoScreen";
 import SettingsScreen from "./components/SettingsScreen";
+import MedicalInfoScreen from "./components/MedicalInfoScreen";
 import { getToken, clearToken } from "./utils/authStorage";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import SubscriptionPaywall from "./components/SubscriptionPaywall";
@@ -328,6 +329,10 @@ export default function App() {
             <Stack.Screen
               name="TehnicaHAIVideo"
               component={TehnicaHAIVideoScreen}
+            />
+            <Stack.Screen
+              name="MedicalInfo"
+              component={MedicalInfoScreen}
             />
             <Stack.Screen name="Settings">
               {(props) => (

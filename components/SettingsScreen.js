@@ -141,6 +141,25 @@ export default function SettingsScreen({ navigation, onLogout }) {
             <Text style={styles.headerTitle}>Setări</Text>
           </View>
 
+          {/* Section: Siguranță medicală */}
+          <Text style={styles.sectionLabel}>SIGURANȚĂ MEDICALĂ</Text>
+          <View style={styles.group}>
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() => navigation.navigate("MedicalInfo")}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.iconWrap, { backgroundColor: "#eef5ff" }]}>
+                <Ionicons name="medkit-outline" size={20} color="#2e6bb8" />
+              </View>
+              <View style={styles.rowTextWrap}>
+                <Text style={styles.rowTitle}>Medical Disclaimer & Sources</Text>
+                <Text style={styles.rowSubtitle}>Informational only. View sources in 1 tap.</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#c8d8e8" />
+            </TouchableOpacity>
+          </View>
+
           {/* Section: Suport */}
           <Text style={styles.sectionLabel}>SUPORT</Text>
           <View style={styles.group}>

@@ -27,6 +27,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
   const subType = subscription?.type || null;
   const normalizedSubType = String(subType || '').toLowerCase();
   const hasWebinarAccess = ['premium', 'vip', 'pro'].includes(normalizedSubType);
+  const medicalDisclaimerPreview = "This app provides general wellness and informational content only.";
 
   const handleLogout = useCallback(async () => {
     try {
@@ -222,6 +223,23 @@ export default function DashboardScreen({ navigation, onLogout }) {
             </View>
           </View>
 
+          <View style={styles.medicalCard}>
+            <View style={styles.medicalHeaderRow}>
+              <View style={styles.medicalIconWrap}>
+                <Ionicons name="medkit-outline" size={18} color="#2e6bb8" />
+              </View>
+              <Text style={styles.medicalTitle}>Medical Disclaimer</Text>
+            </View>
+            <Text style={styles.medicalBodyText}>{medicalDisclaimerPreview}</Text>
+            <TouchableOpacity
+              style={styles.medicalActionBtn}
+              onPress={() => navigation.navigate("MedicalInfo")}
+            >
+              <Text style={styles.medicalActionText}>Learn more / View sources</Text>
+              <Ionicons name="chevron-forward" size={16} color="#2e6bb8" />
+            </TouchableOpacity>
+          </View>
+
           {/* Menu Items */}
           <View style={styles.menuContainer}>
             <Text style={styles.menuTitle}>Ce vrei să faci astăzi?</Text>
@@ -400,6 +418,59 @@ const styles = StyleSheet.create({
     shadowColor: "#4a90e2",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.15, shadowRadius: 6, elevation: 6,
+  },
+  medicalCard: {
+    backgroundColor: "rgba(255,255,255,0.8)",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(74,144,226,0.25)",
+    padding: 14,
+    marginBottom: 18,
+    shadowColor: "#4a90e2",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  medicalHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  medicalIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(74,144,226,0.13)",
+    marginRight: 8,
+  },
+  medicalTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1a2d45",
+  },
+  medicalBodyText: {
+    fontSize: 13,
+    color: "#4f6780",
+    lineHeight: 19,
+  },
+  medicalActionBtn: {
+    marginTop: 10,
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(74,144,226,0.12)",
+    borderRadius: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+  },
+  medicalActionText: {
+    color: "#2e6bb8",
+    fontWeight: "700",
+    fontSize: 12,
+    marginRight: 2,
   },
   quoteSection: {
     marginBottom: 30,
