@@ -23,10 +23,11 @@ import { useSubscription } from "../contexts/SubscriptionContext";
 const { width } = Dimensions.get("window");
 
 export default function DashboardScreen({ navigation, onLogout }) {
-  const { subscription } = useSubscription();
+  const { subscription, hasProEntitlement } = useSubscription();
   const subType = subscription?.type || null;
   const normalizedSubType = String(subType || '').toLowerCase();
   const hasWebinarAccess = ['premium', 'vip', 'pro'].includes(normalizedSubType);
+  const hasChatAccess = hasProEntitlement || ['basic', 'premium', 'vip', 'pro'].includes(normalizedSubType);
   const medicalDisclaimerPreview = "This app provides general wellness and informational content only.";
 
   const handleLogout = useCallback(async () => {
@@ -116,6 +117,13 @@ export default function DashboardScreen({ navigation, onLogout }) {
       color: "#6f67ff",
     },
     {
+      id: 12,
+      title: "Comunitate chat",
+      subtitle: "Discuții în timp real cu comunitatea",
+      iconName: "chatbubbles-outline",
+      color: "#2f6cad",
+    },
+    {
       id: 9,
       title: "Abonamente & Acces",
       subtitle: "Planuri Basic / Premium / VIP",
@@ -140,6 +148,18 @@ export default function DashboardScreen({ navigation, onLogout }) {
       Alert.alert(
         'Funcție restricționată',
         'Accesul la webinarii necesita Premium sau VIP',
+        [
+          { text: 'Vezi abonamente', onPress: () => navigation.navigate('Subscriptions') },
+          { text: 'OK', style: 'cancel' },
+        ]
+      );
+      return;
+    }
+
+    if (item.id === 12 && !hasChatAccess) {
+      Alert.alert(
+        'Funcție restricționată',
+        'Chat-ul comunității este disponibil doar cu abonament activ.',
         [
           { text: 'Vezi abonamente', onPress: () => navigation.navigate('Subscriptions') },
           { text: 'OK', style: 'cancel' },
@@ -192,6 +212,8 @@ export default function DashboardScreen({ navigation, onLogout }) {
       navigation.navigate("IntelegeAnxietate");
     } else if (item.id === 11) {
       navigation.navigate("Webinarii");
+    } else if (item.id === 12) {
+      navigation.navigate("CommunityChat");
     }
   };
 
@@ -247,10 +269,13 @@ export default function DashboardScreen({ navigation, onLogout }) {
             {menuItems.map((item, index) => {
               const trialLocked = isTrial && trialLockedIds.has(item.id);
               const webinarLocked = item.id === 11 && !hasWebinarAccess;
-              const locked = trialLocked || webinarLocked;
+              const chatLocked = item.id === 12 && !hasChatAccess;
+              const locked = trialLocked || webinarLocked || chatLocked;
               const lockLabel = webinarLocked
                 ? ' Disponibil cu Premium/VIP'
-                : ' Disponibil cu abonament';
+                : chatLocked
+                  ? ' Disponibil cu abonament activ'
+                  : ' Disponibil cu abonament';
               return (
               <TouchableOpacity
                 key={item.id}

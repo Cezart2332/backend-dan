@@ -3,6 +3,22 @@ import Constants from 'expo-constants';
 // Prefer runtime config from Expo constants, then env, then localhost fallback
 const fromConstants = Constants?.expoConfig?.extra?.EXPO_PUBLIC_API_URL || Constants?.manifest?.extra?.EXPO_PUBLIC_API_URL;
 const DEFAULT_BASE = fromConstants || process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+export const API_BASE_URL = DEFAULT_BASE;
+
+export function buildWebSocketUrl(path, token) {
+  const base = String(DEFAULT_BASE || '').trim().replace(/\/+$/, '');
+  const normalizedPath = `/${String(path || '').trim().replace(/^\/+/, '')}`;
+
+  const wsBase = base.startsWith('https://')
+    ? `wss://${base.slice(8)}`
+    : base.startsWith('http://')
+      ? `ws://${base.slice(7)}`
+      : base;
+
+  if (!token) return `${wsBase}${normalizedPath}`;
+  const separator = normalizedPath.includes('?') ? '&' : '?';
+  return `${wsBase}${normalizedPath}${separator}token=${encodeURIComponent(token)}`;
+}
 
 async function request(path, { method = 'GET', body, token, timeoutMs = 15000 } = {}) {
   const headers = { 'Content-Type': 'application/json' };
@@ -49,6 +65,13 @@ export const api = {
   listMyMeetings: (token) => request('/api/meetings', { method: 'GET', token }),
   // Webinars
   listWebinars: (token) => request('/api/webinars', { method: 'GET', token }),
+  // Chat
+  getChatHistory: (token, before) => request(
+    Number.isFinite(Number(before)) && Number(before) > 0
+      ? `/chat/history?before=${encodeURIComponent(String(before))}`
+      : '/chat/history',
+    { method: 'GET', token }
+  ),
   // Challenges
   createChallengeRun: (payload, token) => request('/api/challenges/run', { method: 'POST', body: payload, token }),
   listChallengeRuns: (token) => request('/api/challenges/run', { method: 'GET', token }),
