@@ -4,6 +4,7 @@ import fastifyCors from "@fastify/cors";
 import fastifyCompress from "@fastify/compress";
 import fastifyRawBody from "fastify-raw-body";
 import rateLimit from "@fastify/rate-limit";
+import websocket from "@fastify/websocket";
 import { auth } from "./auth.js";
 import { mysqlPool, testDbConnection } from "./mysql.js";
 import { registerProgressRoutes } from "./routes-progress.js";
@@ -15,6 +16,7 @@ import { registerSubscriptionRoutes } from "./routes-subscriptions.js";
 import { registerVideoRoutes } from "./routes-videos.js";
 import { registerWebinarRoutes } from "./routes-webinars.js";
 import { registerNotificationRoutes } from "./routes-notifications.js";
+import { registerChatRoutes } from "./chat/routes.js";
 import { runMigrations } from "./migrate.js";
 import { registerAuthRoutes } from "./routes-auth.js";
 import { registerAdminRoutes } from "./routes-admin.js";
@@ -100,6 +102,8 @@ await app.register(fastifyCompress, {
   threshold: Number.isFinite(compressionThreshold) && compressionThreshold >= 0 ? compressionThreshold : 1024,
 });
 
+await app.register(websocket);
+
 // Health check
 app.get("/health", async () => ({ ok: true, shuttingDown: isShuttingDown }));
 
@@ -172,6 +176,7 @@ await registerSubscriptionRoutes(app);
 await registerVideoRoutes(app);
 await registerWebinarRoutes(app);
 await registerNotificationRoutes(app);
+await registerChatRoutes(app);
 await registerAdminRoutes(app);
 
 async function shutdown(signal) {

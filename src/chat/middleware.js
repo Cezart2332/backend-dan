@@ -1,0 +1,105 @@
+import jwt from 'jsonwebtoken';
+import { mysqlPool } from '../mysql.js';
+
+const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
+if (!JWT_SECRET) throw new Error('CRITICAL: JWT_SECRET is required');
+
+function extractAuthToken(request, options = {}) {
+  const allowQueryToken = options?.allowQueryToken === true;
+  const authHeader = request.headers?.authorization || request.headers?.Authorization || '';
+
+  if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+    return authHeader.slice(7).trim();
+  }
+
+  if (!allowQueryToken) return null;
+
+  const queryToken =
+    request.query?.token ||
+    request.query?.authToken ||
+    request.query?.accessToken ||
+    null;
+
+  return typeof queryToken === 'string' ? queryToken.trim() : null;
+}
+
+function buildChatUserFromJwt(decodedJwt) {
+  const userId = Number(decodedJwt?.sub);
+  if (!Number.isFinite(userId) || userId <= 0) return null;
+
+  const displayName = String(decodedJwt?.name || '').trim() || 'Utilizator';
+  return {
+    id: userId,
+    displayName,
+    avatar: null,
+  };
+}
+
+async function getActiveSubscription(userId) {
+  const [rows] = await mysqlPool.query(
+    `SELECT id, type, starts_at, ends_at
+     FROM subscriptions
+     WHERE user_id = ?
+       AND type IN ('basic','premium','vip','pro')
+       AND (ends_at IS NULL OR ends_at > NOW())
+     ORDER BY starts_at DESC, id DESC
+     LIMIT 1`,
+    [Number(userId)]
+  );
+
+  if (!Array.isArray(rows) || !rows.length) return null;
+
+  const row = rows[0];
+  return {
+    id: Number(row.id),
+    type: row.type,
+    startsAt: row.starts_at || null,
+    endsAt: row.ends_at || null,
+  };
+}
+
+/**
+ * Fastify auth hook that allows access only to authenticated users
+ * with an active paid subscription.
+ *
+ * The hook also attaches `request.chatUser` and `request.subscription`
+ * for downstream handlers.
+ *
+ * @param {import('fastify').FastifyRequest} request
+ * @param {import('fastify').FastifyReply} reply
+ * @param {{ allowQueryToken?: boolean }} [options]
+ * @returns {Promise<void>}
+ */
+export async function requireActiveSubscription(request, reply, options = {}) {
+  const token = extractAuthToken(request, options);
+  if (!token) {
+    reply.code(401).send({ error: 'Neautorizat' });
+    return;
+  }
+
+  let decodedJwt;
+  try {
+    decodedJwt = jwt.verify(token, JWT_SECRET);
+  } catch {
+    reply.code(401).send({ error: 'Neautorizat' });
+    return;
+  }
+
+  const chatUser = buildChatUserFromJwt(decodedJwt);
+  if (!chatUser) {
+    reply.code(401).send({ error: 'Neautorizat' });
+    return;
+  }
+
+  const subscription = await getActiveSubscription(chatUser.id);
+  if (!subscription) {
+    reply.code(403).send({
+      error: 'Accesul la comunitate este disponibil doar cu abonament activ.',
+      code: 'CHAT_SUBSCRIPTION_REQUIRED',
+    });
+    return;
+  }
+
+  request.chatUser = chatUser;
+  request.subscription = subscription;
+}
