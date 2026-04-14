@@ -70,7 +70,13 @@ app.after(() => {
 
 await app.register(fastifyCors, {
   // Allow native apps (no Origin header) and a whitelist of web origins
-  origin: (origin, cb) => {
+  origin: function (origin, cb) {
+    const isWebSocketUpgrade = String(this?.headers?.upgrade || '').toLowerCase() === 'websocket';
+    if (isWebSocketUpgrade) {
+      // WebSocket auth is enforced by route preValidation + JWT/subscription checks.
+      return cb(null, true);
+    }
+
     // Support comma-separated CLIENT_ORIGINS or fallback to single CLIENT_ORIGIN or dev default
     const configured = (
       process.env.CORE_CLIENT_ORIGINS ||
