@@ -17,19 +17,25 @@ const GOOGLE_WEB_CLIENT_ID = '109371475889-q2keqvuk0ho5rqb1fqdtbh3fli03sc5u.apps
 // Replace these with your actual iOS and Android client IDs:
 const GOOGLE_IOS_CLIENT_ID = '109371475889-sdet3ch6r3lf1n2voto4cjfcggjhc84k.apps.googleusercontent.com';
 const GOOGLE_ANDROID_CLIENT_ID = '109371475889-eadfpt9ovu6bkur2scatm063ht6uvqrv.apps.googleusercontent.com';
+const GOOGLE_ANDROID_REDIRECT_SCHEME = `com.googleusercontent.apps.${GOOGLE_ANDROID_CLIENT_ID.replace('.apps.googleusercontent.com', '')}`;
 
 /**
  * Hook for Google sign-in. Call this at the top level of a component.
  * Uses platform-specific client IDs for native builds and web client ID as fallback.
  */
 export function useGoogleAuth() {
+  const redirectUriOptions =
+    Platform.OS === 'android'
+      ? { native: `${GOOGLE_ANDROID_REDIRECT_SCHEME}:/oauthredirect` }
+      : {};
+
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     clientId: GOOGLE_WEB_CLIENT_ID,
     iosClientId: GOOGLE_IOS_CLIENT_ID,
     androidClientId: GOOGLE_ANDROID_CLIENT_ID,
     // Helps account switching without stale Google session reuse.
     selectAccount: true,
-  });
+  }, redirectUriOptions);
 
   return { request, response, promptAsync };
 }

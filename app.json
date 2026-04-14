@@ -2,7 +2,10 @@
   "expo": {
     "name": "Dan fost anxios",
     "slug": "dan-fost-anxios",
-    "scheme": "danfostanxios",
+    "scheme": [
+      "danfostanxios",
+      "com.googleusercontent.apps.109371475889-eadfpt9ovu6bkur2scatm063ht6uvqrv"
+    ],
     "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/ios/Icon-Store-1024.png",

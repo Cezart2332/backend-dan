@@ -165,7 +165,7 @@ export default function CommunityChatScreen({ navigation }) {
       return;
     }
 
-    const wsUrl = buildWebSocketUrl('/chat/connect', authToken);
+    const wsUrl = buildWebSocketUrl('/chat/connect');
     setSocketStatus('connecting');
 
     const ws = new WebSocket(wsUrl, [], {
