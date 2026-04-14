@@ -99,10 +99,12 @@ export default function ProfileScreen({ navigation }) {
 
   const handlePickAvatar = useCallback(async () => {
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission?.granted) {
-        Alert.alert('Permisiune necesara', 'Permite accesul la galerie pentru a selecta o poza de profil.');
-        return;
+      if (Platform.OS === 'ios') {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission?.granted) {
+          Alert.alert('Permisiune necesara', 'Permite accesul la galerie pentru a selecta o poza de profil.');
+          return;
+        }
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({

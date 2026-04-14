@@ -4,6 +4,7 @@ import {
   Alert,
   FlatList,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -12,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
@@ -98,6 +99,7 @@ function avatarInitial(displayName) {
 }
 
 export default function CommunityChatScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
   const { subscription, hasProEntitlement } = useSubscription();
 
@@ -114,6 +116,7 @@ export default function CommunityChatScreen({ navigation }) {
   const [historyError, setHistoryError] = useState('');
   const [socketStatus, setSocketStatus] = useState('disconnected');
   const [socketError, setSocketError] = useState('');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const wsRef = useRef(null);
   const listRef = useRef(null);
@@ -328,6 +331,35 @@ export default function CommunityChatScreen({ navigation }) {
     shouldAutoScrollRef.current = true;
   }, [messages]);
 
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillChangeFrame' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const onShow = (event) => {
+      const frameHeight = Number(event?.endCoordinates?.height || 0);
+      const overlap = Platform.OS === 'ios'
+        ? Math.max(0, frameHeight - insets.bottom)
+        : frameHeight;
+
+      setKeyboardHeight(overlap);
+      requestAnimationFrame(() => {
+        listRef.current?.scrollToEnd({ animated: true });
+      });
+    };
+
+    const onHide = () => {
+      setKeyboardHeight(0);
+    };
+
+    const showSubscription = Keyboard.addListener(showEvent, onShow);
+    const hideSubscription = Keyboard.addListener(hideEvent, onHide);
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [insets.bottom]);
+
   const handleLoadOlder = useCallback(async () => {
     if (!hasMore || loadingOlder || !nextBefore) return;
     await loadHistory({ before: nextBefore, appendOlder: true });
@@ -441,8 +473,8 @@ export default function CommunityChatScreen({ navigation }) {
         ) : (
           <KeyboardAvoidingView
             style={styles.chatContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 18 : 0}
+            behavior={Platform.OS === 'android' ? 'height' : undefined}
+            keyboardVerticalOffset={0}
           >
             <View style={styles.statusBarRow}>
               <View style={[styles.statusBadge, socketStatus === 'connected' ? styles.statusBadgeOnline : styles.statusBadgeOffline]}>
@@ -492,11 +524,20 @@ export default function CommunityChatScreen({ navigation }) {
               keyExtractor={(item) => (item.id ? `id-${item.id}` : `local-${item.localId || getMessageKey(item)}`)}
               renderItem={renderMessageItem}
               contentContainerStyle={styles.listContent}
+              keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
               ListEmptyComponent={<Text style={styles.emptyText}>Nu exista mesaje inca. Scrie primul mesaj.</Text>}
             />
 
-            <View style={styles.composerWrap}>
+            <View
+              style={[
+                styles.composerWrap,
+                {
+                  paddingBottom:
+                    Math.max(insets.bottom, 6) + (Platform.OS === 'ios' ? keyboardHeight : 0),
+                },
+              ]}
+            >
               <View style={styles.inputWrap}>
                 <TextInput
                   style={styles.input}
@@ -504,6 +545,11 @@ export default function CommunityChatScreen({ navigation }) {
                   placeholderTextColor="#8ea0b2"
                   value={draft}
                   onChangeText={setDraft}
+                  onFocus={() => {
+                    requestAnimationFrame(() => {
+                      listRef.current?.scrollToEnd({ animated: true });
+                    });
+                  }}
                   multiline
                   maxLength={MAX_MESSAGE_LENGTH}
                 />
