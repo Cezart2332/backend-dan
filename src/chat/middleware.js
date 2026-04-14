@@ -23,15 +23,27 @@ function extractAuthToken(request, options = {}) {
   return typeof queryToken === 'string' ? queryToken.trim() : null;
 }
 
-function buildChatUserFromJwt(decodedJwt) {
-  const userId = Number(decodedJwt?.sub);
-  if (!Number.isFinite(userId) || userId <= 0) return null;
+function normalizeDisplayName(nameFromDb, fallbackName = null) {
+  const primary = String(nameFromDb || '').trim();
+  if (primary.length) return primary;
 
-  const displayName = String(decodedJwt?.name || '').trim() || 'Utilizator';
+  const fallback = String(fallbackName || '').trim();
+  return fallback.length ? fallback : 'Utilizator';
+}
+
+async function getChatUserProfile(userId, fallbackName = null) {
+  const [rows] = await mysqlPool.query(
+    'SELECT id, name, avatar_url FROM users WHERE id = ? LIMIT 1',
+    [Number(userId)]
+  );
+
+  if (!Array.isArray(rows) || !rows.length) return null;
+
+  const row = rows[0];
   return {
-    id: userId,
-    displayName,
-    avatar: null,
+    id: Number(row.id),
+    displayName: normalizeDisplayName(row.name, fallbackName),
+    avatar: row.avatar_url || null,
   };
 }
 
@@ -85,7 +97,13 @@ export async function requireActiveSubscription(request, reply, options = {}) {
     return;
   }
 
-  const chatUser = buildChatUserFromJwt(decodedJwt);
+  const userId = Number(decodedJwt?.sub);
+  if (!Number.isFinite(userId) || userId <= 0) {
+    reply.code(401).send({ error: 'Neautorizat' });
+    return;
+  }
+
+  const chatUser = await getChatUserProfile(userId, decodedJwt?.name);
   if (!chatUser) {
     reply.code(401).send({ error: 'Neautorizat' });
     return;

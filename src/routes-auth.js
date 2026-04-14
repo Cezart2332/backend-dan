@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import Stripe from "stripe";
 import { mysqlPool } from "./mysql.js";
+import { deleteAvatarFileByUrl } from "./profile-photo-storage.js";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || '';
 
@@ -117,20 +118,20 @@ async function verifyAppleIdToken(idToken) {
 async function findOrCreateOAuthUser(provider, providerId, email, name, emailVerified = false) {
   // 1) Check if user already exists with this provider + provider_id
   const [existing] = await mysqlPool.query(
-    "SELECT id, email, name FROM users WHERE provider = ? AND provider_id = ? LIMIT 1",
+    "SELECT id, email, name, avatar_url FROM users WHERE provider = ? AND provider_id = ? LIMIT 1",
     [provider, providerId]
   );
   if (Array.isArray(existing) && existing.length > 0) {
     const u = existing[0];
     const token = signToken(u);
-    return { token, user: { id: u.id, email: u.email, name: u.name } };
+    return { token, user: { id: u.id, email: u.email, name: u.name, avatar_url: u.avatar_url || null } };
   }
 
   // 2) Check if there's an existing user with the same email (local account)
   //    Only link if OAuth provider reports email_verified to prevent account takeover
   if (email && emailVerified) {
     const [byEmail] = await mysqlPool.query(
-      "SELECT id, email, name, provider, provider_id FROM users WHERE email = ? LIMIT 1",
+      "SELECT id, email, name, avatar_url, provider, provider_id FROM users WHERE email = ? LIMIT 1",
       [email]
     );
     if (Array.isArray(byEmail) && byEmail.length > 0) {
@@ -144,7 +145,7 @@ async function findOrCreateOAuthUser(provider, providerId, email, name, emailVer
         );
       }
       const token = signToken(u);
-      return { token, user: { id: u.id, email: u.email, name: u.name } };
+      return { token, user: { id: u.id, email: u.email, name: u.name, avatar_url: u.avatar_url || null } };
     }
   }
 
@@ -155,7 +156,7 @@ async function findOrCreateOAuthUser(provider, providerId, email, name, emailVer
   );
   const id = res.insertId;
   const token = signToken({ id, email, name });
-  return { token, user: { id, email, name } };
+  return { token, user: { id, email, name, avatar_url: null } };
 }
 
 // Email validation regex
@@ -190,7 +191,7 @@ export async function registerAuthRoutes(app) {
     );
     const id = res.insertId;
     const token = signToken({ id, email, name });
-    return reply.send({ token, user: { id, email, name } });
+    return reply.send({ token, user: { id, email, name, avatar_url: null } });
   });
 
   app.post("/api/custom-auth/login", async (request, reply) => {
@@ -198,7 +199,7 @@ export async function registerAuthRoutes(app) {
     if (!email || !password) return reply.code(400).send({ error: "Email și parolă necesare" });
     if (!EMAIL_REGEX.test(email)) return reply.code(400).send({ error: "Format email invalid" });
     const [rows] = await mysqlPool.query(
-      "SELECT id, email, name, password_hash FROM users WHERE email = ? LIMIT 1",
+      "SELECT id, email, name, avatar_url, password_hash FROM users WHERE email = ? LIMIT 1",
       [email]
     );
     if (!Array.isArray(rows) || rows.length === 0) return reply.code(401).send({ error: "Credențiale invalide" });
@@ -206,7 +207,7 @@ export async function registerAuthRoutes(app) {
     const ok = await bcrypt.compare(password, u.password_hash || "");
     if (!ok) return reply.code(401).send({ error: "Credențiale invalide" });
     const token = signToken(u);
-    return reply.send({ token, user: { id: u.id, email: u.email, name: u.name } });
+    return reply.send({ token, user: { id: u.id, email: u.email, name: u.name, avatar_url: u.avatar_url || null } });
   });
 
   // Delete account endpoint
@@ -226,6 +227,7 @@ export async function registerAuthRoutes(app) {
     }
 
     let conn;
+    let avatarUrlToDelete = null;
     try {
       // Cancel active Stripe subscriptions (best-effort; do not fail account deletion if Stripe is unavailable)
       if (stripeSecretKey) {
@@ -245,6 +247,16 @@ export async function registerAuthRoutes(app) {
 
       conn = await mysqlPool.getConnection();
       await conn.beginTransaction();
+
+      const [userRows] = await conn.query(
+        "SELECT avatar_url FROM users WHERE id = ? LIMIT 1 FOR UPDATE",
+        [userId]
+      );
+      if (!Array.isArray(userRows) || userRows.length === 0) {
+        await conn.rollback();
+        return reply.code(404).send({ error: "Utilizator negăsit" });
+      }
+      avatarUrlToDelete = userRows[0]?.avatar_url || null;
 
       // Keep compatibility with older/newer schemas by ignoring missing legacy tables.
       const deleteByUserId = async (tableName, columnName = "user_id") => {
@@ -281,6 +293,12 @@ export async function registerAuthRoutes(app) {
       }
 
       await conn.commit();
+
+      if (avatarUrlToDelete) {
+        await deleteAvatarFileByUrl(avatarUrlToDelete).catch((cleanupError) => {
+          request.log.warn({ err: cleanupError, userId }, 'Failed to delete avatar file after account deletion');
+        });
+      }
       
       return reply.send({ success: true, message: "Cont șters cu succes" });
     } catch (error) {

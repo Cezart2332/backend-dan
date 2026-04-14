@@ -20,9 +20,10 @@ import { registerChatRoutes } from "./chat/routes.js";
 import { runMigrations } from "./migrate.js";
 import { registerAuthRoutes } from "./routes-auth.js";
 import { registerAdminRoutes } from "./routes-admin.js";
+import { registerProfileRoutes } from "./routes-profile.js";
 
 const logLevel = process.env.LOG_LEVEL || "info";
-const app = Fastify({ logger: { level: logLevel }, bodyLimit: 1048576 }); // 1MB max body
+const app = Fastify({ logger: { level: logLevel }, bodyLimit: 5 * 1024 * 1024 }); // 5MB max body
 let isShuttingDown = false;
 let isReady = false;
 
@@ -170,6 +171,7 @@ app.route({
 
 // Register custom endpoints (email/password + social helpers)
 await registerAuthRoutes(app);
+await registerProfileRoutes(app);
 await registerProgressRoutes(app);
 await registerQuestionRoutes(app);
 await registerMeetingRoutes(app);

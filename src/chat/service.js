@@ -84,13 +84,14 @@ async function insertChatMessage(userId, content) {
       id: null,
       user_id: Number(userId),
       display_name: null,
+      avatar_url: null,
       content,
       created_at: new Date().toISOString(),
     };
   }
 
   const [rows] = await mysqlPool.query(
-    `SELECT cm.id, cm.user_id, cm.content, cm.created_at, u.name AS display_name
+    `SELECT cm.id, cm.user_id, cm.content, cm.created_at, u.name AS display_name, u.avatar_url
      FROM chat_messages cm
      INNER JOIN users u ON u.id = cm.user_id
      WHERE cm.id = ?
@@ -103,6 +104,7 @@ async function insertChatMessage(userId, content) {
       id: messageId,
       user_id: Number(userId),
       display_name: null,
+      avatar_url: null,
       content,
       created_at: new Date().toISOString(),
     };
@@ -122,6 +124,7 @@ function buildMessagePayload(messageRow, fallbackUser) {
     type: 'message',
     userId: String(messageRow?.user_id || fallbackUser?.id || ''),
     displayName: normalizeDisplayName(messageRow?.display_name || fallbackUser?.displayName),
+    avatar: messageRow?.avatar_url || fallbackUser?.avatar || null,
     content: String(messageRow?.content || ''),
     createdAt: formatIsoDate(messageRow?.created_at),
   };
@@ -133,7 +136,7 @@ function buildHistoryItem(messageRow) {
     type: 'message',
     userId: String(messageRow.user_id),
     displayName: normalizeDisplayName(messageRow.display_name),
-    avatar: null,
+    avatar: messageRow.avatar_url || null,
     content: String(messageRow.content || ''),
     createdAt: formatIsoDate(messageRow.created_at),
   };
@@ -142,7 +145,7 @@ function buildHistoryItem(messageRow) {
 /**
  * Registers a websocket connection for a chat user.
  *
- * @param {{ id: number, displayName: string, avatar: null }} chatUser
+ * @param {{ id: number, displayName: string, avatar: string|null }} chatUser
  * @param {any} socket
  * @returns {boolean} True when this is the first active connection for the user.
  */
@@ -203,6 +206,7 @@ export function broadcastSystemEvent({ event, chatUser }) {
     type: 'system',
     userId: String(chatUser?.id || ''),
     displayName,
+    avatar: chatUser?.avatar || null,
     content,
     createdAt: new Date().toISOString(),
   });
@@ -211,7 +215,7 @@ export function broadcastSystemEvent({ event, chatUser }) {
 /**
  * Handles a websocket chat event from a connected user.
  *
- * @param {{ socket: any, rawData: Buffer|string, chatUser: { id: number, displayName: string, avatar: null } }} params
+ * @param {{ socket: any, rawData: Buffer|string, chatUser: { id: number, displayName: string, avatar: string|null } }} params
  * @returns {Promise<void>}
  */
 export async function handleChatSocketMessage({ socket, rawData, chatUser }) {
@@ -329,7 +333,7 @@ export async function getChatHistoryPage(params = {}) {
   const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
   const [rows] = await mysqlPool.query(
-    `SELECT cm.id, cm.user_id, cm.content, cm.created_at, u.name AS display_name
+    `SELECT cm.id, cm.user_id, cm.content, cm.created_at, u.name AS display_name, u.avatar_url
      FROM chat_messages cm
      INNER JOIN users u ON u.id = cm.user_id
      ${whereSql}

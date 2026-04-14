@@ -8,6 +8,7 @@ export async function runMigrations() {
       email VARCHAR(255) UNIQUE,
       password_hash VARCHAR(255),
       name VARCHAR(255),
+      avatar_url TEXT NULL,
       provider ENUM('local','google','facebook','apple') NOT NULL DEFAULT 'local',
       provider_id VARCHAR(255),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -220,6 +221,9 @@ export async function runMigrations() {
   }
   try {
     await mysqlPool.query(`ALTER TABLE users ADD INDEX idx_users_created_at (created_at)`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE users ADD COLUMN avatar_url TEXT NULL`);
   } catch {}
 
   // subscriptions table
