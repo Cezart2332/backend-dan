@@ -1,4 +1,4 @@
-import Filter from 'bad-words';
+import { Filter } from 'bad-words';
 import { mysqlPool } from '../mysql.js';
 
 const MESSAGE_RATE_LIMIT_COUNT = 5;

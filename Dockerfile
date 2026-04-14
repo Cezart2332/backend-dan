@@ -16,7 +16,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Install runtime dependencies (ffmpeg for HLS encoding + cpulimit for CPU capping)
-RUN apk add --no-cache ffmpeg cpulimit
+# Include curl so Coolify/UI healthchecks that rely on curl can run.
+RUN apk add --no-cache ffmpeg cpulimit curl
 
 # Copy node_modules and source
 COPY --from=build /app/node_modules ./node_modules
