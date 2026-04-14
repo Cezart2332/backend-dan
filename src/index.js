@@ -67,39 +67,48 @@ app.after(() => {
   });
 });
 
+const configuredClientOrigins = (
+  process.env.CORE_CLIENT_ORIGINS ||
+  process.env.CLIENT_ORIGINS ||
+  process.env.CORE_CLIENT_ORIGIN ||
+  process.env.CLIENT_ORIGIN ||
+  "http://localhost:19006"
+)
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
-await app.register(fastifyCors, {
-  // Allow native apps (no Origin header) and a whitelist of web origins
-  origin: function (origin, cb) {
-    const isWebSocketUpgrade = String(this?.headers?.upgrade || '').toLowerCase() === 'websocket';
-    if (isWebSocketUpgrade) {
-      // WebSocket auth is enforced by route preValidation + JWT/subscription checks.
-      return cb(null, true);
-    }
-
-    // Support comma-separated CLIENT_ORIGINS or fallback to single CLIENT_ORIGIN or dev default
-    const configured = (
-      process.env.CORE_CLIENT_ORIGINS ||
-      process.env.CLIENT_ORIGINS ||
-      process.env.CORE_CLIENT_ORIGIN ||
-      process.env.CLIENT_ORIGIN ||
-      "http://localhost:19006"
-    )
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (!origin) {
-      // Native apps/Postman often send no Origin; allow them
-      return cb(null, true);
-    }
-    if (configured.includes(origin)) return cb(null, true);
-    return cb(new Error("CORS origin not allowed"), false);
-  },
+const baseCorsOptions = {
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-Admin-Token"],
   exposedHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining"],
   credentials: true,
   maxAge: 86400,
+};
+
+await app.register(fastifyCors, {
+  // Use a request-aware delegator so websocket route checks can be handled explicitly.
+  delegator: (req, cb) => {
+    const reqOrigin = req.headers?.origin;
+    const reqUrl = String(req.url || '');
+    const isChatWebSocketRoute = reqUrl.startsWith('/chat/connect');
+
+    if (isChatWebSocketRoute) {
+      // Chat websocket auth is enforced by route preValidation + JWT/subscription checks.
+      return cb(null, { ...baseCorsOptions, origin: true });
+    }
+
+    if (!reqOrigin) {
+      // Native apps/Postman often send no Origin; allow them.
+      return cb(null, { ...baseCorsOptions, origin: true });
+    }
+
+    if (configuredClientOrigins.includes(reqOrigin)) {
+      return cb(null, { ...baseCorsOptions, origin: true });
+    }
+
+    return cb(new Error("CORS origin not allowed"));
+  },
 });
 
 const compressionThreshold = Number(process.env.COMPRESS_THRESHOLD_BYTES || 1024);
