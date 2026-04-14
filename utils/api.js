@@ -5,6 +5,16 @@ const fromConstants = Constants?.expoConfig?.extra?.EXPO_PUBLIC_API_URL || Const
 const DEFAULT_BASE = fromConstants || process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
 export const API_BASE_URL = DEFAULT_BASE;
 
+export function toAbsoluteApiUrl(resourceUrl) {
+  const raw = String(resourceUrl || '').trim();
+  if (!raw) return null;
+  if (/^https?:\/\//i.test(raw)) return raw;
+
+  const normalizedBase = String(DEFAULT_BASE || '').trim().replace(/\/+$/, '');
+  const normalizedPath = raw.startsWith('/') ? raw : `/${raw}`;
+  return `${normalizedBase}${normalizedPath}`;
+}
+
 export function buildWebSocketUrl(path, token) {
   const base = String(DEFAULT_BASE || '').trim().replace(/\/+$/, '');
   const normalizedPath = `/${String(path || '').trim().replace(/^\/+/, '')}`;
@@ -83,6 +93,8 @@ export const api = {
   startTrial: (token) => request('/api/subscriptions/start-trial', { method: 'POST', token }),
   createCheckout: (payload, token) => request('/api/subscriptions/create-checkout', { method: 'POST', body: payload, token }),
   createPaymentSheet: (payload, token) => request('/api/subscriptions/create-payment-sheet', { method: 'POST', body: payload, token }),
+  getProfile: (token) => request('/api/profile', { method: 'GET', token }),
+  updateProfile: (payload, token) => request('/api/profile', { method: 'PUT', body: payload, token }),
   // Account management
   deleteAccount: (token) => request('/api/custom-auth/account', { method: 'DELETE', token }),
   reportBug: (payload, token) => request('/api/bug-report', { method: 'POST', body: payload, token }),

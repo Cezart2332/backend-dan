@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -16,7 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
 import { useSubscription } from '../contexts/SubscriptionContext';
-import { api, buildWebSocketUrl } from '../utils/api';
+import { api, buildWebSocketUrl, toAbsoluteApiUrl } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { getUser } from '../utils/userStorage';
 
@@ -57,7 +58,7 @@ function normalizeIncomingMessage(item) {
     type,
     userId: String(item?.userId || ''),
     displayName: String(item?.displayName || 'Comunitate').trim() || 'Comunitate',
-    avatar: null,
+    avatar: toAbsoluteApiUrl(item?.avatar),
     content,
     createdAt: toIsoDate(item?.createdAt),
   };
@@ -88,6 +89,12 @@ function formatTime(value) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function avatarInitial(displayName) {
+  const normalized = String(displayName || '').trim();
+  if (!normalized.length) return '?';
+  return normalized.charAt(0).toUpperCase();
 }
 
 export default function CommunityChatScreen({ navigation }) {
@@ -378,7 +385,18 @@ export default function CommunityChatScreen({ navigation }) {
 
       return (
         <View style={[styles.messageRow, isMine ? styles.messageRowMine : styles.messageRowOther]}>
-          {!isMine ? <Text style={styles.senderText}>{item.displayName}</Text> : null}
+          {!isMine ? (
+            <View style={styles.senderRow}>
+              {item.avatar ? (
+                <Image source={{ uri: item.avatar }} style={styles.senderAvatar} />
+              ) : (
+                <View style={styles.senderAvatarFallback}>
+                  <Text style={styles.senderAvatarFallbackText}>{avatarInitial(item.displayName)}</Text>
+                </View>
+              )}
+              <Text style={styles.senderText}>{item.displayName}</Text>
+            </View>
+          ) : null}
           <View style={[styles.messageBubble, isMine ? styles.messageBubbleMine : styles.messageBubbleOther]}>
             <Text style={[styles.messageText, isMine ? styles.messageTextMine : styles.messageTextOther]}>
               {item.content}
@@ -644,7 +662,35 @@ const styles = StyleSheet.create({
   messageRow: { maxWidth: '85%', marginBottom: 8 },
   messageRowMine: { alignSelf: 'flex-end' },
   messageRowOther: { alignSelf: 'flex-start' },
-  senderText: { color: '#5f7690', fontSize: 11, marginBottom: 3, marginLeft: 4 },
+  senderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 3,
+    marginLeft: 2,
+  },
+  senderAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginRight: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(160,188,214,0.55)',
+  },
+  senderAvatarFallback: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginRight: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(74,144,226,0.18)',
+  },
+  senderAvatarFallbackText: {
+    fontSize: 10,
+    color: '#3b6797',
+    fontWeight: '700',
+  },
+  senderText: { color: '#5f7690', fontSize: 11 },
   messageBubble: {
     borderRadius: 14,
     paddingHorizontal: 12,

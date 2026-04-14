@@ -20,7 +20,7 @@ import { replaceAllRuns } from "../utils/challengeStorage";
 import { logoutRevenueCatUser } from "../utils/revenuecat";
 
 const { width } = Dimensions.get("window");
-const EXCLUDED_ROUTES = new Set(["Login", "Register", "Subscriptions", "Onboarding"]);
+const EXCLUDED_ROUTES = new Set(["Login", "Register", "Subscriptions", "Onboarding", "Profile"]);
 
 export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRoute, onLogout }) {
   const {

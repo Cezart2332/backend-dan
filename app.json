@@ -24,7 +24,7 @@
       "infoPlist": {
         "NSUserNotificationUsageDescription": "Permite notificări pentru a primi gândul zilnic de la Dan.",
         "NSCameraUsageDescription": "Această aplicație nu folosește camera, dar unele biblioteci terțe pot solicita acest acces.",
-        "NSPhotoLibraryUsageDescription": "Această aplicație nu folosește galeria foto, dar unele biblioteci terțe pot solicita acest acces.",
+        "NSPhotoLibraryUsageDescription": "Aplicatia are nevoie de acces la galeria foto pentru a-ti seta poza de profil.",
         "NSMicrophoneUsageDescription": "Această aplicație nu folosește microfonul, dar unele biblioteci terțe pot solicita acest acces.",
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": ["audio"]
@@ -41,7 +41,8 @@
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "INTERNET",
-        "ACCESS_NETWORK_STATE"
+        "ACCESS_NETWORK_STATE",
+        "READ_MEDIA_IMAGES"
       ]
     },
     "web": {
@@ -57,6 +58,7 @@
         }
       ],
       "expo-font",
+      "expo-image-picker",
       "expo-apple-authentication",
       [
         "expo-av",

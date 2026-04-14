@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,17 +8,19 @@ import {
   Dimensions,
   Linking,
   Alert,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { clearSubscription } from "../utils/subscriptionStorage";
-import { clearToken } from "../utils/authStorage";
-import { clearUser } from "../utils/userStorage";
+import { clearToken, getToken } from "../utils/authStorage";
+import { clearUser, getUser, saveUser } from "../utils/userStorage";
 import { clearEntries } from "../utils/progressStorage";
 import { replaceAllRuns } from "../utils/challengeStorage";
 import { logoutRevenueCatUser } from "../utils/revenuecat";
 import { useSubscription } from "../contexts/SubscriptionContext";
+import { api, toAbsoluteApiUrl } from "../utils/api";
 
 const { width } = Dimensions.get("window");
 
@@ -29,6 +31,50 @@ export default function DashboardScreen({ navigation, onLogout }) {
   const hasWebinarAccess = ['premium', 'vip', 'pro'].includes(normalizedSubType);
   const hasChatAccess = hasProEntitlement || ['basic', 'premium', 'vip', 'pro'].includes(normalizedSubType);
   const medicalDisclaimerPreview = "This app provides general wellness and informational content only.";
+  const [profileName, setProfileName] = useState("În spațiul tău sigur");
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState(null);
+
+  const applyProfilePreview = useCallback((userPayload) => {
+    const resolvedName = String(userPayload?.name || '').trim();
+    setProfileName(resolvedName || "În spațiul tău sigur");
+    setProfileAvatarUrl(toAbsoluteApiUrl(userPayload?.avatar_url));
+  }, []);
+
+  const refreshProfilePreview = useCallback(async () => {
+    const localUser = await getUser();
+    if (localUser) {
+      applyProfilePreview(localUser);
+    }
+
+    const token = await getToken();
+    if (!token) return;
+
+    try {
+      const response = await api.getProfile(token);
+      const profileUser = response?.user || null;
+      if (!profileUser) return;
+
+      const mergedUser = {
+        ...(localUser || {}),
+        ...profileUser,
+        name: String(profileUser?.name || '').trim(),
+      };
+
+      await saveUser(mergedUser);
+      applyProfilePreview(mergedUser);
+    } catch {
+      // Silent failure: keep local cache fallback.
+    }
+  }, [applyProfilePreview]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      refreshProfilePreview().catch(() => {});
+    });
+
+    refreshProfilePreview().catch(() => {});
+    return unsubscribe;
+  }, [navigation, refreshProfilePreview]);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -228,7 +274,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
           <View style={styles.header}>
             <View style={styles.welcomeContainer}>
               <Text style={styles.welcomeText}>Bine ai venit!</Text>
-              <Text style={styles.userName}>În spațiul tău sigur</Text>
+              <Text style={styles.userName}>{profileName}</Text>
               {subType && (
                 <View style={styles.subBadge}>
                   <Text style={styles.subBadgeText}>
@@ -238,11 +284,19 @@ export default function DashboardScreen({ navigation, onLogout }) {
               )}
             </View>
 
-            <View style={styles.logoContainer}>
+            <TouchableOpacity
+              style={styles.logoContainer}
+              onPress={() => navigation.navigate('Profile')}
+              activeOpacity={0.8}
+            >
               <View style={styles.logoCircle}>
-                <Ionicons name="leaf" size={26} color="#4a90e2" />
+                {profileAvatarUrl ? (
+                  <Image source={{ uri: profileAvatarUrl }} style={styles.logoAvatar} />
+                ) : (
+                  <Ionicons name="person" size={24} color="#4a90e2" />
+                )}
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.medicalCard}>
@@ -443,6 +497,11 @@ const styles = StyleSheet.create({
     shadowColor: "#4a90e2",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.15, shadowRadius: 6, elevation: 6,
+  },
+  logoAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
   medicalCard: {
     backgroundColor: "rgba(255,255,255,0.8)",

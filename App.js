@@ -44,6 +44,7 @@ import TehnicaHAIVideoScreen from "./components/TehnicaHAIVideoScreen";
 import SettingsScreen from "./components/SettingsScreen";
 import MedicalInfoScreen from "./components/MedicalInfoScreen";
 import CommunityChatScreen from "./components/CommunityChatScreen";
+import ProfileScreen from "./components/ProfileScreen";
 import { getToken, clearToken } from "./utils/authStorage";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import SubscriptionPaywall from "./components/SubscriptionPaywall";
@@ -243,6 +244,7 @@ export default function App() {
             <Stack.Screen name="Intrebari" component={IntrebariScreen} />
             <Stack.Screen name="Webinarii" component={WebinariiScreen} />
             <Stack.Screen name="CommunityChat" component={CommunityChatScreen} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="AboutDan" component={AboutDanScreen} />
             <Stack.Screen
               name="AboutDanSection"
