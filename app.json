@@ -7,7 +7,7 @@
       "com.cartealuidan.danfostanxios",
       "com.googleusercontent.apps.109371475889-eadfpt9ovu6bkur2scatm063ht6uvqrv"
     ],
-    "version": "2.0.0",
+    "version": "2.1.0",
     "orientation": "portrait",
     "icon": "./assets/ios/Icon-Store-1024.png",
     "userInterfaceStyle": "light",
@@ -28,7 +28,9 @@
         "NSPhotoLibraryUsageDescription": "Aplicatia are nevoie de acces la galeria foto pentru a-ti seta poza de profil.",
         "NSMicrophoneUsageDescription": "Această aplicație nu folosește microfonul, dar unele biblioteci terțe pot solicita acest acces.",
         "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": [
+          "audio"
+        ]
       }
     },
     "android": {

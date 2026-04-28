@@ -209,7 +209,7 @@ export default function VideoPlayerScreen({
         player.pause();
         player.staysActiveInBackground = false;
         player.showNowPlayingNotification = false;
-      } catch {}
+      } catch { }
     };
   }, [player]);
 
@@ -288,7 +288,7 @@ export default function VideoPlayerScreen({
         colors={["#ddeeff", "#eaf4ff", "#f5f9ff"]}
         style={styles.gradient}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
@@ -464,7 +464,7 @@ export default function VideoPlayerScreen({
     </SafeAreaView>
   );
 }
-}
+
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#ddeeff" },
@@ -473,9 +473,9 @@ const styles = StyleSheet.create({
     padding: 20,
     flexGrow: 1,
   },
-  header: { 
-    flexDirection: "row", 
-    alignItems: "center", 
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 12, // Reduced margin
     marginTop: 4,
   },
