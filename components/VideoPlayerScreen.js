@@ -4,7 +4,8 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
+  ScrollView,
+  useWindowDimensions,
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,8 +16,6 @@ import { useEvent } from "expo";
 import Constants from "expo-constants";
 import Slider from "@react-native-community/slider";
 import HeadphonesDisclaimer from "./HeadphonesDisclaimer";
-
-const { width } = Dimensions.get("window");
 
 const fromConstants =
   Constants?.expoConfig?.extra?.EXPO_PUBLIC_API_URL ||
@@ -39,6 +38,7 @@ export default function VideoPlayerScreen({
   nowPlayingArtwork,
   nowPlayingAccent,
 }) {
+  const { width, height } = useWindowDimensions();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [audioOnly, setAudioOnly] = useState(false);
@@ -133,6 +133,13 @@ export default function VideoPlayerScreen({
     Math.max(displayedPositionSeconds, 0),
     sliderMaximum
   );
+  const availableVideoWidth = Math.max(width - 40, 240);
+  const maxVideoHeight = Math.max(180, Math.floor(height * 0.34));
+  const videoWidth = Math.min(
+    availableVideoWidth,
+    Math.floor(maxVideoHeight * (16 / 9))
+  );
+  const videoHeight = Math.floor(videoWidth * (9 / 16));
 
   // Keep media playback active in background for both video and audio-only modes.
   useEffect(() => {
@@ -314,13 +321,23 @@ export default function VideoPlayerScreen({
           {!audioOnly && (
             <View style={styles.playerWrap}>
               {isLoading && (
-                <View style={styles.loadingOverlay}>
+                <View
+                  style={[
+                    styles.loadingOverlay,
+                    { width: videoWidth, height: videoHeight },
+                  ]}
+                >
                   <ActivityIndicator size="large" color="#4a90e2" />
                   <Text style={styles.loadingText}>Se încarcă...</Text>
                 </View>
               )}
               {error && (
-                <View style={styles.errorOverlay}>
+                <View
+                  style={[
+                    styles.errorOverlay,
+                    { width: videoWidth, height: videoHeight },
+                  ]}
+                >
                   <Text style={styles.errorText}>{error}</Text>
                   <TouchableOpacity style={styles.retryBtn} onPress={handleRetry}>
                     <Text style={styles.retryText}>Reîncearcă</Text>
@@ -328,7 +345,7 @@ export default function VideoPlayerScreen({
                 </View>
               )}
               <VideoView
-                style={styles.video}
+                style={[styles.video, { width: videoWidth, height: videoHeight }]}
                 player={player}
                 allowsFullscreen
                 allowsPictureInPicture
@@ -516,8 +533,7 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   video: {
-    width: width - 40,
-    height: ((width - 40) * 9) / 16,
+    alignSelf: "center",
     backgroundColor: "#000",
     borderRadius: 8,
   },
@@ -538,8 +554,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(0,0,0,0.7)",
-    width: width - 40,
-    height: ((width - 40) * 9) / 16,
     borderRadius: 8,
   },
   errorText: {
