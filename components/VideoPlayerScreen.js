@@ -288,181 +288,200 @@ export default function VideoPlayerScreen({
         colors={["#ddeeff", "#eaf4ff", "#f5f9ff"]}
         style={styles.gradient}
       >
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => {
-              player.pause();
-              player.staysActiveInBackground = false;
-              player.showNowPlayingNotification = false;
-              navigation.goBack();
-            }}
-            style={styles.backBtn}
-            activeOpacity={0.75}
-          >
-            <Ionicons name="chevron-back" size={22} color="#4a90e2" />
-          </TouchableOpacity>
-          <Text style={styles.title}>{title}</Text>
-          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-        </View>
-
-        {!audioOnly && (
-          <View style={styles.playerWrap}>
-            {isLoading && (
-              <View style={styles.loadingOverlay}>
-                <ActivityIndicator size="large" color="#4a90e2" />
-                <Text style={styles.loadingText}>Se încarcă...</Text>
-              </View>
-            )}
-            {error && (
-              <View style={styles.errorOverlay}>
-                <Text style={styles.errorText}>{error}</Text>
-                <TouchableOpacity style={styles.retryBtn} onPress={handleRetry}>
-                  <Text style={styles.retryText}>Reîncearcă</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            <VideoView
-              style={styles.video}
-              player={player}
-              allowsFullscreen
-              allowsPictureInPicture
-              contentFit="contain"
-            />
-          </View>
-        )}
-
-        {audioOnly && (
-          <View style={styles.audioWrap}>
-            {isLoading && (
-              <View style={styles.audioLoadingWrap}>
-                <ActivityIndicator size="large" color="#4a90e2" />
-                <Text style={styles.loadingText}>Se încarcă audio...</Text>
-              </View>
-            )}
-            {error && (
-              <View style={styles.audioErrorWrap}>
-                <Text style={styles.errorTextDark}>{error}</Text>
-                <TouchableOpacity style={styles.retryBtn} onPress={handleRetry}>
-                  <Text style={styles.retryText}>Reîncearcă</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            {!isLoading && !error && (
-              <>
-                <View style={styles.audioIconWrap}>
-                  <Ionicons
-                    name={videoIsPlaying ? "musical-notes-outline" : "headset-outline"}
-                    size={36}
-                    color="#4a90e2"
-                  />
-                </View>
-                <Text style={styles.audioLabel}>Mod audio - ecranul poate fi blocat</Text>
-                <Text style={styles.audioTime}>
-                  {formatTime(displayedPositionSeconds)} / {formatTime(durationSeconds)}
-                </Text>
-
-                <Slider
-                  style={styles.audioSlider}
-                  minimumValue={0}
-                  maximumValue={sliderMaximum}
-                  value={sliderValue}
-                  onSlidingStart={handleSeekStart}
-                  onValueChange={handleSeekChange}
-                  onSlidingComplete={handleSeekComplete}
-                  minimumTrackTintColor="#4a90e2"
-                  maximumTrackTintColor="#d7e9f9"
-                  thumbTintColor="#4a90e2"
-                  disabled={isLoading || !!error || durationSeconds <= 0}
-                />
-                <View style={styles.audioTimesRow}>
-                  <Text style={styles.audioTimeSmall}>{formatTime(displayedPositionSeconds)}</Text>
-                  <Text style={styles.audioTimeSmall}>{formatTime(durationSeconds)}</Text>
-                </View>
-
-                <View style={styles.skipControlsRow}>
-                  <TouchableOpacity
-                    style={[styles.skipBtn, (isLoading || !!error) && styles.btnDisabled]}
-                    onPress={() => handleSeekBy(-15)}
-                    disabled={isLoading || !!error}
-                  >
-                    <Ionicons
-                      name="play-back"
-                      size={16}
-                      color="#4a90e2"
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text style={styles.skipBtnText}>-15s</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.skipBtn, (isLoading || !!error) && styles.btnDisabled]}
-                    onPress={() => handleSeekBy(15)}
-                    disabled={isLoading || !!error}
-                  >
-                    <Ionicons
-                      name="play-forward"
-                      size={16}
-                      color="#4a90e2"
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text style={styles.skipBtnText}>+15s</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-          </View>
-        )}
-
-        <TouchableOpacity
-          style={[styles.primaryBtn, (isLoading || error) && styles.btnDisabled]}
-          disabled={isLoading || !!error}
-          onPress={handlePlayPause}
+        <ScrollView 
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
         >
-          <LinearGradient
-            colors={["#4a90e2", "#357abd"]}
-            style={styles.btnInner}
-          >
-            <Text style={styles.primaryText}>
-              {videoIsPlaying ? "Pauză" : audioOnly ? "Redă audio" : playButtonText}
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.audioToggleBtn}
-          onPress={toggleAudioOnly}
-        >
-          <LinearGradient
-            colors={audioOnly ? ["#4a90e2", "#357abd"] : ["rgba(255,255,255,0.9)", "rgba(240,248,255,0.9)"]}
-            style={styles.audioToggleInner}
-          >
-            <Ionicons
-              name={audioOnly ? "musical-notes-outline" : "headset-outline"}
-              size={18}
-              color={audioOnly ? "#fff" : "#4a90e2"}
-              style={{ marginRight: 8 }}
-            />
-            <Text
-              style={[
-                styles.audioToggleText,
-                audioOnly && styles.audioToggleTextActive,
-              ]}
+          <View style={styles.header}>
+            <TouchableOpacity
+              onPress={() => {
+                player.pause();
+                player.staysActiveInBackground = false;
+                player.showNowPlayingNotification = false;
+                navigation.goBack();
+              }}
+              style={styles.backBtn}
+              activeOpacity={0.75}
             >
-              {audioOnly ? "Revino la video" : "Doar audio (fundal)"}
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
+              <Ionicons name="chevron-back" size={22} color="#4a90e2" />
+            </TouchableOpacity>
+            <View style={styles.headerTextWrap}>
+              <Text style={styles.title}>{title}</Text>
+              {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+            </View>
+          </View>
 
+          {!audioOnly && (
+            <View style={styles.playerWrap}>
+              {isLoading && (
+                <View style={styles.loadingOverlay}>
+                  <ActivityIndicator size="large" color="#4a90e2" />
+                  <Text style={styles.loadingText}>Se încarcă...</Text>
+                </View>
+              )}
+              {error && (
+                <View style={styles.errorOverlay}>
+                  <Text style={styles.errorText}>{error}</Text>
+                  <TouchableOpacity style={styles.retryBtn} onPress={handleRetry}>
+                    <Text style={styles.retryText}>Reîncearcă</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              <VideoView
+                style={styles.video}
+                player={player}
+                allowsFullscreen
+                allowsPictureInPicture
+                contentFit="contain"
+              />
+            </View>
+          )}
+
+          {audioOnly && (
+            <View style={styles.audioWrap}>
+              {isLoading && (
+                <View style={styles.audioLoadingWrap}>
+                  <ActivityIndicator size="large" color="#4a90e2" />
+                  <Text style={styles.loadingText}>Se încarcă audio...</Text>
+                </View>
+              )}
+              {error && (
+                <View style={styles.audioErrorWrap}>
+                  <Text style={styles.errorTextDark}>{error}</Text>
+                  <TouchableOpacity style={styles.retryBtn} onPress={handleRetry}>
+                    <Text style={styles.retryText}>Reîncearcă</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              {!isLoading && !error && (
+                <>
+                  <View style={styles.audioIconWrap}>
+                    <Ionicons
+                      name={videoIsPlaying ? "musical-notes-outline" : "headset-outline"}
+                      size={36}
+                      color="#4a90e2"
+                    />
+                  </View>
+                  <Text style={styles.audioLabel}>Mod audio - ecranul poate fi blocat</Text>
+                  <Text style={styles.audioTime}>
+                    {formatTime(displayedPositionSeconds)} / {formatTime(durationSeconds)}
+                  </Text>
+
+                  <Slider
+                    style={styles.audioSlider}
+                    minimumValue={0}
+                    maximumValue={sliderMaximum}
+                    value={sliderValue}
+                    onSlidingStart={handleSeekStart}
+                    onValueChange={handleSeekChange}
+                    onSlidingComplete={handleSeekComplete}
+                    minimumTrackTintColor="#4a90e2"
+                    maximumTrackTintColor="#d7e9f9"
+                    thumbTintColor="#4a90e2"
+                    disabled={isLoading || !!error || durationSeconds <= 0}
+                  />
+                  <View style={styles.audioTimesRow}>
+                    <Text style={styles.audioTimeSmall}>{formatTime(displayedPositionSeconds)}</Text>
+                    <Text style={styles.audioTimeSmall}>{formatTime(durationSeconds)}</Text>
+                  </View>
+
+                  <View style={styles.skipControlsRow}>
+                    <TouchableOpacity
+                      style={[styles.skipBtn, (isLoading || !!error) && styles.btnDisabled]}
+                      onPress={() => handleSeekBy(-15)}
+                      disabled={isLoading || !!error}
+                    >
+                      <Ionicons
+                        name="play-back"
+                        size={16}
+                        color="#4a90e2"
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text style={styles.skipBtnText}>-15s</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.skipBtn, (isLoading || !!error) && styles.btnDisabled]}
+                      onPress={() => handleSeekBy(15)}
+                      disabled={isLoading || !!error}
+                    >
+                      <Ionicons
+                        name="play-forward"
+                        size={16}
+                        color="#4a90e2"
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text style={styles.skipBtnText}>+15s</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={[styles.primaryBtn, (isLoading || error) && styles.btnDisabled]}
+            disabled={isLoading || !!error}
+            onPress={handlePlayPause}
+          >
+            <LinearGradient
+              colors={["#4a90e2", "#357abd"]}
+              style={styles.btnInner}
+            >
+              <Text style={styles.primaryText}>
+                {videoIsPlaying ? "Pauză" : audioOnly ? "Redă audio" : playButtonText}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.audioToggleBtn}
+            onPress={toggleAudioOnly}
+          >
+            <LinearGradient
+              colors={audioOnly ? ["#4a90e2", "#357abd"] : ["rgba(255,255,255,0.9)", "rgba(240,248,255,0.9)"]}
+              style={styles.audioToggleInner}
+            >
+              <Ionicons
+                name={audioOnly ? "musical-notes-outline" : "headset-outline"}
+                size={18}
+                color={audioOnly ? "#fff" : "#4a90e2"}
+                style={{ marginRight: 8 }}
+              />
+              <Text
+                style={[
+                  styles.audioToggleText,
+                  audioOnly && styles.audioToggleTextActive,
+                ]}
+              >
+                {audioOnly ? "Revino la video" : "Doar audio (fundal)"}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </ScrollView>
         <HeadphonesDisclaimer />
       </LinearGradient>
     </SafeAreaView>
   );
 }
+}
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#ddeeff" },
-  gradient: { flex: 1, padding: 20 },
-  header: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
+  gradient: { flex: 1 },
+  scrollContainer: {
+    padding: 20,
+    flexGrow: 1,
+  },
+  header: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    marginBottom: 12, // Reduced margin
+    marginTop: 4,
+  },
+  headerTextWrap: {
+    flex: 1,
+  },
   backBtn: {
     width: 38,
     height: 38,
@@ -480,7 +499,6 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   title: {
-    flex: 1,
     fontSize: 20,
     fontWeight: "700",
     color: "#1a2d45",
@@ -488,7 +506,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: "#6c8096",
-    marginTop: 6,
+    marginTop: 2, // Reduced margin
   },
   playerWrap: {
     alignItems: "center",
