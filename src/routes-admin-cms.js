@@ -272,8 +272,8 @@ export async function registerAdminCmsRoutes(app) {
     if (!auth) return reply.code(403).send({ error: 'Forbidden' });
     const id = Number(request.params.id);
     try {
-      const [[rows]] = await mysqlPool.query('SELECT storage_key FROM cms_videos WHERE id = ? LIMIT 1', [id]);
-      const storageKey = rows?.storage_key;
+      const [rows] = await mysqlPool.query('SELECT storage_key FROM cms_videos WHERE id = ? LIMIT 1', [id]);
+      const storageKey = Array.isArray(rows) && rows.length ? rows[0].storage_key : null;
       await mysqlPool.query('DELETE FROM cms_videos WHERE id = ?', [id]);
       // Clean up files if possible
       if (storageKey) {
@@ -311,15 +311,19 @@ export async function registerAdminCmsRoutes(app) {
     if (!Number.isFinite(id) || id <= 0) return reply.code(400).send({ error: 'ID invalid' });
 
     try {
-      const [[videoRows]] = await mysqlPool.query('SELECT storage_key FROM cms_videos WHERE id = ? LIMIT 1', [id]);
-      if (!videoRows || !videoRows.length) return reply.code(404).send({ error: 'Video inexistent' });
-      const storageKey = videoRows[0].storage_key;
-
+      // Always consume the multipart stream first so the client connection doesn't hang
       const data = await request.file();
       if (!data) return reply.code(400).send({ error: 'Niciun fisier primit' });
 
       const buffer = await data.toBuffer();
       const ext = String(data.filename || '').split('.').pop()?.toLowerCase() || 'mp4';
+
+      // Now validate the video exists in DB
+      const [rows] = await mysqlPool.query('SELECT storage_key FROM cms_videos WHERE id = ? LIMIT 1', [id]);
+      if (!Array.isArray(rows) || !rows.length) {
+        return reply.code(404).send({ error: 'Video inexistent' });
+      }
+      const storageKey = rows[0].storage_key;
       const targetFilename = `${storageKey}.${ext}`;
 
       await saveOriginalFile(buffer, targetFilename);
@@ -348,11 +352,11 @@ export async function registerAdminCmsRoutes(app) {
     if (!auth) return reply.code(403).send({ error: 'Forbidden' });
     const id = Number(request.params.id);
     try {
-      const [[rows]] = await mysqlPool.query(
+      const [rows] = await mysqlPool.query(
         'SELECT id, storage_key, encoding_status FROM cms_videos WHERE id = ? LIMIT 1',
         [id]
       );
-      if (!rows || !rows.length) return reply.code(404).send({ error: 'Video inexistent' });
+      if (!Array.isArray(rows) || !rows.length) return reply.code(404).send({ error: 'Video inexistent' });
       return reply.send(rows[0]);
     } catch (e) {
       request.log.error({ err: e }, 'Admin CMS video status failed');
