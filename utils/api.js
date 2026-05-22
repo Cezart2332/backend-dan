@@ -88,6 +88,7 @@ export const api = {
   listChallengeRuns: (token) => request('/api/challenges/run', { method: 'GET', token }),
   getChallengeRun: (id, token) => request(`/api/challenges/run/${id}`, { method: 'GET', token }),
   // CMS
+  getCmsVideoSections: () => request('/api/cms/video-sections', { method: 'GET' }),
   getCmsVideoSection: (slug) => request(`/api/cms/video-sections/${encodeURIComponent(slug)}`, { method: 'GET' }),
   getCmsChallenges: () => request('/api/cms/challenges', { method: 'GET' }),
   // Subscriptions

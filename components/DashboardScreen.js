@@ -33,6 +33,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
   const medicalDisclaimerPreview = "This app provides general wellness and informational content only.";
   const [profileName, setProfileName] = useState("În spațiul tău sigur");
   const [profileAvatarUrl, setProfileAvatarUrl] = useState(null);
+  const [cmsSections, setCmsSections] = useState([]);
 
   const applyProfilePreview = useCallback((userPayload) => {
     const resolvedName = String(userPayload?.name || '').trim();
@@ -75,6 +76,12 @@ export default function DashboardScreen({ navigation, onLogout }) {
     refreshProfilePreview().catch(() => {});
     return unsubscribe;
   }, [navigation, refreshProfilePreview]);
+
+  useEffect(() => {
+    api.getCmsVideoSections()
+      .then((data) => setCmsSections(data.items || []))
+      .catch((err) => console.warn('[CMS] dashboard:', err));
+  }, []);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -380,6 +387,77 @@ export default function DashboardScreen({ navigation, onLogout }) {
               );
             })}
           </View>
+
+            {/* CMS Sections */}
+            {cmsSections.length > 0 && (
+              <>
+                <Text style={[styles.menuTitle, { marginTop: 24 }]}>Conținut nou</Text>
+                {cmsSections.map((section, index) => {
+                  const locked = !hasChatAccess; // reuse same subscription gate as chat
+                  return (
+                    <TouchableOpacity
+                      key={`cms-section-${section.id}`}
+                      style={[
+                        styles.menuItem,
+                        index === cmsSections.length - 1 && styles.lastMenuItem,
+                        locked && styles.lockedMenuItem,
+                      ]}
+                      onPress={() => {
+                        if (locked) {
+                          Alert.alert(
+                            'Funcție restricționată',
+                            'Acest conținut este disponibil doar cu abonament activ.',
+                            [
+                              { text: 'Vezi abonamente', onPress: () => navigation.navigate('Subscriptions') },
+                              { text: 'OK', style: 'cancel' },
+                            ]
+                          );
+                          return;
+                        }
+                        navigation.navigate('CmsSection', { slug: section.slug, title: section.title });
+                      }}
+                    >
+                      <View style={styles.menuItemCard}>
+                        <View style={styles.menuItemContent}>
+                          <View
+                            style={[
+                              styles.iconContainer,
+                              { backgroundColor: locked ? '#e8e8e8' : '#4a90e2' + '18' },
+                            ]}
+                          >
+                            <Ionicons
+                              name={locked ? 'lock-closed-outline' : 'layers-outline'}
+                              size={26}
+                              color={locked ? '#aaa' : '#4a90e2'}
+                            />
+                          </View>
+
+                          <View style={styles.textContainer}>
+                            <Text style={[styles.menuItemTitle, locked && styles.lockedText]}>{section.title}</Text>
+                            {locked ? (
+                              <View style={styles.lockedRow}>
+                                <Ionicons name="lock-closed" size={11} color="#bbb" />
+                                <Text style={[styles.menuItemSubtitle, styles.lockedText]}> Disponibil cu abonament</Text>
+                              </View>
+                            ) : (
+                              <Text style={styles.menuItemSubtitle}>{section.description || 'Conținut video'}</Text>
+                            )}
+                          </View>
+
+                          <View style={styles.arrowContainer}>
+                            <Ionicons
+                              name={locked ? 'lock-closed' : 'chevron-forward'}
+                              size={18}
+                              color={locked ? '#ccc' : '#b0c4d8'}
+                            />
+                          </View>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </>
+            )}
 
           {/* External Links */}
           <View style={styles.externalLinks}>

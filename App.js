@@ -45,6 +45,7 @@ import SettingsScreen from "./components/SettingsScreen";
 import MedicalInfoScreen from "./components/MedicalInfoScreen";
 import CommunityChatScreen from "./components/CommunityChatScreen";
 import ProfileScreen from "./components/ProfileScreen";
+import CmsSectionScreen from "./components/CmsSectionScreen";
 import { getToken, clearToken } from "./utils/authStorage";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import SubscriptionPaywall from "./components/SubscriptionPaywall";
@@ -338,6 +339,7 @@ export default function App() {
               name="MedicalInfo"
               component={MedicalInfoScreen}
             />
+            <Stack.Screen name="CmsSection" component={CmsSectionScreen} />
             <Stack.Screen name="Settings">
               {(props) => (
                 <SettingsScreen
