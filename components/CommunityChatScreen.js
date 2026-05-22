@@ -124,6 +124,7 @@ export default function CommunityChatScreen({ navigation }) {
   const pingIntervalRef = useRef(null);
   const shouldReconnectRef = useRef(false);
   const shouldAutoScrollRef = useRef(true);
+  const isNearBottomRef = useRef(true); // starts true so initial load scrolls to bottom
   const previousLengthRef = useRef(0);
 
   useEffect(() => {
@@ -334,14 +335,14 @@ export default function CommunityChatScreen({ navigation }) {
 
   useEffect(() => {
     const grew = messages.length > previousLengthRef.current;
-    if (grew && shouldAutoScrollRef.current) {
+    if (grew && (isNearBottomRef.current || shouldAutoScrollRef.current)) {
       requestAnimationFrame(() => {
         listRef.current?.scrollToEnd({ animated: true });
       });
     }
 
     previousLengthRef.current = messages.length;
-    shouldAutoScrollRef.current = true;
+    shouldAutoScrollRef.current = false;
   }, [messages]);
 
   useEffect(() => {
@@ -539,6 +540,17 @@ export default function CommunityChatScreen({ navigation }) {
               contentContainerStyle={styles.listContent}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
+              onContentSizeChange={() => {
+                if (isNearBottomRef.current || shouldAutoScrollRef.current) {
+                  listRef.current?.scrollToEnd({ animated: false });
+                }
+              }}
+              onScroll={({ nativeEvent }) => {
+                const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+                const paddingToBottom = 60;
+                isNearBottomRef.current = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+              }}
+              scrollEventThrottle={200}
               ListEmptyComponent={<Text style={styles.emptyText}>Nu exista mesaje inca. Scrie primul mesaj.</Text>}
             />
 
