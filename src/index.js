@@ -3,6 +3,7 @@ import Fastify from "fastify";
 import fastifyCors from "@fastify/cors";
 import fastifyCompress from "@fastify/compress";
 import fastifyRawBody from "fastify-raw-body";
+import fastifyMultipart from "@fastify/multipart";
 import rateLimit from "@fastify/rate-limit";
 import websocket from "@fastify/websocket";
 import { auth } from "./auth.js";
@@ -20,6 +21,8 @@ import { registerChatRoutes } from "./chat/routes.js";
 import { runMigrations } from "./migrate.js";
 import { registerAuthRoutes } from "./routes-auth.js";
 import { registerAdminRoutes } from "./routes-admin.js";
+import { registerAdminCmsRoutes } from "./routes-admin-cms.js";
+import { registerCmsRoutes } from "./routes-cms.js";
 import { registerProfileRoutes } from "./routes-profile.js";
 
 const logLevel = process.env.LOG_LEVEL || "info";
@@ -118,6 +121,10 @@ await app.register(fastifyCompress, {
   threshold: Number.isFinite(compressionThreshold) && compressionThreshold >= 0 ? compressionThreshold : 1024,
 });
 
+await app.register(fastifyMultipart, {
+  limits: { fileSize: 2 * 1024 * 1024 * 1024 }, // 2GB max file size
+});
+
 await app.register(websocket);
 
 // Health check
@@ -195,6 +202,8 @@ await registerWebinarRoutes(app);
 await registerNotificationRoutes(app);
 await registerChatRoutes(app);
 await registerAdminRoutes(app);
+await registerCmsRoutes(app);
+await registerAdminCmsRoutes(app);
 
 async function shutdown(signal) {
   if (isShuttingDown) return;

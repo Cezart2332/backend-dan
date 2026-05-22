@@ -307,4 +307,90 @@ export async function runMigrations() {
   try {
     await mysqlPool.query(`ALTER TABLE bug_reports ADD INDEX idx_bug_reports_user_id (user_id)`);
   } catch {}
+
+  // ─── CMS Video Sections ───
+  await mysqlPool.query(`
+    CREATE TABLE IF NOT EXISTS cms_video_sections (
+      id BIGINT PRIMARY KEY AUTO_INCREMENT,
+      title VARCHAR(255) NOT NULL,
+      slug VARCHAR(128) NOT NULL UNIQUE,
+      description TEXT,
+      sort_order INT DEFAULT 0,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_slug_active (slug, is_active)
+    )
+  `);
+
+  // ─── CMS Video Subsections ───
+  await mysqlPool.query(`
+    CREATE TABLE IF NOT EXISTS cms_video_subsections (
+      id BIGINT PRIMARY KEY AUTO_INCREMENT,
+      section_id BIGINT NOT NULL,
+      title VARCHAR(255) NOT NULL,
+      description TEXT,
+      icon_name VARCHAR(64) DEFAULT 'play-outline',
+      icon_color VARCHAR(7) DEFAULT '#4a90e2',
+      icon_bg VARCHAR(7) DEFAULT '#eaf3ff',
+      sort_order INT DEFAULT 0,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT fk_cms_subsections_section FOREIGN KEY (section_id) REFERENCES cms_video_sections(id) ON DELETE CASCADE,
+      INDEX idx_section_sort (section_id, sort_order)
+    )
+  `);
+
+  // ─── CMS Videos ───
+  await mysqlPool.query(`
+    CREATE TABLE IF NOT EXISTS cms_videos (
+      id BIGINT PRIMARY KEY AUTO_INCREMENT,
+      subsection_id BIGINT NOT NULL,
+      title VARCHAR(255) NOT NULL,
+      description TEXT,
+      storage_key VARCHAR(255) NOT NULL,
+      badge VARCHAR(16) NULL,
+      sort_order INT DEFAULT 0,
+      encoding_status ENUM('pending','encoding','done','failed') DEFAULT 'pending',
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT fk_cms_videos_subsection FOREIGN KEY (subsection_id) REFERENCES cms_video_subsections(id) ON DELETE CASCADE,
+      INDEX idx_subsection_sort (subsection_id, sort_order)
+    )
+  `);
+
+  // ─── CMS Challenge Levels ───
+  await mysqlPool.query(`
+    CREATE TABLE IF NOT EXISTS cms_challenge_levels (
+      id BIGINT PRIMARY KEY AUTO_INCREMENT,
+      title VARCHAR(255) NOT NULL,
+      goal TEXT,
+      color VARCHAR(7) DEFAULT '#5cb85c',
+      gradient_colors VARCHAR(64) DEFAULT '#5cb85c,#4cae4c',
+      difficulty VARCHAR(32) DEFAULT 'Ușor',
+      duration VARCHAR(32) DEFAULT '5-10 min',
+      sort_order INT DEFAULT 0,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
+
+  // ─── CMS Challenges ───
+  await mysqlPool.query(`
+    CREATE TABLE IF NOT EXISTS cms_challenges (
+      id BIGINT PRIMARY KEY AUTO_INCREMENT,
+      level_id BIGINT NOT NULL,
+      title TEXT NOT NULL,
+      est VARCHAR(32) DEFAULT '5 min',
+      sort_order INT DEFAULT 0,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT fk_cms_challenges_level FOREIGN KEY (level_id) REFERENCES cms_challenge_levels(id) ON DELETE CASCADE,
+      INDEX idx_level_sort (level_id, sort_order)
+    )
+  `);
 }
