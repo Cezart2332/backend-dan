@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,31 +13,65 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { levels as levelDefs } from '../challenges';
 import { useSubscription } from '../contexts/SubscriptionContext';
+import { api } from '../utils/api';
 
 const { width } = Dimensions.get('window');
 
 export default function ProvocarilScreen({ navigation }) {
   const [selectedLevel, setSelectedLevel] = useState(null);
+  const [cmsLevels, setCmsLevels] = useState([]);
   const { subscription } = useSubscription();
   const subType = subscription?.type || null;
 
   const isTrial = subType === 'trial';
 
-  const challengeLevels = useMemo(() => levelDefs.map(l => ({
-    id: l.id,
-    level: `Nivel ${l.id}`,
-    title: l.title,
-    subtitle: l.duration,
-    goal: l.goal,
-    description: l.goal,
-    iconName: l.id === 1 ? 'leaf-outline' : l.id === 2 ? 'flash-outline' : 'flame-outline',
-    iconColor: l.id === 1 ? '#5cb85c' : l.id === 2 ? '#f0a500' : '#d9534f',
-    color: l.color,
-    gradientColors: l.gradientColors,
-    difficulty: l.difficulty,
-    duration: l.duration,
-    exercises: l.challenges.length,
-  })), [levelDefs]);
+  useEffect(() => {
+    api.getCmsChallenges()
+      .then((data) => setCmsLevels(data.levels || []))
+      .catch(() => {});
+  }, []);
+
+  const challengeLevels = useMemo(() => {
+    const hardcoded = levelDefs.map((l) => ({
+      id: l.id,
+      level: `Nivel ${l.id}`,
+      title: l.title,
+      subtitle: l.duration,
+      goal: l.goal,
+      description: l.goal,
+      iconName: l.id === 1 ? 'leaf-outline' : l.id === 2 ? 'flash-outline' : 'flame-outline',
+      iconColor: l.id === 1 ? '#5cb85c' : l.id === 2 ? '#f0a500' : '#d9534f',
+      color: l.color,
+      gradientColors: l.gradientColors,
+      difficulty: l.difficulty,
+      duration: l.duration,
+      exercises: l.challenges.length,
+      challenges: l.challenges,
+    }));
+
+    const cms = cmsLevels.map((l, idx) => ({
+      id: `cms-${l.id}`,
+      level: l.title,
+      title: l.title,
+      subtitle: l.duration,
+      goal: l.goal,
+      description: l.goal,
+      iconName: 'trophy-outline',
+      iconColor: l.color || '#5cb85c',
+      color: l.color || '#5cb85c',
+      gradientColors: (l.gradient_colors || '#5cb85c,#4cae4c').split(','),
+      difficulty: l.difficulty,
+      duration: l.duration,
+      exercises: (l.challenges || []).length,
+      challenges: (l.challenges || []).map((c) => ({
+        id: `cms-${c.id}`,
+        title: c.title,
+        est: c.est,
+      })),
+    }));
+
+    return [...hardcoded, ...cms];
+  }, [cmsLevels]);
 
   const handleLevelPress = (level) => {
     // Block Medium and Hard challenges during trial

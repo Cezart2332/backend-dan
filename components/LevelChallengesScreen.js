@@ -9,7 +9,10 @@ export default function LevelChallengesScreen({ route, navigation }) {
   const { level } = route.params || {};
 
   const challenges = useMemo(() => {
-    const lvl = levels.find(l => l.id === level?.id);
+    // CMS levels come with challenges already attached via route.params
+    if (level?.challenges) return level.challenges;
+    // Fallback for hardcoded levels
+    const lvl = levels.find((l) => l.id === level?.id);
     return lvl?.challenges || [];
   }, [level]);
 

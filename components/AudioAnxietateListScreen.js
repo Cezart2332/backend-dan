@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import HeadphonesDisclaimer from "./HeadphonesDisclaimer";
+import { api } from "../utils/api";
 
 const videos = [
   {
@@ -127,6 +128,14 @@ const videos = [
 ];
 
 export default function AudioAnxietateListScreen({ navigation }) {
+  const [cmsSubsections, setCmsSubsections] = useState([]);
+
+  useEffect(() => {
+    api.getCmsVideoSection('audio-anxietate')
+      .then((data) => setCmsSubsections(data.subsections || []))
+      .catch(() => {});
+  }, []);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={["#ddeeff", "#eaf4ff", "#f5f9ff"]} style={styles.background}>
@@ -167,6 +176,38 @@ export default function AudioAnxietateListScreen({ navigation }) {
               </React.Fragment>
             ))}
           </View>
+
+          {cmsSubsections.map((sub) => (
+            <View key={`cms-sub-${sub.id}`}>
+              <Text style={[styles.sectionLabel, { marginTop: 28 }]}>{sub.title.toUpperCase()}</Text>
+              <View style={styles.group}>
+                {sub.videos.map((item, index) => (
+                  <React.Fragment key={`cms-${item.id}`}>
+                    {index > 0 && <View style={styles.separator} />}
+                    <TouchableOpacity
+                      style={styles.row}
+                      onPress={() =>
+                        navigation.navigate("AudioAnxietateVideo", {
+                          title: item.title,
+                          videoFile: `${item.storage_key}.mp4`,
+                          nowPlayingTitle: item.title,
+                          nowPlayingArtist: `Dan fost anxios · ${sub.title}`,
+                          nowPlayingAccent: sub.icon_color || "#4a90e2",
+                        })
+                      }
+                      activeOpacity={0.7}
+                    >
+                      <View style={[styles.iconWrap, { backgroundColor: sub.icon_bg || "#eaf3ff" }]}>
+                        <Ionicons name={sub.icon_name || "play-outline"} size={20} color={sub.icon_color || "#4a90e2"} />
+                      </View>
+                      <Text style={styles.rowTitle}>{item.title}</Text>
+                      <Ionicons name="chevron-forward" size={18} color="#c8d8e8" />
+                    </TouchableOpacity>
+                  </React.Fragment>
+                ))}
+              </View>
+            </View>
+          ))}
         </ScrollView>
         <HeadphonesDisclaimer />
       </LinearGradient>
