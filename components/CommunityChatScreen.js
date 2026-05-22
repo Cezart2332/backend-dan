@@ -224,6 +224,12 @@ export default function CommunityChatScreen({ navigation }) {
 
       if (payloadType === 'message' || payloadType === 'system') {
         setMessages((prev) => mergeMessages(prev, [payload]));
+        // Mark as read when receiving new messages while screen is focused
+        if (payloadType === 'message' && isFocused) {
+          getToken().then((token) => {
+            if (token) api.markChatAsRead(token).catch(() => {});
+          });
+        }
       }
     };
 
@@ -295,9 +301,16 @@ export default function CommunityChatScreen({ navigation }) {
       return;
     }
 
-    loadHistory({ before: null, appendOlder: false }).catch(() => {
-      setLoading(false);
-    });
+    loadHistory({ before: null, appendOlder: false })
+      .then(() => {
+        // Mark chat as read when screen opens and history loads
+        getToken().then((token) => {
+          if (token) api.markChatAsRead(token).catch(() => {});
+        });
+      })
+      .catch(() => {
+        setLoading(false);
+      });
   }, [hasChatAccess, isFocused, loadHistory]);
 
   useEffect(() => {

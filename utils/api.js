@@ -82,6 +82,7 @@ export const api = {
       : '/chat/history',
     { method: 'GET', token }
   ),
+  markChatAsRead: (token) => request('/chat/read', { method: 'POST', token }),
   // Challenges
   createChallengeRun: (payload, token) => request('/api/challenges/run', { method: 'POST', body: payload, token }),
   listChallengeRuns: (token) => request('/api/challenges/run', { method: 'GET', token }),
