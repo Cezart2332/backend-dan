@@ -3,6 +3,7 @@ import {
   broadcastSystemEvent,
   getChatHistoryPage,
   handleChatSocketMessage,
+  markChatAsRead,
   registerChatConnection,
   unregisterChatConnection,
 } from './service.js';
@@ -45,6 +46,28 @@ export async function registerChatRoutes(app) {
         return reply.send(history);
       } catch (error) {
         request.log.error({ err: error }, 'Chat history failed');
+        return reply.code(500).send({ error: 'Eroare server' });
+      }
+    }
+  );
+
+  app.post(
+    '/chat/read',
+    {
+      preHandler: async (request, reply) => {
+        await requireActiveSubscription(request, reply);
+      },
+    },
+    async (request, reply) => {
+      try {
+        const userId = request.chatUser?.id;
+        if (!userId) {
+          return reply.code(401).send({ error: 'Neautorizat' });
+        }
+        await markChatAsRead(userId);
+        return reply.send({ ok: true });
+      } catch (error) {
+        request.log.error({ err: error }, 'Chat mark as read failed');
         return reply.code(500).send({ error: 'Eroare server' });
       }
     }

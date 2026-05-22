@@ -101,6 +101,20 @@ export async function runMigrations() {
     await mysqlPool.query(`ALTER TABLE chat_messages ADD INDEX idx_chat_messages_created_at (created_at)`);
   } catch {}
 
+  // chat user read tracking
+  await mysqlPool.query(`
+    CREATE TABLE IF NOT EXISTS chat_user_reads (
+      user_id BIGINT PRIMARY KEY,
+      last_read_message_id BIGINT NOT NULL DEFAULT 0,
+      last_notified_at TIMESTAMP NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT fk_chat_user_reads_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+  try {
+    await mysqlPool.query(`ALTER TABLE chat_user_reads ADD COLUMN last_notified_at TIMESTAMP NULL`);
+  } catch {}
+
   await mysqlPool.query(`
     CREATE TABLE IF NOT EXISTS user_push_tokens (
       id BIGINT PRIMARY KEY AUTO_INCREMENT,

@@ -350,3 +350,78 @@ export async function getChatHistoryPage(params = {}) {
 
   return { items, hasMore, nextBefore };
 }
+
+/**
+ * Marks all chat messages as read for a user by recording the latest message ID.
+ *
+ * @param {number} userId
+ * @returns {Promise<void>}
+ */
+export async function markChatAsRead(userId) {
+  const [maxRows] = await mysqlPool.query(
+    'SELECT MAX(id) AS max_id FROM chat_messages'
+  );
+  const maxId = Array.isArray(maxRows) && maxRows.length ? Number(maxRows[0].max_id || 0) : 0;
+  if (!maxId) return;
+
+  await mysqlPool.query(
+    `INSERT INTO chat_user_reads (user_id, last_read_message_id)
+     VALUES (?, ?)
+     ON DUPLICATE KEY UPDATE last_read_message_id = VALUES(last_read_message_id), updated_at = CURRENT_TIMESTAMP`,
+    [Number(userId), maxId]
+  );
+}
+
+/**
+ * Returns users who have unread chat messages and active push tokens.
+ * Excludes users who were notified in the last 6 hours.
+ *
+ * @param {object} [options]
+ * @param {number} [options.minHoursSinceNotify=6]
+ * @returns {Promise<Array<{user_id: number, expo_push_token: string, unread_count: number}>>}
+ */
+export async function getUsersWithUnreadMessages({ minHoursSinceNotify = 6 } = {}) {
+  const [maxRows] = await mysqlPool.query('SELECT MAX(id) AS max_id FROM chat_messages');
+  const maxId = Array.isArray(maxRows) && maxRows.length ? Number(maxRows[0].max_id || 0) : 0;
+  if (!maxId) return [];
+
+  const [rows] = await mysqlPool.query(
+    `SELECT
+       u.id AS user_id,
+       upt.expo_push_token,
+       (SELECT COUNT(*) FROM chat_messages cm WHERE cm.id > COALESCE(cur.last_read_message_id, 0)) AS unread_count
+     FROM users u
+     INNER JOIN user_push_tokens upt ON upt.user_id = u.id AND upt.enabled = 1
+     LEFT JOIN chat_user_reads cur ON cur.user_id = u.id
+     WHERE
+       COALESCE(cur.last_read_message_id, 0) < ?
+       AND (cur.last_notified_at IS NULL OR cur.last_notified_at < DATE_SUB(NOW(), INTERVAL ? HOUR))
+       AND EXISTS (
+         SELECT 1 FROM subscriptions s
+         WHERE s.user_id = u.id
+           AND s.type IN ('basic','premium','vip','pro')
+           AND (s.ends_at IS NULL OR s.ends_at > NOW())
+       )
+     ORDER BY u.id`,
+    [maxId, minHoursSinceNotify]
+  );
+
+  return Array.isArray(rows) ? rows : [];
+}
+
+/**
+ * Updates the last_notified_at timestamp for a set of users.
+ *
+ * @param {number[]} userIds
+ * @returns {Promise<void>}
+ */
+export async function updateChatNotificationTimestamp(userIds) {
+  if (!Array.isArray(userIds) || !userIds.length) return;
+  const placeholders = userIds.map(() => '?').join(', ');
+  await mysqlPool.query(
+    `INSERT INTO chat_user_reads (user_id, last_read_message_id, last_notified_at)
+     SELECT id, 0, CURRENT_TIMESTAMP FROM users WHERE id IN (${placeholders})
+     ON DUPLICATE KEY UPDATE last_notified_at = VALUES(last_notified_at)`,
+    userIds
+  );
+}
