@@ -1022,4 +1022,67 @@ export async function registerAdminRoutes(app) {
       return reply.code(500).send({ error: 'Eroare server' });
     }
   });
+
+  // ─── Announcements ───
+  app.post('/api/admin/announcements', async (request, reply) => {
+    const auth = await adminAuth(request);
+    if (!auth) return reply.code(403).send({ error: 'Forbidden' });
+
+    const { title, body, target } = request.body || {};
+    const normalizedTitle = String(title || '').trim();
+    const normalizedBody = String(body || '').trim();
+    const normalizedTarget = String(target || '').toLowerCase();
+
+    if (!normalizedTitle) return reply.code(400).send({ error: 'Titlul anuntului este necesar' });
+    if (!normalizedBody) return reply.code(400).send({ error: 'Mesajul anuntului este necesar' });
+    if (normalizedTitle.length > 100) return reply.code(400).send({ error: 'Titlul este prea lung (maxim 100 caractere)' });
+    if (normalizedBody.length > 500) return reply.code(400).send({ error: 'Mesajul este prea lung (maxim 500 caractere)' });
+
+    try {
+      let tokenRows;
+      if (normalizedTarget === 'premium') {
+        [tokenRows] = await mysqlPool.query(
+          `SELECT DISTINCT upt.expo_push_token
+           FROM user_push_tokens upt
+           INNER JOIN subscriptions s ON s.user_id = upt.user_id
+           WHERE upt.enabled = 1
+             AND s.type IN ('premium', 'vip', 'pro')
+             AND (s.ends_at IS NULL OR s.ends_at > NOW())`
+        );
+      } else {
+        [tokenRows] = await mysqlPool.query(
+          'SELECT DISTINCT expo_push_token FROM user_push_tokens WHERE enabled = 1'
+        );
+      }
+
+      const pushTokens = (Array.isArray(tokenRows) ? tokenRows : [])
+        .map((row) => row.expo_push_token)
+        .filter((token) => isExpoPushToken(token));
+
+      if (!pushTokens.length) {
+        return reply.send({ sentCount: 0, totalTokens: 0 });
+      }
+
+      const pushResult = await sendPushToExpoTokens({
+        tokens: pushTokens,
+        title: normalizedTitle,
+        body: normalizedBody,
+        data: { type: 'announcement' },
+        logger: request.log,
+      });
+
+      const invalidTokens = Array.isArray(pushResult?.invalidTokens) ? pushResult.invalidTokens : [];
+      if (invalidTokens.length) {
+        await disableInvalidPushTokens(invalidTokens);
+      }
+
+      return reply.send({
+        sentCount: Number(pushResult?.sentCount || 0),
+        totalTokens: pushTokens.length,
+      });
+    } catch (e) {
+      request.log.error({ err: e }, 'Send announcement failed');
+      return reply.code(500).send({ error: 'Eroare server' });
+    }
+  });
 }
