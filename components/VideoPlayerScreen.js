@@ -44,6 +44,7 @@ export default function VideoPlayerScreen({
   const [audioOnly, setAudioOnly] = useState(false);
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekValue, setSeekValue] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(1);
 
   // Keep direct MP4 for audio-only mode so seeking stays predictable.
   const directMp4Uri = `${BASE_URL}/api/media/${encodeURIComponent(videoFile)}`;
@@ -281,6 +282,16 @@ export default function VideoPlayerScreen({
     setAudioOnly((prev) => !prev);
   }, []);
 
+  const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+
+  const handleSpeedChange = useCallback(
+    (rate) => {
+      setPlaybackRate(rate);
+      player.playbackRate = rate;
+    },
+    [player]
+  );
+
   function formatTime(seconds) {
     if (!seconds || seconds <= 0) return "0:00";
     const totalSec = Math.floor(seconds);
@@ -450,6 +461,30 @@ export default function VideoPlayerScreen({
               </Text>
             </LinearGradient>
           </TouchableOpacity>
+
+          <View style={styles.speedRow}>
+            <Text style={styles.speedLabel}>Viteză:</Text>
+            {SPEEDS.map((rate) => (
+              <TouchableOpacity
+                key={rate}
+                style={[
+                  styles.speedBtn,
+                  playbackRate === rate && styles.speedBtnActive,
+                ]}
+                onPress={() => handleSpeedChange(rate)}
+                disabled={isLoading || !!error}
+              >
+                <Text
+                  style={[
+                    styles.speedBtnText,
+                    playbackRate === rate && styles.speedBtnTextActive,
+                  ]}
+                >
+                  {rate}x
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
           <TouchableOpacity
             style={styles.audioToggleBtn}
@@ -678,4 +713,39 @@ const styles = StyleSheet.create({
   },
   audioToggleText: { fontSize: 14, fontWeight: "600", color: "#1a2d45" },
   audioToggleTextActive: { color: "#fff" },
+  speedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 12,
+    marginBottom: 4,
+    gap: 6,
+    flexWrap: "wrap",
+  },
+  speedLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6c8096",
+    marginRight: 4,
+  },
+  speedBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#d7e9f9",
+    backgroundColor: "#f3f9ff",
+  },
+  speedBtnActive: {
+    borderColor: "#4a90e2",
+    backgroundColor: "#4a90e2",
+  },
+  speedBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#2f6cad",
+  },
+  speedBtnTextActive: {
+    color: "#fff",
+  },
 });

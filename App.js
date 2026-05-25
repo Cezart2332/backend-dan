@@ -55,6 +55,7 @@ import { clearEntries } from "./utils/progressStorage";
 import { replaceAllRuns } from "./utils/challengeStorage";
 import { api } from "./utils/api";
 import AppSplashScreen from "./components/AppSplashScreen";
+import metaEvents from "./utils/metaEvents";
 
 const Stack = createStackNavigator();
 const MIN_SPLASH_MS = 1400;
@@ -77,6 +78,8 @@ export default function App() {
     let mounted = true;
     const startedAt = Date.now();
     let bootTimer = null;
+
+    metaEvents.setAdvertiserTrackingEnabled(true);
 
     (async () => {
       try {
@@ -141,6 +144,11 @@ export default function App() {
 
       if (type === 'question_response') {
         navigationRef.current?.navigate?.('Intrebari');
+        return;
+      }
+
+      if (type === 'announcement') {
+        navigationRef.current?.navigate?.('Dashboard');
         return;
       }
 
