@@ -407,4 +407,15 @@ export async function runMigrations() {
       INDEX idx_level_sort (level_id, sort_order)
     )
   `);
+
+  // Seed hardcoded challenge levels (matching app's challenges/index.js)
+  try {
+    await mysqlPool.query(`
+      INSERT IGNORE INTO cms_challenge_levels (id, title, goal, color, gradient_colors, difficulty, duration, sort_order)
+      VALUES
+        (1, 'Nivel 1', '➡ scop: obisnuirea cu senzatiile, gandurile si situatiile usoare', '#5cb85c', '#5cb85c,#4cae4c', 'Usor', '5-10 min', 1),
+        (2, 'Nivel 2', '➡ scop: sa inveti ca si in contexte mai incomode esti in siguranta', '#f0ad4e', '#f0ad4e,#eea236', 'Moderat', '10-20 min', 2),
+        (3, 'Nivel 3', '➡ scop: infruntarea situatiilor si gandurilor cele mai temute', '#d9534f', '#d9534f,#c9302c', 'Avansat', '20-30 min', 3)
+    `);
+  } catch {}
 }
