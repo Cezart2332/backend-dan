@@ -6,7 +6,7 @@
       "danfostanxios",
       "com.cartealuidan.danfostanxios",
       "com.googleusercontent.apps.109371475889-eadfpt9ovu6bkur2scatm063ht6uvqrv",
-      "fbFACEBOOK_APP_ID_PLACEHOLDER"
+      "fb768698326078162"
     ],
     "version": "2.1.0",
     "orientation": "portrait",
@@ -95,8 +95,8 @@
       "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_NpHcWatEEingJytfKUnZwRokETY",
       "EXPO_PUBLIC_REVENUECAT_API_KEY": "",
       "EXPO_PUBLIC_REVENUECAT_ENTITLEMENT": "Dan Fost Anxios Pro",
-      "facebookAppId": "FACEBOOK_APP_ID_PLACEHOLDER",
-      "facebookClientToken": "FACEBOOK_CLIENT_TOKEN_PLACEHOLDER",
+      "facebookAppId": "768698326078162",
+      "facebookClientToken": "09adc772a600d37e3e3d81accb38f282",
       "facebookDisplayName": "Dan fost anxios",
       "eas": {
         "projectId": "d9f73843-db4d-441f-9a97-1cb350a7900b"
