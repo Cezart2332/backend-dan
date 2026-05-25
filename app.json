@@ -79,13 +79,13 @@
       [
         "react-native-fbsdk-next",
         {
-          "appID": "FACEBOOK_APP_ID_PLACEHOLDER",
-          "clientToken": "FACEBOOK_CLIENT_TOKEN_PLACEHOLDER",
+          "appID": "768698326078162",
+          "clientToken": "09adc772a600d37e3e3d81accb38f282",
           "displayName": "Dan fost anxios",
           "advertiserIDCollectionEnabled": true,
           "autoLogAppEventsEnabled": true,
           "isAutoInitEnabled": true,
-          "scheme": "fbFACEBOOK_APP_ID_PLACEHOLDER"
+          "scheme": "fb768698326078162"
         }
       ]
     ],
