@@ -22,7 +22,13 @@ export default function ForgotPasswordScreen({ navigation }) {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async () => {
+  const [token, setToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const handleSendEmail = async () => {
     setError('');
     const trimmedEmail = String(email || '').trim();
     if (!trimmedEmail) {
@@ -41,6 +47,39 @@ export default function ForgotPasswordScreen({ navigation }) {
     }
   };
 
+  const handleReset = async () => {
+    setError('');
+
+    const trimmedCode = String(token || '').trim();
+    const trimmedPassword = String(newPassword || '');
+    const trimmedConfirm = String(confirmPassword || '');
+
+    if (!trimmedCode) {
+      setError('Introdu codul primit pe email.');
+      return;
+    }
+
+    if (trimmedPassword.length < 8) {
+      setError('Parola trebuie sa aiba cel putin 8 caractere.');
+      return;
+    }
+
+    if (trimmedPassword !== trimmedConfirm) {
+      setError('Parolele nu corespund.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.resetPassword({ newPassword: trimmedPassword, token: trimmedCode });
+      setDone(true);
+    } catch (e) {
+      setError(e.message || 'Resetarea a esuat. Verifica codul si incearca din nou.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#ddeeff', '#eaf4ff', '#f5f9ff']} style={styles.gradient}>
@@ -53,26 +92,15 @@ export default function ForgotPasswordScreen({ navigation }) {
               <Ionicons name="chevron-back" size={22} color="#4a90e2" />
             </TouchableOpacity>
 
-            <View style={styles.header}>
-              <View style={styles.iconCircle}>
-                <Ionicons name="lock-open-outline" size={36} color="#4a90e2" />
-              </View>
-              <Text style={styles.title}>Ai uitat parola?</Text>
-              <Text style={styles.subtitle}>
-                Introdu adresa de email si iti vom trimite un link de resetare a parolei.
-              </Text>
-            </View>
-
-            {sent ? (
+            {done ? (
               <View style={styles.successCard}>
                 <Ionicons name="checkmark-circle-outline" size={48} color="#14b86e" />
-                <Text style={styles.successTitle}>Email trimis</Text>
+                <Text style={styles.successTitle}>Parola resetata</Text>
                 <Text style={styles.successText}>
-                  Daca exista un cont cu aceasta adresa de email, vei primi un link de resetare in cateva minute.{'\n\n'}
-                  Verifica si folderul de spam.
+                  Parola ta a fost actualizata cu succes. Te poti autentifica acum.
                 </Text>
                 <TouchableOpacity
-                  style={styles.backToLoginBtn}
+                  style={styles.submitBtn}
                   onPress={() => navigation.navigate('Login')}
                   activeOpacity={0.8}
                 >
@@ -81,39 +109,130 @@ export default function ForgotPasswordScreen({ navigation }) {
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
-            ) : (
-              <View style={styles.formContainer}>
-                <View style={styles.inputContainer}>
-                  <Ionicons name="mail-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Adresa de email"
-                    placeholderTextColor="#a0c4e8"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    editable={!loading}
-                  />
+            ) : sent ? (
+              <>
+                <View style={styles.header}>
+                  <View style={styles.iconCircle}>
+                    <Ionicons name="key-outline" size={36} color="#4a90e2" />
+                  </View>
+                  <Text style={styles.title}>Codul de resetare</Text>
+                  <Text style={styles.subtitle}>
+                    Am trimis un cod la adresa {'\n'}
+                    <Text style={{ fontWeight: '700', color: '#1a2d45' }}>{email.trim()}</Text>{'\n'}
+                    Introdu codul primit si alege o noua parola.
+                  </Text>
                 </View>
 
-                {error ? <Text style={styles.errorText}>{error}</Text> : null}
+                <View style={styles.formContainer}>
+                  <View style={styles.inputContainer}>
+                    <Ionicons name="key-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Codul din email"
+                      placeholderTextColor="#a0c4e8"
+                      value={token}
+                      onChangeText={setToken}
+                      autoCapitalize="none"
+                      editable={!loading}
+                    />
+                  </View>
 
-                <TouchableOpacity
-                  style={[styles.submitBtn, loading && { opacity: 0.7 }]}
-                  onPress={handleSubmit}
-                  disabled={loading}
-                  activeOpacity={0.8}
-                >
-                  <LinearGradient colors={['#4a90e2', '#357abd']} style={styles.buttonGradient}>
-                    {loading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.buttonText}>Trimite link-ul de resetare</Text>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
+                  <View style={styles.inputContainer}>
+                    <Ionicons name="lock-closed-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Parola noua"
+                      placeholderTextColor="#a0c4e8"
+                      value={newPassword}
+                      onChangeText={setNewPassword}
+                      secureTextEntry={!showPassword}
+                      editable={!loading}
+                    />
+                  </View>
+
+                  <View style={styles.inputContainer}>
+                    <Ionicons name="lock-closed-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Confirma parola noua"
+                      placeholderTextColor="#a0c4e8"
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      secureTextEntry={!showPassword}
+                      editable={!loading}
+                    />
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                      <Ionicons
+                        name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                        size={20}
+                        color="#4a90e2"
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+                  <TouchableOpacity
+                    style={[styles.submitBtn, loading && { opacity: 0.7 }]}
+                    onPress={handleReset}
+                    disabled={loading}
+                    activeOpacity={0.8}
+                  >
+                    <LinearGradient colors={['#4a90e2', '#357abd']} style={styles.buttonGradient}>
+                      {loading ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={styles.buttonText}>Reseteaza parola</Text>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.header}>
+                  <View style={styles.iconCircle}>
+                    <Ionicons name="lock-open-outline" size={36} color="#4a90e2" />
+                  </View>
+                  <Text style={styles.title}>Ai uitat parola?</Text>
+                  <Text style={styles.subtitle}>
+                    Introdu adresa de email si iti vom trimite un cod de resetare.
+                  </Text>
+                </View>
+
+                <View style={styles.formContainer}>
+                  <View style={styles.inputContainer}>
+                    <Ionicons name="mail-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Adresa de email"
+                      placeholderTextColor="#a0c4e8"
+                      value={email}
+                      onChangeText={setEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      editable={!loading}
+                    />
+                  </View>
+
+                  {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+                  <TouchableOpacity
+                    style={[styles.submitBtn, loading && { opacity: 0.7 }]}
+                    onPress={handleSendEmail}
+                    disabled={loading}
+                    activeOpacity={0.8}
+                  >
+                    <LinearGradient colors={['#4a90e2', '#357abd']} style={styles.buttonGradient}>
+                      {loading ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={styles.buttonText}>Trimite codul de resetare</Text>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </>
             )}
           </ScrollView>
         </KeyboardAvoidingView>
@@ -176,6 +295,7 @@ const styles = StyleSheet.create({
   },
   inputIcon: { marginRight: 12 },
   input: { flex: 1, fontSize: 16, color: '#1a2d45', paddingVertical: 16, fontWeight: '400' },
+  eyeIcon: { padding: 4 },
   errorText: { color: '#d9534f', textAlign: 'center', marginBottom: 12, fontSize: 14 },
   submitBtn: {
     borderRadius: 16,
@@ -191,14 +311,4 @@ const styles = StyleSheet.create({
   successCard: { alignItems: 'center', marginTop: 16 },
   successTitle: { fontSize: 20, fontWeight: '700', color: '#1a2d45', marginTop: 16, marginBottom: 8 },
   successText: { fontSize: 15, color: '#6c8096', textAlign: 'center', lineHeight: 22, marginBottom: 28 },
-  backToLoginBtn: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    width: '100%',
-    shadowColor: '#4a90e2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
-  },
 });
