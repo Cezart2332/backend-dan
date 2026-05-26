@@ -5,6 +5,8 @@ import { StatusBar } from "expo-status-bar";
 import * as Notifications from "expo-notifications";
 import LoginScreen from "./components/LoginScreen";
 import RegisterScreen from "./components/RegisterScreen";
+import ForgotPasswordScreen from "./components/ForgotPasswordScreen";
+import ResetPasswordScreen from "./components/ResetPasswordScreen";
 import DashboardScreen from "./components/DashboardScreen";
 import ProvocarilScreen from "./components/ProvocarilScreen";
 import ProgressScreen from "./components/ProgressScreen";
@@ -217,6 +219,8 @@ export default function App() {
                 />
               )}
             </Stack.Screen>
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
             <Stack.Screen name="Dashboard">
               {(props) => (
                 <DashboardScreen

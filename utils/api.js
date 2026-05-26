@@ -103,4 +103,7 @@ export const api = {
   // Account management
   deleteAccount: (token) => request('/api/custom-auth/account', { method: 'DELETE', token }),
   reportBug: (payload, token) => request('/api/bug-report', { method: 'POST', body: payload, token }),
+  // Password reset
+  requestPasswordReset: (email) => request('/api/auth/request-password-reset', { method: 'POST', body: { email } }),
+  resetPassword: (payload) => request('/api/auth/reset-password', { method: 'POST', body: payload }),
 };

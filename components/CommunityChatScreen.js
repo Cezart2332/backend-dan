@@ -83,13 +83,30 @@ function mergeMessages(first, second) {
   });
 }
 
-function formatTime(value) {
+function formatMessageDate(value) {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '--:--';
-  return date.toLocaleTimeString('ro-RO', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  if (Number.isNaN(date.getTime())) return '--/--';
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const messageDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffTime = today.getTime() - messageDay.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  const timeStr = date.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' });
+
+  if (diffDays === 0) return timeStr;
+  if (diffDays === 1) return 'ieri';
+  if (diffDays >= 2 && diffDays <= 6) return diffDays + ' zile in urma';
+  if (diffDays >= 7 && diffDays <= 13) return 'o saptamana in urma';
+  if (diffDays >= 14 && diffDays <= 20) return '2 saptamani in urma';
+  if (diffDays >= 21 && diffDays <= 27) return '3 saptamani in urma';
+  if (diffDays >= 28 && diffDays <= 60) {
+    const months = Math.round(diffDays / 30);
+    return (months === 1 ? 'o luna' : months + ' luni') + ' in urma';
+  }
+
+  return date.toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 function avatarInitial(displayName) {
@@ -117,6 +134,7 @@ export default function CommunityChatScreen({ navigation }) {
   const [socketStatus, setSocketStatus] = useState('disconnected');
   const [socketError, setSocketError] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [showScrollDown, setShowScrollDown] = useState(false);
 
   const wsRef = useRef(null);
   const listRef = useRef(null);
@@ -288,6 +306,12 @@ export default function CommunityChatScreen({ navigation }) {
         return mergeMessages([], incoming);
       });
       setHistoryError('');
+
+      if (!appendOlder) {
+        getToken().then((token) => {
+          if (token) api.markChatAsRead(token).catch(() => {});
+        });
+      }
     } catch (error) {
       setHistoryError(String(error?.message || 'Nu am putut incarca istoricul chatului.'));
     } finally {
@@ -303,12 +327,6 @@ export default function CommunityChatScreen({ navigation }) {
     }
 
     loadHistory({ before: null, appendOlder: false })
-      .then(() => {
-        // Mark chat as read when screen opens and history loads
-        getToken().then((token) => {
-          if (token) api.markChatAsRead(token).catch(() => {});
-        });
-      })
       .catch(() => {
         setLoading(false);
       });
@@ -422,7 +440,7 @@ export default function CommunityChatScreen({ navigation }) {
         return (
           <View style={styles.systemRow}>
             <Text style={styles.systemText}>{item.content}</Text>
-            <Text style={styles.systemTime}>{formatTime(item.createdAt)}</Text>
+            <Text style={styles.systemTime}>{formatMessageDate(item.createdAt)}</Text>
           </View>
         );
       }
@@ -448,7 +466,7 @@ export default function CommunityChatScreen({ navigation }) {
               {item.content}
             </Text>
           </View>
-          <Text style={styles.messageTime}>{formatTime(item.createdAt)}</Text>
+          <Text style={styles.messageTime}>{formatMessageDate(item.createdAt)}</Text>
         </View>
       );
     },
@@ -548,11 +566,31 @@ export default function CommunityChatScreen({ navigation }) {
               onScroll={({ nativeEvent }) => {
                 const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
                 const paddingToBottom = 60;
-                isNearBottomRef.current = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+                const isNearBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+                isNearBottomRef.current = isNearBottom;
+                setShowScrollDown(!isNearBottom && contentSize.height > layoutMeasurement.height);
               }}
               scrollEventThrottle={200}
               ListEmptyComponent={<Text style={styles.emptyText}>Nu exista mesaje inca. Scrie primul mesaj.</Text>}
             />
+
+            {showScrollDown ? (
+              <TouchableOpacity
+                style={styles.scrollDownBtn}
+                onPress={() => {
+                  listRef.current?.scrollToEnd({ animated: true });
+                  isNearBottomRef.current = true;
+                  shouldAutoScrollRef.current = true;
+                  setShowScrollDown(false);
+                  getToken().then((token) => {
+                    if (token) api.markChatAsRead(token).catch(() => {});
+                  });
+                }}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="chevron-down" size={18} color="#fff" />
+              </TouchableOpacity>
+            ) : null}
 
             <View
               style={[
@@ -825,5 +863,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 8,
     elevation: 4,
+  },
+  scrollDownBtn: {
+    position: 'absolute',
+    bottom: 100,
+    right: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#4a90e2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+    zIndex: 10,
   },
 });
