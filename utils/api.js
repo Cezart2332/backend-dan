@@ -104,6 +104,6 @@ export const api = {
   deleteAccount: (token) => request('/api/custom-auth/account', { method: 'DELETE', token }),
   reportBug: (payload, token) => request('/api/bug-report', { method: 'POST', body: payload, token }),
   // Password reset
-  requestPasswordReset: (email) => request('/api/auth/request-password-reset', { method: 'POST', body: { email } }),
-  resetPassword: (payload) => request('/api/auth/reset-password', { method: 'POST', body: payload }),
+  requestPasswordReset: (email) => request('/api/custom-auth/forgot-password', { method: 'POST', body: { email } }),
+  resetPassword: (payload) => request('/api/custom-auth/reset-password', { method: 'POST', body: payload }),
 };

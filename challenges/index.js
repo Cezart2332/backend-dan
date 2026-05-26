@@ -68,3 +68,28 @@ export function getChallengeById(id) {
   }
   return null;
 }
+
+export function resolveChallengeTitle(challengeId, cmsData) {
+  const hardcoded = getChallengeById(challengeId);
+  if (hardcoded) {
+    return {
+      title: hardcoded.challenge?.title || String(challengeId),
+      levelTitle: hardcoded.level?.title || '',
+    };
+  }
+
+  if (cmsData?.levels) {
+    for (const level of cmsData.levels) {
+      for (const c of (level.challenges || [])) {
+        if (`cms-${c.id}` === String(challengeId)) {
+          return {
+            title: c.title || String(challengeId),
+            levelTitle: level.title || '',
+          };
+        }
+      }
+    }
+  }
+
+  return { title: String(challengeId), levelTitle: '' };
+}

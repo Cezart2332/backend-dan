@@ -6,17 +6,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { getRuns, replaceAllRuns } from '../utils/challengeStorage';
-import { getChallengeById } from '../challenges';
+import { resolveChallengeTitle } from '../challenges';
 
 export default function ChallengeHistoryScreen({ navigation }) {
   const [items, setItems] = useState([]);
+  const [cmsData, setCmsData] = useState(null);
 
   const load = async () => {
     try {
       const token = await getToken();
       if (token) {
-        const res = await api.listChallengeRuns(token);
-        const items = res?.items || [];
+        const [historyRes, cmsRes] = await Promise.all([
+          api.listChallengeRuns(token),
+          api.getCmsChallenges().catch(() => ({ levels: [] })),
+        ]);
+        setCmsData(cmsRes);
+        const items = historyRes?.items || [];
         await replaceAllRuns(items);
         setItems(items);
         return;
@@ -51,8 +56,8 @@ export default function ChallengeHistoryScreen({ navigation }) {
           )}
 
           {items.map((it) => {
-            const resolved = getChallengeById(it.challenge_id);
-            const title = resolved?.challenge?.title || it.challenge_id;
+            const resolved = resolveChallengeTitle(it.challenge_id, cmsData);
+            const title = resolved.title;
             const date = it.client_date || it.created_at;
             return (
               <TouchableOpacity key={String(it.id)} style={styles.card} onPress={() => navigation.navigate('ChallengeDetail', { id: it.id })}>

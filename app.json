@@ -87,7 +87,8 @@
           "isAutoInitEnabled": true,
           "scheme": "fb768698326078162"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "extra": {
       "EXPO_PUBLIC_API_URL": "https://api.danfostanxios.ro",

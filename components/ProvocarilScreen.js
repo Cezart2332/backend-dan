@@ -32,45 +32,32 @@ export default function ProvocarilScreen({ navigation }) {
   }, []);
 
   const challengeLevels = useMemo(() => {
-    const hardcoded = levelDefs.map((l) => ({
-      id: l.id,
-      level: `Nivel ${l.id}`,
-      title: l.title,
-      subtitle: l.duration,
-      goal: l.goal,
-      description: l.goal,
-      iconName: l.id === 1 ? 'leaf-outline' : l.id === 2 ? 'flash-outline' : 'flame-outline',
-      iconColor: l.id === 1 ? '#5cb85c' : l.id === 2 ? '#f0a500' : '#d9534f',
-      color: l.color,
-      gradientColors: l.gradientColors,
-      difficulty: l.difficulty,
-      duration: l.duration,
-      exercises: l.challenges.length,
-      challenges: l.challenges,
-    }));
-
-    const cms = cmsLevels.map((l, idx) => ({
-      id: `cms-${l.id}`,
-      level: l.title,
-      title: l.title,
-      subtitle: l.duration,
-      goal: l.goal,
-      description: l.goal,
-      iconName: 'trophy-outline',
-      iconColor: l.color || '#5cb85c',
-      color: l.color || '#5cb85c',
-      gradientColors: (l.gradient_colors || '#5cb85c,#4cae4c').split(','),
-      difficulty: l.difficulty,
-      duration: l.duration,
-      exercises: (l.challenges || []).length,
-      challenges: (l.challenges || []).map((c) => ({
+    return levelDefs.map((l) => {
+      const cmsMatch = cmsLevels.find((cl) => Number(cl.id) === Number(l.id));
+      const hardcodedChallenges = l.challenges;
+      const cmsChallenges = cmsMatch?.challenges?.map((c) => ({
         id: `cms-${c.id}`,
         title: c.title,
         est: c.est,
-      })),
-    }));
+      })) || [];
 
-    return [...hardcoded, ...cms];
+      return {
+        id: l.id,
+        level: `Nivel ${l.id}`,
+        title: l.title,
+        subtitle: l.duration,
+        goal: l.goal,
+        description: l.goal,
+        iconName: l.id === 1 ? 'leaf-outline' : l.id === 2 ? 'flash-outline' : 'flame-outline',
+        iconColor: l.id === 1 ? '#5cb85c' : l.id === 2 ? '#f0a500' : '#d9534f',
+        color: l.color,
+        gradientColors: l.gradientColors,
+        difficulty: l.difficulty,
+        duration: l.duration,
+        exercises: hardcodedChallenges.length + cmsChallenges.length,
+        challenges: [...hardcodedChallenges, ...cmsChallenges],
+      };
+    });
   }, [cmsLevels]);
 
   const handleLevelPress = (level) => {

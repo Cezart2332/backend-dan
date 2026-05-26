@@ -6,14 +6,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { getRunById } from '../utils/challengeStorage';
-import { getChallengeById } from '../challenges';
+import { resolveChallengeTitle } from '../challenges';
 
 export default function ChallengeDetailScreen({ route, navigation }) {
   const { id } = route.params || {};
   const [item, setItem] = useState(null);
 
+  const [cmsData, setCmsData] = useState(null);
+
   const load = async () => {
-    const token = await getToken();
+    const [token, cmsRes] = await Promise.all([
+      getToken(),
+      api.getCmsChallenges().catch(() => ({ levels: [] })),
+    ]);
+    setCmsData(cmsRes);
     if (token) {
       try {
         const res = await api.getChallengeRun(id, token);
@@ -26,7 +32,7 @@ export default function ChallengeDetailScreen({ route, navigation }) {
 
   useEffect(() => { load(); }, [id]);
 
-  const resolved = item ? getChallengeById(item.challenge_id) : null;
+  const resolved = item ? resolveChallengeTitle(item.challenge_id, cmsData) : { title: 'Detalii provocare', levelTitle: '' };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -36,8 +42,8 @@ export default function ChallengeDetailScreen({ route, navigation }) {
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
               <Ionicons name="chevron-back" size={22} color="#4a90e2" />
             </TouchableOpacity>
-            <Text style={styles.title}>{resolved?.challenge?.title || 'Detalii provocare'}</Text>
-            <Text style={styles.subtitle}>{resolved?.level?.title || ''}</Text>
+            <Text style={styles.title}>{resolved.title}</Text>
+            <Text style={styles.subtitle}>{resolved.levelTitle}</Text>
           </View>
 
           {item ? (
