@@ -47,10 +47,10 @@ function compileTemplate(templateName, variables = {}) {
 /**
  * Sends the password reset email to a user.
  *
- * @param {{ email: string, name?: string, resetUrl: string, resetToken: string }} params
+ * @param {{ email: string, name?: string, resetToken: string }} params
  * @returns {Promise<{ id: string }>}
  */
-export async function sendPasswordResetEmail({ email, name, resetUrl, resetToken }) {
+export async function sendPasswordResetEmail({ email, name, resetToken }) {
   const currentYear = new Date().getFullYear();
   const displayName = String(name || 'Utilizator').trim();
 

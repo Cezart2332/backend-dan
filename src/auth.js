@@ -158,7 +158,6 @@ try {
           await sendPasswordResetEmail({
             email: user.email,
             name: user.name,
-            resetUrl: url,
             resetToken: token,
           });
         } catch (error) {
