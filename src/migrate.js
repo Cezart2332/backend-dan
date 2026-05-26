@@ -16,6 +16,17 @@ export async function runMigrations() {
     )
   `);
 
+  // Password reset columns (backward-compatible)
+  try {
+    await mysqlPool.query(`ALTER TABLE users ADD COLUMN password_reset_token VARCHAR(128) NULL`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE users ADD COLUMN password_reset_expires DATETIME NULL`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE users ADD INDEX idx_users_password_reset_token (password_reset_token)`);
+  } catch {}
+
   await mysqlPool.query(`
     CREATE TABLE IF NOT EXISTS sessions (
       id BIGINT PRIMARY KEY AUTO_INCREMENT,

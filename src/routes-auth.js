@@ -4,6 +4,7 @@ import crypto from "crypto";
 import Stripe from "stripe";
 import { mysqlPool } from "./mysql.js";
 import { deleteAvatarFileByUrl } from "./profile-photo-storage.js";
+import { sendPasswordResetEmail } from "./email.js";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || '';
 
@@ -208,6 +209,83 @@ export async function registerAuthRoutes(app) {
     if (!ok) return reply.code(401).send({ error: "Credențiale invalide" });
     const token = signToken(u);
     return reply.send({ token, user: { id: u.id, email: u.email, name: u.name, avatar_url: u.avatar_url || null } });
+  });
+
+  // Password reset — request
+  app.post("/api/custom-auth/forgot-password", async (request, reply) => {
+    const { email } = request.body || {};
+    if (!email || !EMAIL_REGEX.test(String(email).trim())) {
+      return reply.code(200).send({ status: true });
+    }
+
+    try {
+      const [rows] = await mysqlPool.query(
+        "SELECT id, email, name, password_hash FROM users WHERE email = ? AND provider = 'local' LIMIT 1",
+        [email.trim()]
+      );
+
+      if (!Array.isArray(rows) || rows.length === 0) {
+        return reply.code(200).send({ status: true });
+      }
+
+      const user = rows[0];
+      if (!user.password_hash) {
+        return reply.code(200).send({ status: true });
+      }
+
+      const token = crypto.randomBytes(32).toString('hex');
+      const expires = new Date(Date.now() + 60 * 60 * 1000);
+
+      await mysqlPool.query(
+        "UPDATE users SET password_reset_token = ?, password_reset_expires = ? WHERE id = ?",
+        [token, expires, user.id]
+      );
+
+      await sendPasswordResetEmail({
+        email: user.email,
+        name: user.name,
+        resetToken: token,
+      });
+    } catch (error) {
+      request.log.error({ err: error }, 'Password reset request failed');
+    }
+
+    return reply.code(200).send({ status: true });
+  });
+
+  // Password reset — confirm
+  app.post("/api/custom-auth/reset-password", async (request, reply) => {
+    const { token, newPassword } = request.body || {};
+    if (!token || !newPassword) {
+      return reply.code(400).send({ error: "Token si parola noua sunt necesare" });
+    }
+    if (newPassword.length < 8) {
+      return reply.code(400).send({ error: "Parola trebuie sa aiba cel putin 8 caractere" });
+    }
+
+    try {
+      const [rows] = await mysqlPool.query(
+        "SELECT id FROM users WHERE password_reset_token = ? AND password_reset_expires > NOW() LIMIT 1",
+        [String(token).trim()]
+      );
+
+      if (!Array.isArray(rows) || rows.length === 0) {
+        return reply.code(400).send({ error: "Cod invalid sau expirat" });
+      }
+
+      const userId = rows[0].id;
+      const hash = await bcrypt.hash(newPassword, 10);
+
+      await mysqlPool.query(
+        "UPDATE users SET password_hash = ?, password_reset_token = NULL, password_reset_expires = NULL WHERE id = ?",
+        [hash, userId]
+      );
+
+      return reply.code(200).send({ status: true });
+    } catch (error) {
+      request.log.error({ err: error }, 'Password reset confirm failed');
+      return reply.code(500).send({ error: "Eroare server" });
+    }
   });
 
   // Delete account endpoint
