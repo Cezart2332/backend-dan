@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { mysqlPool } from "./mysql.js";
+import { sendPasswordResetEmail } from "./email.js";
 
 // Build MySQL connection info (only for optional CORE key parsing); actual pool comes from mysql.js
 const { DATABASE_URL, MYSQL, CORE_MYSQL } = process.env;
@@ -152,6 +153,19 @@ try {
     emailAndPassword: {
       enabled: true,
       autoSignIn: true,
+      sendResetPassword: async ({ user, url, token }, request) => {
+        try {
+          await sendPasswordResetEmail({
+            email: user.email,
+            name: user.name,
+            resetUrl: url,
+            resetToken: token,
+          });
+        } catch (error) {
+          request?.log?.error?.({ err: error, userId: user?.id }, 'Failed to send password reset email');
+          throw error;
+        }
+      },
     },
     // Add providers only if any are configured
     ...(Object.keys(socialProviders).length > 0 ? { socialProviders } : {}),
