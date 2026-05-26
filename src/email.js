@@ -52,12 +52,9 @@ function compileTemplate(templateName, variables = {}) {
  */
 export async function sendPasswordResetEmail({ email, name, resetToken }) {
   const currentYear = new Date().getFullYear();
-  const displayName = String(name || 'Utilizator').trim();
 
   const html = compileTemplate('reset-password', {
-    resetUrl,
     resetToken: String(resetToken || '').trim(),
-    displayName,
     currentYear: String(currentYear),
   });
 
