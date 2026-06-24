@@ -190,11 +190,11 @@ export default function CommunityChatScreen({ navigation }) {
     const authToken = await getToken();
     if (!authToken) {
       setSocketStatus('disconnected');
-      setSocketError('Autentificare necesara pentru chat.');
+      setSocketError('Autentificare necesară pentru chat.');
       return;
     }
 
-    const wsUrl = buildWebSocketUrl('/chat/connect');
+    const wsUrl = buildWebSocketUrl('/chat/connect', authToken);
     setSocketStatus('connecting');
 
     const ws = new WebSocket(wsUrl, [], {
@@ -278,7 +278,7 @@ export default function CommunityChatScreen({ navigation }) {
   const loadHistory = useCallback(async ({ before = null, appendOlder = false } = {}) => {
     const authToken = await getToken();
     if (!authToken) {
-      setHistoryError('Autentificare necesara pentru chat.');
+      setHistoryError('Autentificare necesară pentru chat.');
       setMessages([]);
       setLoading(false);
       setLoadingOlder(false);
@@ -308,12 +308,10 @@ export default function CommunityChatScreen({ navigation }) {
       setHistoryError('');
 
       if (!appendOlder) {
-        getToken().then((token) => {
-          if (token) api.markChatAsRead(token).catch(() => {});
-        });
+        await api.markChatAsRead(authToken);
       }
     } catch (error) {
-      setHistoryError(String(error?.message || 'Nu am putut incarca istoricul chatului.'));
+      setHistoryError(String(error?.message || 'Nu am putut încărca istoricul chatului.'));
     } finally {
       setLoading(false);
       setLoadingOlder(false);
@@ -408,7 +406,7 @@ export default function CommunityChatScreen({ navigation }) {
 
     const ws = wsRef.current;
     if (!ws || ws.readyState !== 1) {
-      Alert.alert('Conectare in curs', 'Chatul se reconecteaza. Incearca din nou in cateva secunde.');
+      Alert.alert('Conectare în curs', 'Chatul se reconectează. Încearcă din nou în câteva secunde.');
       return;
     }
 
@@ -475,10 +473,10 @@ export default function CommunityChatScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#ddeeff', '#eaf4ff', '#f5f9ff']} style={styles.gradient}>
+      <LinearGradient colors={['#dfeeff', '#f4f9ff', '#edf8f4']} style={styles.gradient}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.75}>
-            <Ionicons name="chevron-back" size={22} color="#4a90e2" />
+            <Ionicons name="chevron-back" size={22} color="#2f73d8" />
           </TouchableOpacity>
           <View style={styles.headerTextWrap}>
             <Text style={styles.title}>Comunitate chat</Text>
@@ -499,8 +497,8 @@ export default function CommunityChatScreen({ navigation }) {
           </View>
         ) : loading ? (
           <View style={styles.loaderWrap}>
-            <ActivityIndicator size="large" color="#4a90e2" />
-            <Text style={styles.loaderText}>Se incarca mesajele...</Text>
+            <ActivityIndicator size="large" color="#2f73d8" />
+            <Text style={styles.loaderText}>Se încărca mesajele...</Text>
           </View>
         ) : (
           <KeyboardAvoidingView
@@ -519,7 +517,7 @@ export default function CommunityChatScreen({ navigation }) {
                 onPress={() => loadHistory({ before: null, appendOlder: false })}
                 activeOpacity={0.75}
               >
-                <Ionicons name="refresh" size={16} color="#2f6cad" />
+                <Ionicons name="refresh" size={16} color="#2158ad" />
                 <Text style={styles.refreshBtnText}>Actualizeaza</Text>
               </TouchableOpacity>
             </View>
@@ -543,7 +541,7 @@ export default function CommunityChatScreen({ navigation }) {
                 disabled={loadingOlder}
               >
                 {loadingOlder ? (
-                  <ActivityIndicator size="small" color="#2f6cad" />
+                  <ActivityIndicator size="small" color="#2158ad" />
                 ) : (
                   <Text style={styles.loadOlderText}>Incarca mesaje anterioare</Text>
                 )}
@@ -630,19 +628,19 @@ export default function CommunityChatScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#ddeeff' },
+  safeArea: { flex: 1, backgroundColor: '#dfeeff' },
   gradient: { flex: 1, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 10 },
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   backBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.75)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(74,144,226,0.15)',
-    shadowColor: '#4a90e2',
+    borderColor: 'rgba(117,154,194,0.18)',
+    shadowColor: '#2f73d8',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
@@ -650,8 +648,8 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   headerTextWrap: { flex: 1 },
-  title: { fontSize: 20, fontWeight: '700', color: '#1a2d45' },
-  subtitle: { fontSize: 12, color: '#6c8096', marginTop: 2 },
+  title: { fontSize: 20, fontWeight: '700', color: '#18324f' },
+  subtitle: { fontSize: 12, color: '#58718e', marginTop: 2 },
 
   blockedCard: {
     marginTop: 16,
@@ -674,7 +672,7 @@ const styles = StyleSheet.create({
   upgradeBtnText: { color: '#fff', fontWeight: '700' },
 
   loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loaderText: { marginTop: 8, color: '#4a90e2' },
+  loaderText: { marginTop: 8, color: '#2f73d8' },
 
   chatContainer: { flex: 1 },
   statusBarRow: {
@@ -717,9 +715,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(47,108,173,0.25)',
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: 'rgba(255,255,255,0.75)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
   },
-  refreshBtnText: { marginLeft: 6, color: '#2f6cad', fontSize: 12, fontWeight: '600' },
+  refreshBtnText: { marginLeft: 6, color: '#2158ad', fontSize: 12, fontWeight: '600' },
 
   errorCard: {
     borderRadius: 10,
@@ -744,17 +742,17 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(74,144,226,0.25)',
-    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderColor: 'rgba(47,115,216,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 8,
   },
   loadOlderBtnDisabled: { opacity: 0.7 },
-  loadOlderText: { color: '#2f6cad', fontWeight: '600', fontSize: 12 },
+  loadOlderText: { color: '#2158ad', fontWeight: '600', fontSize: 12 },
 
   listContent: { paddingBottom: 10 },
-  emptyText: { textAlign: 'center', color: '#6c8096', marginTop: 20 },
+  emptyText: { textAlign: 'center', color: '#58718e', marginTop: 20 },
 
   systemRow: {
     alignSelf: 'center',
@@ -792,7 +790,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(74,144,226,0.18)',
+    backgroundColor: 'rgba(47,115,216,0.14)',
   },
   senderAvatarFallbackText: {
     fontSize: 10,
@@ -807,16 +805,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   messageBubbleMine: {
-    backgroundColor: '#4a90e2',
+    backgroundColor: '#2f73d8',
     borderColor: 'rgba(44,110,187,0.6)',
   },
   messageBubbleOther: {
     backgroundColor: 'rgba(255,255,255,0.85)',
-    borderColor: 'rgba(200,220,240,0.65)',
+    borderColor: 'rgba(117,154,194,0.22)',
   },
   messageText: { fontSize: 14, lineHeight: 19 },
   messageTextMine: { color: '#fff' },
-  messageTextOther: { color: '#1a2d45' },
+  messageTextOther: { color: '#18324f' },
   messageTime: { color: '#8397a8', fontSize: 10, marginTop: 3, marginHorizontal: 4 },
 
   composerWrap: {
@@ -840,7 +838,7 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 40,
     maxHeight: 110,
-    color: '#1a2d45',
+    color: '#18324f',
     fontSize: 14,
     textAlignVertical: 'top',
   },
@@ -855,10 +853,10 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#4a90e2',
+    backgroundColor: '#2f73d8',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#4a90e2',
+    shadowColor: '#2f73d8',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.18,
     shadowRadius: 8,
@@ -871,7 +869,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#4a90e2',
+    backgroundColor: '#2f73d8',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',

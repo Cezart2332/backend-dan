@@ -120,7 +120,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={["#ddeeff", "#eaf4ff", "#f5f9ff"]}
+        colors={["#dfeeff", "#f4f9ff", "#edf8f4"]}
         style={styles.background}
       >
         <ScrollView
@@ -136,7 +136,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
               style={styles.backBtn}
               activeOpacity={0.75}
             >
-              <Ionicons name="chevron-back" size={22} color="#4a90e2" />
+              <Ionicons name="chevron-back" size={22} color="#2f73d8" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Setări</Text>
           </View>
@@ -150,13 +150,13 @@ export default function SettingsScreen({ navigation, onLogout }) {
               activeOpacity={0.7}
             >
               <View style={[styles.iconWrap, { backgroundColor: "#eef5ff" }]}>
-                <Ionicons name="medkit-outline" size={20} color="#2e6bb8" />
+                <Ionicons name="medkit-outline" size={20} color="#2158ad" />
               </View>
               <View style={styles.rowTextWrap}>
-                <Text style={styles.rowTitle}>Medical Disclaimer & Sources</Text>
-                <Text style={styles.rowSubtitle}>Informational only. View sources in 1 tap.</Text>
+                <Text style={styles.rowTitle}>Informații medicale și surse</Text>
+                <Text style={styles.rowSubtitle}>Conținut informativ. Vezi sursele rapid.</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#c8d8e8" />
+              <Ionicons name="chevron-forward" size={18} color="#94a9bf" />
             </TouchableOpacity>
           </View>
 
@@ -175,7 +175,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
                 <Text style={styles.rowTitle}>Raportează un bug</Text>
                 <Text style={styles.rowSubtitle}>Ajută-ne să îmbunătățim aplicația</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#c8d8e8" />
+              <Ionicons name="chevron-forward" size={18} color="#94a9bf" />
             </TouchableOpacity>
           </View>
 
@@ -188,10 +188,10 @@ export default function SettingsScreen({ navigation, onLogout }) {
               activeOpacity={0.7}
             >
               <View style={[styles.iconWrap, { backgroundColor: "#fff0f0" }]}>
-                <Ionicons name="trash-outline" size={20} color="#d9534f" />
+                <Ionicons name="trash-outline" size={20} color="#c94b4b" />
               </View>
               <View style={styles.rowTextWrap}>
-                <Text style={[styles.rowTitle, { color: "#d9534f" }]}>Șterge contul</Text>
+                <Text style={[styles.rowTitle, { color: "#c94b4b" }]}>Șterge contul</Text>
                 <Text style={styles.rowSubtitle}>Această acțiune este permanentă</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#e8c8c8" />
@@ -211,7 +211,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
           <View style={styles.sheet}>
             <View style={styles.sheetIconRow}>
               <View style={[styles.sheetIconWrap, { backgroundColor: "#fff0f0" }]}>
-                <Ionicons name="trash-outline" size={26} color="#d9534f" />
+                <Ionicons name="trash-outline" size={26} color="#c94b4b" />
               </View>
             </View>
             <Text style={styles.sheetTitle}>Șterge contul</Text>
@@ -340,7 +340,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#ddeeff",
+    backgroundColor: "#dfeeff",
   },
   background: {
     flex: 1,
@@ -362,12 +362,12 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.75)",
+    backgroundColor: "rgba(255,255,255,0.88)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(74,144,226,0.15)",
-    shadowColor: "#4a90e2",
+    borderColor: "rgba(117,154,194,0.18)",
+    shadowColor: "#2f73d8",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 26,
     fontWeight: "700",
-    color: "#1a2d45",
+    color: "#18324f",
     letterSpacing: -0.4,
   },
 
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#8ca8c4",
+    color: "#7d93aa",
     letterSpacing: 1.2,
     marginBottom: 8,
     marginLeft: 4,
@@ -393,12 +393,12 @@ const styles = StyleSheet.create({
 
   // Grouped rows
   group: {
-    backgroundColor: "rgba(255,255,255,0.72)",
+    backgroundColor: "rgba(255,255,255,0.86)",
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "rgba(200,220,240,0.6)",
+    borderColor: "rgba(117,154,194,0.18)",
     overflow: "hidden",
-    shadowColor: "#4a90e2",
+    shadowColor: "#2f73d8",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -425,12 +425,12 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#1a2d45",
+    color: "#18324f",
     marginBottom: 2,
   },
   rowSubtitle: {
     fontSize: 12,
-    color: "#8ca8c4",
+    color: "#7d93aa",
     fontWeight: "400",
   },
 
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
     padding: 28,
     borderWidth: 1,
     borderColor: "rgba(200,220,242,0.6)",
-    shadowColor: "#4a90e2",
+    shadowColor: "#2f73d8",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.18,
     shadowRadius: 24,
@@ -472,36 +472,36 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#1a2d45",
+    color: "#18324f",
     textAlign: "center",
     marginBottom: 8,
     letterSpacing: -0.3,
   },
   sheetBody: {
     fontSize: 14,
-    color: "#6c8096",
+    color: "#58718e",
     lineHeight: 21,
     textAlign: "center",
     marginBottom: 8,
   },
   confirmWord: {
     fontWeight: "700",
-    color: "#d9534f",
+    color: "#c94b4b",
     letterSpacing: 0.5,
   },
 
   // Input
   input: {
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor: "rgba(255,255,255,0.94)",
     borderRadius: 13,
     paddingHorizontal: 16,
     paddingVertical: 13,
     fontSize: 15,
-    color: "#1a2d45",
+    color: "#18324f",
     borderWidth: 1,
-    borderColor: "rgba(200,220,240,0.8)",
+    borderColor: "rgba(117,154,194,0.22)",
     marginBottom: 12,
-    shadowColor: "#4a90e2",
+    shadowColor: "#2f73d8",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -535,9 +535,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: "#d9534f",
+    backgroundColor: "#c94b4b",
     alignItems: "center",
-    shadowColor: "#d9534f",
+    shadowColor: "#c94b4b",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -552,9 +552,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: "#4a90e2",
+    backgroundColor: "#2f73d8",
     alignItems: "center",
-    shadowColor: "#4a90e2",
+    shadowColor: "#2f73d8",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

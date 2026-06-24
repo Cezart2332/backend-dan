@@ -30,7 +30,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
   const normalizedSubType = String(subType || '').toLowerCase();
   const hasWebinarAccess = ['premium', 'vip', 'pro'].includes(normalizedSubType);
   const hasChatAccess = hasProEntitlement || ['basic', 'premium', 'vip', 'pro'].includes(normalizedSubType);
-  const medicalDisclaimerPreview = "This app provides general wellness and informational content only.";
+  const medicalDisclaimerPreview = "Aplicația oferă conținut informativ și sprijin pentru stare de bine.";
   const [profileName, setProfileName] = useState("În spațiul tău sigur");
   const [profileAvatarUrl, setProfileAvatarUrl] = useState(null);
   const [cmsSections, setCmsSections] = useState([]);
@@ -115,7 +115,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
       title: "Tehnica HAI – metoda care elimină anxietatea",
       subtitle: "Descoperă pașii și aplicațiile",
       iconName: "leaf-outline",
-      color: "#2bbbad",
+      color: "#1f9d91",
     },
     // 3) About Dan
     {
@@ -131,21 +131,21 @@ export default function DashboardScreen({ navigation, onLogout }) {
       title: "Progresul meu",
       subtitle: "Urmărește-ți evoluția",
       iconName: "bar-chart-outline",
-      color: "#4a90e2",
+      color: "#2f73d8",
     },
     {
       id: 2,
       title: "Gândul de azi de la Dan",
       subtitle: "Înțelepciune zilnică",
       iconName: "chatbubble-ellipses-outline",
-      color: "#5cb85c",
+      color: "#3f9f64",
     },
     {
       id: 3,
       title: "Provocări",
       subtitle: "Depășește-ți limitele",
       iconName: "trophy-outline",
-      color: "#f0ad4e",
+      color: "#d88a28",
     },
     {
       id: 4,
@@ -153,7 +153,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
         "Intră în direct cu Dan sau trimite-i jurnalul lui Dan pentru analiza",
       subtitle: "Conectează-te direct",
       iconName: "videocam-outline",
-      color: "#d9534f",
+      color: "#c94b4b",
     },
     {
       id: 5,
@@ -174,7 +174,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
       title: "Comunitate chat",
       subtitle: "Discuții în timp real cu comunitatea",
       iconName: "chatbubbles-outline",
-      color: "#2f6cad",
+      color: "#2158ad",
     },
     {
       id: 9,
@@ -192,7 +192,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
     },
   ];
 
-  // Items locked during free trial (only available with paid subscription)
+  // Items locked during trial gratuit (only available with paid subscription)
   const trialLockedIds = new Set([4, 5, 6, 7, 10]);
   const isTrial = subType === 'trial';
 
@@ -273,7 +273,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={["#ddeeff", "#eaf4ff", "#f5f9ff"]}
+        colors={["#dfeeff", "#f4f9ff", "#edf8f4"]}
         style={styles.gradient}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -300,7 +300,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
                 {profileAvatarUrl ? (
                   <Image source={{ uri: profileAvatarUrl }} style={styles.logoAvatar} />
                 ) : (
-                  <Ionicons name="person" size={24} color="#4a90e2" />
+                  <Ionicons name="person" size={24} color="#2f73d8" />
                 )}
               </View>
             </TouchableOpacity>
@@ -309,17 +309,17 @@ export default function DashboardScreen({ navigation, onLogout }) {
           <View style={styles.medicalCard}>
             <View style={styles.medicalHeaderRow}>
               <View style={styles.medicalIconWrap}>
-                <Ionicons name="medkit-outline" size={18} color="#2e6bb8" />
+                <Ionicons name="medkit-outline" size={18} color="#2158ad" />
               </View>
-              <Text style={styles.medicalTitle}>Medical Disclaimer</Text>
+              <Text style={styles.medicalTitle}>Informații medicale</Text>
             </View>
             <Text style={styles.medicalBodyText}>{medicalDisclaimerPreview}</Text>
             <TouchableOpacity
               style={styles.medicalActionBtn}
               onPress={() => navigation.navigate("MedicalInfo")}
             >
-              <Text style={styles.medicalActionText}>Learn more / View sources</Text>
-              <Ionicons name="chevron-forward" size={16} color="#2e6bb8" />
+              <Text style={styles.medicalActionText}>Vezi detalii și surse</Text>
+              <Ionicons name="chevron-forward" size={16} color="#2158ad" />
             </TouchableOpacity>
           </View>
 
@@ -422,13 +422,13 @@ export default function DashboardScreen({ navigation, onLogout }) {
                           <View
                             style={[
                               styles.iconContainer,
-                              { backgroundColor: locked ? '#e8e8e8' : '#4a90e2' + '18' },
+                              { backgroundColor: locked ? '#e8e8e8' : '#2f73d8' + '18' },
                             ]}
                           >
                             <Ionicons
                               name={locked ? 'lock-closed-outline' : 'layers-outline'}
                               size={26}
-                              color={locked ? '#aaa' : '#4a90e2'}
+                              color={locked ? '#aaa' : '#2f73d8'}
                             />
                           </View>
 
@@ -468,7 +468,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
               <LinearGradient colors={['#1877F2', '#145dbf']} style={styles.externalLinkGradient}>
                 <Ionicons name="people" size={20} color="#fff" style={styles.externalLinkIcon} />
                 <Text style={styles.externalLinkText}>Comunitate</Text>
-                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.75)" />
+                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.88)" />
               </LinearGradient>
             </TouchableOpacity>
 
@@ -479,7 +479,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
               <LinearGradient colors={['#6cc04a', '#5aad3e']} style={styles.externalLinkGradient}>
                 <Ionicons name="star" size={20} color="#fff" style={styles.externalLinkIcon} />
                 <Text style={styles.externalLinkText}>Testimoniale Dan</Text>
-                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.75)" />
+                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.88)" />
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -490,7 +490,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
               style={styles.termsButton}
               onPress={() => navigation.navigate("Terms")}
             >
-              <Ionicons name="document-text-outline" size={18} color="#6c7b84" style={{ marginRight: 6 }} />
+              <Ionicons name="document-text-outline" size={18} color="#58718e" style={{ marginRight: 6 }} />
               <Text style={styles.termsText}>Termeni</Text>
             </TouchableOpacity>
 
@@ -498,7 +498,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
               style={styles.settingsButton}
               onPress={() => navigation.navigate("Settings")}
             >
-              <Ionicons name="settings-outline" size={18} color="#6c7b84" style={{ marginRight: 6 }} />
+              <Ionicons name="settings-outline" size={18} color="#58718e" style={{ marginRight: 6 }} />
               <Text style={styles.settingsText}>Setări</Text>
             </TouchableOpacity>
 
@@ -506,7 +506,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
               style={styles.logoutButton}
               onPress={handleLogout}
             >
-              <Ionicons name="log-out-outline" size={18} color="#d9534f" style={{ marginRight: 6 }} />
+              <Ionicons name="log-out-outline" size={18} color="#c94b4b" style={{ marginRight: 6 }} />
               <Text style={styles.logoutText}>Ieșire</Text>
             </TouchableOpacity>
           </View>
@@ -517,7 +517,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#ddeeff" },
+  safeArea: { flex: 1, backgroundColor: "#dfeeff" },
   gradient: { flex: 1 },
   scrollContainer: {
     flexGrow: 1,
@@ -537,22 +537,22 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#1a2d45",
+    color: "#18324f",
     marginBottom: 4,
   },
   userName: {
     fontSize: 16,
-    color: "#6c8096",
+    color: "#58718e",
     fontWeight: "400",
   },
   subBadge: {
     alignSelf: "flex-start",
-    backgroundColor: "#4a90e2",
+    backgroundColor: "#2f73d8",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
     marginTop: 6,
-    shadowColor: "#4a90e2",
+    shadowColor: "#2f73d8",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
@@ -569,10 +569,10 @@ const styles = StyleSheet.create({
   },
   logoCircle: {
     width: 50, height: 50, borderRadius: 25,
-    backgroundColor: "rgba(255,255,255,0.75)",
+    backgroundColor: "rgba(255,255,255,0.88)",
     justifyContent: "center", alignItems: "center",
-    borderWidth: 1, borderColor: "rgba(74,144,226,0.15)",
-    shadowColor: "#4a90e2",
+    borderWidth: 1, borderColor: "rgba(117,154,194,0.18)",
+    shadowColor: "#2f73d8",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.15, shadowRadius: 6, elevation: 6,
   },
@@ -582,13 +582,13 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   medicalCard: {
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: "rgba(74,144,226,0.25)",
+    borderColor: "rgba(117,154,194,0.18)",
     padding: 14,
     marginBottom: 18,
-    shadowColor: "#4a90e2",
+    shadowColor: "#2f73d8",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
@@ -605,13 +605,13 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(74,144,226,0.13)",
+    backgroundColor: "rgba(47,115,216,0.12)",
     marginRight: 8,
   },
   medicalTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#1a2d45",
+    color: "#18324f",
   },
   medicalBodyText: {
     fontSize: 13,
@@ -623,13 +623,13 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(74,144,226,0.12)",
+    backgroundColor: "rgba(47,115,216,0.1)",
     borderRadius: 10,
     paddingVertical: 7,
     paddingHorizontal: 10,
   },
   medicalActionText: {
-    color: "#2e6bb8",
+    color: "#2158ad",
     fontWeight: "700",
     fontSize: 12,
     marginRight: 2,
@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
   quoteCard: {
     borderRadius: 16,
     padding: 20,
-    shadowColor: "#4a90e2",
+    shadowColor: "#2f73d8",
     shadowOffset: {
       width: 0,
       height: 3,
@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
     borderWidth: 1,
-    borderColor: "#e8f4fd",
+    borderColor: "rgba(117,154,194,0.18)",
   },
   quoteIcon: {
     fontSize: 24,
@@ -659,14 +659,14 @@ const styles = StyleSheet.create({
   quoteText: {
     fontSize: 16,
     fontStyle: "italic",
-    color: "#2c3e50",
+    color: "#18324f",
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 8,
   },
   quoteAuthor: {
     fontSize: 14,
-    color: "#4a90e2",
+    color: "#2f73d8",
     textAlign: "center",
     fontWeight: "600",
   },
@@ -676,7 +676,7 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#8ca8c4",
+    color: "#7d93aa",
     letterSpacing: 1.2,
     marginBottom: 14,
     marginLeft: 4,
@@ -696,11 +696,11 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   menuItemCard: {
-    backgroundColor: "rgba(255,255,255,0.72)",
-    shadowColor: "#4a90e2",
+    backgroundColor: "rgba(255,255,255,0.86)",
+    shadowColor: "#2f73d8",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
-    borderWidth: 1, borderColor: "rgba(200,220,240,0.6)",
+    borderWidth: 1, borderColor: "rgba(117,154,194,0.18)",
     borderRadius: 18,
   },
   menuItemContent: {
@@ -728,13 +728,13 @@ const styles = StyleSheet.create({
   menuItemTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1a2d45",
+    color: "#18324f",
     marginBottom: 4,
     lineHeight: 22,
   },
   menuItemSubtitle: {
     fontSize: 14,
-    color: "#6c8096",
+    color: "#58718e",
     fontWeight: "400",
   },
   arrowContainer: {
@@ -778,49 +778,49 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: "rgba(200,220,240,0.5)",
+    borderTopColor: "rgba(117,154,194,0.18)",
     marginTop: "auto",
   },
   settingsButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.72)",
+    backgroundColor: "rgba(255,255,255,0.86)",
     paddingHorizontal: 20, paddingVertical: 12,
     borderRadius: 20,
-    shadowColor: "#4a90e2",
+    shadowColor: "#2f73d8",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08, shadowRadius: 6, elevation: 4,
-    borderWidth: 1, borderColor: "rgba(200,220,240,0.6)",
+    borderWidth: 1, borderColor: "rgba(117,154,194,0.18)",
   },
   settingsText: {
-    fontSize: 14, color: "#1a2d45", fontWeight: "500",
+    fontSize: 14, color: "#18324f", fontWeight: "500",
   },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.72)",
+    backgroundColor: "rgba(255,255,255,0.86)",
     paddingHorizontal: 20, paddingVertical: 12,
     borderRadius: 20,
-    shadowColor: "#4a90e2",
+    shadowColor: "#2f73d8",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08, shadowRadius: 6, elevation: 4,
-    borderWidth: 1, borderColor: "rgba(200,220,240,0.6)",
+    borderWidth: 1, borderColor: "rgba(117,154,194,0.18)",
   },
   logoutText: {
-    fontSize: 14, color: "#d9534f", fontWeight: "500",
+    fontSize: 14, color: "#c94b4b", fontWeight: "500",
   },
   termsButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.72)",
+    backgroundColor: "rgba(255,255,255,0.86)",
     paddingHorizontal: 16, paddingVertical: 12,
     borderRadius: 20,
-    shadowColor: "#4a90e2",
+    shadowColor: "#2f73d8",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08, shadowRadius: 6, elevation: 4,
-    borderWidth: 1, borderColor: "rgba(200,220,240,0.6)",
+    borderWidth: 1, borderColor: "rgba(117,154,194,0.18)",
   },
   termsText: {
-    fontSize: 13, color: "#6c8096", fontWeight: "500",
+    fontSize: 13, color: "#58718e", fontWeight: "500",
   },
 });

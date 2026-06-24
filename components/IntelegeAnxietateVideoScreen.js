@@ -19,7 +19,7 @@ export default function IntelegeAnxietateVideoScreen({ navigation, route }) {
       nowPlayingTitle={nowPlayingTitle || title}
       nowPlayingArtist={nowPlayingArtist || "Dan fost anxios · Lecție video"}
       nowPlayingArtwork={nowPlayingArtwork}
-      nowPlayingAccent={nowPlayingAccent || "#4a90e2"}
+      nowPlayingAccent={nowPlayingAccent || "#2f73d8"}
     />
   );
 }

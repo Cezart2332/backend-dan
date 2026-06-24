@@ -8,6 +8,7 @@ import {
   TextInput,
   Keyboard,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -44,11 +45,11 @@ export default function ProgressScreen({ navigation }) {
 
   const handleSendJournal = async () => {
     if (anxietyLevel === 0) {
-      alert('Te rog să selectezi nivelul de anxietate');
+      Alert.alert('Nivel lipsă', 'Te rog să selectezi nivelul de anxietate.');
       return;
     }
     if (!feelings.trim()) {
-      alert('Te rog să completezi cum te-ai simțit');
+      Alert.alert('Descriere lipsă', 'Te rog să completezi cum te-ai simțit.');
       return;
     }
     
@@ -66,9 +67,9 @@ export default function ProgressScreen({ navigation }) {
       }
       // Always keep local copy too
       await addEntry(entry);
-      alert('Jurnalul a fost trimis cu succes către Dan!');
+      Alert.alert('Jurnal trimis', 'Jurnalul a fost trimis către Dan.');
     } catch (e) {
-      alert(e?.message || 'Nu am reușit să trimit progresul.');
+      Alert.alert('Eroare', e?.message || 'Nu am reușit să trimit progresul.');
     }
     
     // Reset form
@@ -78,9 +79,9 @@ export default function ProgressScreen({ navigation }) {
   };
 
   const getAnxietyColor = (level) => {
-    if (level <= 3) return '#5cb85c'; // Green
-    if (level <= 6) return '#f0ad4e'; // Orange
-    return '#d9534f'; // Red
+    if (level <= 3) return '#3f9f64'; // Green
+    if (level <= 6) return '#d88a28'; // Orange
+    return '#c94b4b'; // Red
   };
 
   const getAnxietyLabel = (level) => {
@@ -92,7 +93,7 @@ export default function ProgressScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={['#ddeeff', '#eaf4ff', '#f5f9ff']}
+        colors={['#dfeeff', '#f4f9ff', '#edf8f4']}
         style={styles.gradient}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled" onScrollBeginDrag={Keyboard.dismiss}>
@@ -102,12 +103,12 @@ export default function ProgressScreen({ navigation }) {
               onPress={() => navigation.goBack()}
               style={styles.backButton}
             >
-              <Ionicons name="chevron-back" size={22} color="#4a90e2" />
+              <Ionicons name="chevron-back" size={22} color="#2f73d8" />
             </TouchableOpacity>
 
             <View style={styles.headerContent}>
               <View style={styles.headerIcon}>
-                <Ionicons name="bar-chart-outline" size={36} color="#4a90e2" />
+                <Ionicons name="bar-chart-outline" size={36} color="#2f73d8" />
               </View>
               <Text style={styles.title}>Progresul Meu</Text>
               <Text style={styles.subtitle}>Urmărește-ți evoluția zilnică</Text>
@@ -115,7 +116,7 @@ export default function ProgressScreen({ navigation }) {
 
             <TouchableOpacity style={styles.headerAction} onPress={() => navigation.navigate('ProgressHistory')}>
               <View style={styles.headerActionInner}>
-                <Ionicons name="time-outline" size={16} color="#4a90e2" style={{ marginRight: 6 }} />
+                <Ionicons name="time-outline" size={16} color="#2f73d8" style={{ marginRight: 6 }} />
                 <Text style={styles.headerActionText}>Vezi istoric</Text>
               </View>
             </TouchableOpacity>
@@ -187,7 +188,7 @@ export default function ProgressScreen({ navigation }) {
               <TextInput
                 style={styles.feelingsInput}
                 placeholder="Ex: M-am simțit mai calm după exercițiile de respirație..."
-                placeholderTextColor="#a0c4e8"
+                placeholderTextColor="#7d93aa"
                 value={feelings}
                 onChangeText={setFeelings}
                 multiline
@@ -207,7 +208,7 @@ export default function ProgressScreen({ navigation }) {
               <TextInput
                 style={styles.actionsInput}
                 placeholder="Ex: Am practicat tehnici de respirație, am făcut o plimbare, am meditat 10 minute..."
-                placeholderTextColor="#a0c4e8"
+                placeholderTextColor="#7d93aa"
                 value={recentActions}
                 onChangeText={setRecentActions}
                 multiline
@@ -221,7 +222,7 @@ export default function ProgressScreen({ navigation }) {
           {/* Progress Insights */}
           <View style={styles.insightsSection}>
             <View style={styles.insightsCard}>
-              <Ionicons name="bulb-outline" size={28} color="#f0ad4e" style={{ marginBottom: 8 }} />
+              <Ionicons name="bulb-outline" size={28} color="#d88a28" style={{ marginBottom: 8 }} />
               <Text style={styles.insightsTitle}>Sfat pentru astăzi</Text>
               <Text style={styles.insightsText}>
                 {anxietyLevel <= 3 
@@ -240,7 +241,7 @@ export default function ProgressScreen({ navigation }) {
             onPress={handleSendJournal}
           >
             <LinearGradient
-              colors={['#4a90e2', '#357abd']}
+              colors={['#2f73d8', '#2158ad']}
               style={styles.sendButtonGradient}
             >
               <Ionicons name="pencil-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
@@ -256,7 +257,7 @@ export default function ProgressScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ddeeff',
+    backgroundColor: '#dfeeff',
   },
   gradient: {
     flex: 1,
@@ -279,12 +280,12 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.75)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
     borderWidth: 1,
-    borderColor: 'rgba(74,144,226,0.15)',
+    borderColor: 'rgba(117,154,194,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#4a90e2',
+    shadowColor: '#2f73d8',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
@@ -292,7 +293,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 18,
-    color: '#4a90e2',
+    color: '#2f73d8',
   },
   headerAction: {
     position: 'absolute',
@@ -306,11 +307,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(74,144,226,0.15)',
-    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderColor: 'rgba(117,154,194,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
   },
   headerActionText: {
-    color: '#4a90e2',
+    color: '#2f73d8',
     fontWeight: '600',
     fontSize: 13,
   },
@@ -320,13 +321,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#1a2d45',
+    color: '#18324f',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#6c8096',
+    color: '#58718e',
     textAlign: 'center',
     fontWeight: '400',
   },
@@ -336,12 +337,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1a2d45',
+    color: '#18324f',
     marginBottom: 6,
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: '#6c8096',
+    color: '#58718e',
     marginBottom: 14,
   },
   anxietyLevels: {
@@ -356,16 +357,16 @@ const styles = StyleSheet.create({
     width: (width - 80) / 5 - 4,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.72)',
+    backgroundColor: 'rgba(255,255,255,0.86)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#4a90e2',
+    shadowColor: '#2f73d8',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 3,
     borderWidth: 1,
-    borderColor: 'rgba(200,220,240,0.6)',
+    borderColor: 'rgba(117,154,194,0.18)',
   },
   anxietyButtonSelected: {
     shadowOpacity: 0.2,
@@ -375,7 +376,7 @@ const styles = StyleSheet.create({
   anxietyButtonText: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#1a2d45',
+    color: '#18324f',
   },
   anxietyButtonTextSelected: {
     color: '#ffffff',
@@ -389,32 +390,32 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   inputContainer: {
-    backgroundColor: 'rgba(255,255,255,0.72)',
+    backgroundColor: 'rgba(255,255,255,0.86)',
     borderRadius: 18,
     padding: 16,
-    shadowColor: '#4a90e2',
+    shadowColor: '#2f73d8',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 4,
     borderWidth: 1,
-    borderColor: 'rgba(200,220,240,0.6)',
+    borderColor: 'rgba(117,154,194,0.18)',
   },
   feelingsInput: {
     fontSize: 15,
-    color: '#1a2d45',
+    color: '#18324f',
     minHeight: 80,
     textAlignVertical: 'top',
   },
   actionsInput: {
     fontSize: 15,
-    color: '#1a2d45',
+    color: '#18324f',
     minHeight: 100,
     textAlignVertical: 'top',
   },
   characterCount: {
     fontSize: 12,
-    color: '#6c7b84',
+    color: '#58718e',
     textAlign: 'right',
     marginTop: 8,
   },
@@ -424,15 +425,15 @@ const styles = StyleSheet.create({
   insightsCard: {
     borderRadius: 18,
     padding: 20,
-    shadowColor: '#4a90e2',
+    shadowColor: '#2f73d8',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 5,
     borderWidth: 1,
-    borderColor: 'rgba(200,220,240,0.6)',
+    borderColor: 'rgba(117,154,194,0.18)',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.72)',
+    backgroundColor: 'rgba(255,255,255,0.86)',
   },
   insightsIcon: {
     fontSize: 30,
@@ -441,13 +442,13 @@ const styles = StyleSheet.create({
   insightsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1a2d45',
+    color: '#18324f',
     marginBottom: 8,
     textAlign: 'center',
   },
   insightsText: {
     fontSize: 14,
-    color: '#6c8096',
+    color: '#58718e',
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -455,7 +456,7 @@ const styles = StyleSheet.create({
     marginBottom: 25,
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#4a90e2',
+    shadowColor: '#2f73d8',
     shadowOffset: {
       width: 0,
       height: 4,

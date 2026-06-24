@@ -36,11 +36,11 @@ export default function ChallengeDetailScreen({ route, navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#ddeeff', '#eaf4ff', '#f5f9ff']} style={styles.background}>
+      <LinearGradient colors={['#dfeeff', '#f4f9ff', '#edf8f4']} style={styles.background}>
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Ionicons name="chevron-back" size={22} color="#4a90e2" />
+              <Ionicons name="chevron-back" size={22} color="#2f73d8" />
             </TouchableOpacity>
             <Text style={styles.title}>{resolved.title}</Text>
             <Text style={styles.subtitle}>{resolved.levelTitle}</Text>
@@ -54,7 +54,7 @@ export default function ChallengeDetailScreen({ route, navigation }) {
               {!!item.notes && <Text style={[styles.cardText, { marginTop: 8 }]}>Note: {item.notes}</Text>}
             </View>
           ) : (
-            <Text style={{ textAlign: 'center', color: '#6c8096' }}>Se încarcă...</Text>
+            <Text style={{ textAlign: 'center', color: '#58718e' }}>Se încarcă...</Text>
           )}
         </ScrollView>
       </LinearGradient>
@@ -63,7 +63,7 @@ export default function ChallengeDetailScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#ddeeff' },
+  safeArea: { flex: 1, backgroundColor: '#dfeeff' },
   background: { flex: 1 },
   content: { padding: 20 },
   header: { alignItems: 'center', marginBottom: 20, paddingTop: 4 },
@@ -71,18 +71,18 @@ const styles = StyleSheet.create({
     position: 'absolute', left: 0, top: 0,
     width: 38, height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.75)',
-    borderWidth: 1, borderColor: 'rgba(74,144,226,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)',
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
+    shadowColor: '#2f73d8', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
   },
-  title: { fontSize: 20, fontWeight: '700', color: '#1a2d45', textAlign: 'center' },
-  subtitle: { fontSize: 13, color: '#6c8096', textAlign: 'center', marginTop: 4 },
+  title: { fontSize: 20, fontWeight: '700', color: '#18324f', textAlign: 'center' },
+  subtitle: { fontSize: 13, color: '#58718e', textAlign: 'center', marginTop: 4 },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.72)', borderRadius: 18, padding: 18, marginBottom: 14,
-    borderWidth: 1, borderColor: 'rgba(200,220,240,0.6)',
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
+    backgroundColor: 'rgba(255,255,255,0.86)', borderRadius: 18, padding: 18, marginBottom: 14,
+    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)',
+    shadowColor: '#2f73d8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#1a2d45', marginBottom: 8 },
-  cardText: { fontSize: 14, color: '#1a2d45', lineHeight: 22 },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: '#18324f', marginBottom: 8 },
+  cardText: { fontSize: 14, color: '#18324f', lineHeight: 22 },
 });

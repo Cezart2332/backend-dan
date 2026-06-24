@@ -97,14 +97,14 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
     }
   };
 
-  const handleRestore = async () => {
+  const handleRestaurare = async () => {
     try {
       setPendingAction("restore");
       await restorePermissions();
       await refresh();
-      Alert.alert("Restore", "Achizitiile au fost restaurate.");
+      Alert.alert("Restaurare", "Achizițiile au fost restaurate.");
     } catch (err) {
-      Alert.alert("Eroare", err?.message || "Nu am putut restaura achizitiile.");
+      Alert.alert("Eroare", err?.message || "Nu am putut restaura achizițiile.");
     } finally {
       setPendingAction(null);
     }
@@ -158,9 +158,9 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
       <Modal visible transparent animationType="fade">
         <View style={styles.backdrop}>
           <View style={styles.loadingCard}>
-            <ActivityIndicator size="large" color="#4a90e2" />
-            <Text style={styles.loadingTitle}>Verificam abonamentul...</Text>
-            <Text style={styles.loadingSubtitle}>Sincronizam statusul din RevenueCat</Text>
+            <ActivityIndicator size="large" color="#2f73d8" />
+            <Text style={styles.loadingTitle}>Verificăm abonamentul</Text>
+            <Text style={styles.loadingSubtitle}>Sincronizăm statusul din RevenueCat</Text>
           </View>
         </View>
       </Modal>
@@ -199,11 +199,11 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
         >
           <View style={styles.gradient}>
             <View style={styles.headerIcon}>
-              <Ionicons name="star-outline" size={32} color="#4a90e2" />
+              <Ionicons name="star-outline" size={32} color="#2f73d8" />
             </View>
-            <Text style={styles.title}>Subscribe sau Free Trial</Text>
+            <Text style={styles.title}>Abonament sau trial gratuit</Text>
             <Text style={styles.subtitle}>
-              Activeaza un abonament pentru a continua accesul complet in aplicatie.
+              Activează un abonament pentru a continua accesul complet în aplicație.
             </Text>
 
             <View style={styles.statusPill}>
@@ -221,14 +221,14 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
                 {pendingAction === "paywall" ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.primaryText}>Deschide paywall</Text>
+                  <Text style={styles.primaryText}>Vezi opțiunile</Text>
                 )}
               </View>
             </TouchableOpacity>
 
             <View style={styles.infoBox}>
               <Text style={styles.infoText}>
-                Planurile disponibile sunt Monthly, Yearly si Lifetime.
+                Planurile disponibile sunt lunar, anual și pe viață.
               </Text>
             </View>
 
@@ -239,12 +239,12 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
                 disabled={pendingAction === "trial"}
               >
                 {pendingAction === "trial" ? (
-                  <ActivityIndicator color="#4a90e2" />
+                  <ActivityIndicator color="#2f73d8" />
                 ) : (
                   <Text style={styles.secondaryText}>
                     {trialEligible
-                      ? "Porneste trial gratuit (3 zile)"
-                      : "Porneste free trial (verificam eligibilitatea)"}
+                      ? "Pornește trial gratuit (3 zile)"
+                      : "Pornește trial gratuit (verificăm eligibilitatea)"}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -266,19 +266,19 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
               {pendingAction === "logout" ? (
                 <ActivityIndicator color="#c43c3c" />
               ) : (
-                <Text style={styles.logoutText}>Schimba contul (Logout)</Text>
+                <Text style={styles.logoutText}>Schimbă contul</Text>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.refreshButton}
-              onPress={handleRestore}
+              onPress={handleRestaurare}
               disabled={pendingAction === "restore"}
             >
               {pendingAction === "restore" ? (
-                <ActivityIndicator color="#4a90e2" />
+                <ActivityIndicator color="#2f73d8" />
               ) : (
-                <Text style={styles.refreshText}>Restore purchases</Text>
+                <Text style={styles.refreshText}>Restaurează achizițiile</Text>
               )}
             </TouchableOpacity>
 
@@ -288,9 +288,9 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
               disabled={pendingAction === "refresh"}
             >
               {pendingAction === "refresh" ? (
-                <ActivityIndicator color="#4a90e2" />
+                <ActivityIndicator color="#2f73d8" />
               ) : (
-                <Text style={styles.refreshText}>Refresh customer info</Text>
+                <Text style={styles.refreshText}>Reverifică abonamentul</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     width: Math.min(width - 32, 360),
     borderRadius: 24,
     overflow: "hidden",
-    shadowColor: "#4a90e2",
+    shadowColor: "#2f73d8",
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.15,
     shadowRadius: 24,
@@ -323,13 +323,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "rgba(241,247,255,0.97)",
     borderWidth: 1,
-    borderColor: "rgba(200,220,240,0.6)",
+    borderColor: "rgba(117,154,194,0.18)",
   },
   headerIcon: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: "rgba(74,144,226,0.1)",
+    backgroundColor: "rgba(47,115,216,0.1)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
@@ -337,28 +337,28 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#1a2d45",
+    color: "#18324f",
     textAlign: "center",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 14,
-    color: "#6c8096",
+    color: "#58718e",
     textAlign: "center",
     marginBottom: 16,
     lineHeight: 20,
   },
   statusPill: {
-    backgroundColor: "rgba(74,144,226,0.1)",
+    backgroundColor: "rgba(47,115,216,0.1)",
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 999,
     marginBottom: 22,
     borderWidth: 1,
-    borderColor: "rgba(74,144,226,0.2)",
+    borderColor: "rgba(47,115,216,0.18)",
   },
   statusText: {
-    color: "#1a2d45",
+    color: "#18324f",
     fontSize: 13,
     fontWeight: "600",
   },
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   primaryGradient: {
     paddingVertical: 14,
     alignItems: "center",
-    backgroundColor: "#4a90e2",
+    backgroundColor: "#2f73d8",
     borderRadius: 16,
   },
   primaryText: {
@@ -383,14 +383,14 @@ const styles = StyleSheet.create({
     width: "100%",
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: "rgba(74,144,226,0.3)",
+    borderColor: "rgba(47,115,216,0.24)",
     paddingVertical: 14,
     alignItems: "center",
     marginBottom: 12,
     backgroundColor: "rgba(255,255,255,0.65)",
   },
   secondaryText: {
-    color: "#1a2d45",
+    color: "#18324f",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -410,15 +410,15 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   infoBox: {
-    backgroundColor: "rgba(74,144,226,0.08)",
+    backgroundColor: "rgba(47,115,216,0.08)",
     borderRadius: 14,
     padding: 12,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: "rgba(74,144,226,0.15)",
+    borderColor: "rgba(117,154,194,0.18)",
   },
   infoText: {
-    color: "#1a2d45",
+    color: "#18324f",
     fontSize: 13,
     textAlign: "center",
   },
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   refreshText: {
-    color: "#6c8096",
+    color: "#58718e",
     fontSize: 13,
     fontWeight: "500",
     textDecorationLine: "underline",
@@ -443,19 +443,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "rgba(241,247,255,0.98)",
     borderWidth: 1,
-    borderColor: "rgba(200,220,240,0.7)",
+    borderColor: "rgba(117,154,194,0.18)",
   },
   loadingTitle: {
     marginTop: 14,
     fontSize: 16,
     fontWeight: "700",
-    color: "#1a2d45",
+    color: "#18324f",
     textAlign: "center",
   },
   loadingSubtitle: {
     marginTop: 6,
     fontSize: 13,
-    color: "#6c8096",
+    color: "#58718e",
     textAlign: "center",
   },
 });

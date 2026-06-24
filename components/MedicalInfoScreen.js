@@ -12,8 +12,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 
-const DISCLAIMER_TEXT = `Medical Disclaimer:
-This app provides general wellness and informational content only. It is not intended as medical advice, diagnosis, or treatment. Always seek the advice of a qualified healthcare professional before making any medical decisions.`;
+const DISCLAIMER_TEXT = `Informații medicale:
+Această aplicație oferă conținut general de informare și sprijin pentru stare de bine. Nu înlocuiește sfatul, diagnosticul sau tratamentul medical. Cere întotdeauna părerea unui specialist calificat înainte de decizii medicale.`;
 
 const SOURCES = [
   {
@@ -36,31 +36,31 @@ async function openSourceLink(url) {
     }
     await Linking.openURL(url);
   } catch {
-    Alert.alert("Cannot open link", "Please open this source manually in your browser.");
+    Alert.alert("Nu pot deschide linkul", "Deschide sursa manual în browser.");
   }
 }
 
 export default function MedicalInfoScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={["#ddeeff", "#eaf4ff", "#f5f9ff"]} style={styles.background}>
+      <LinearGradient colors={["#dfeeff", "#f4f9ff", "#edf8f4"]} style={styles.background}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.75}>
-              <Ionicons name="chevron-back" size={22} color="#4a90e2" />
+              <Ionicons name="chevron-back" size={22} color="#2f73d8" />
             </TouchableOpacity>
             <View style={styles.headerTextWrap}>
-              <Text style={styles.title}>Medical Disclaimer</Text>
-              <Text style={styles.subtitle}>Informational use only</Text>
+              <Text style={styles.title}>Informații medicale</Text>
+              <Text style={styles.subtitle}>Conținut informativ, nu sfat medical</Text>
             </View>
           </View>
 
           <View style={styles.disclaimerCard}>
             <View style={styles.cardHeaderRow}>
               <View style={styles.iconWrap}>
-                <Ionicons name="shield-checkmark-outline" size={18} color="#2e6bb8" />
+                <Ionicons name="shield-checkmark-outline" size={18} color="#2158ad" />
               </View>
-              <Text style={styles.cardTitle}>Medical Disclaimer</Text>
+              <Text style={styles.cardTitle}>Informații medicale</Text>
             </View>
             <Text style={styles.disclaimerText}>{DISCLAIMER_TEXT}</Text>
           </View>
@@ -70,7 +70,7 @@ export default function MedicalInfoScreen({ navigation }) {
               <View style={[styles.iconWrap, styles.referencesIconWrap]}>
                 <Ionicons name="library-outline" size={18} color="#2b7f5d" />
               </View>
-              <Text style={styles.cardTitle}>Medical References</Text>
+              <Text style={styles.cardTitle}>Surse medicale</Text>
             </View>
 
             {SOURCES.map((source) => (
@@ -85,8 +85,8 @@ export default function MedicalInfoScreen({ navigation }) {
                   <Text style={styles.sourceUrl}>{source.url}</Text>
                 </View>
                 <View style={styles.sourceActionWrap}>
-                  <Text style={styles.sourceActionText}>View source</Text>
-                  <Ionicons name="open-outline" size={15} color="#2e6bb8" />
+                  <Text style={styles.sourceActionText}>Vezi sursa</Text>
+                  <Ionicons name="open-outline" size={15} color="#2158ad" />
                 </View>
               </TouchableOpacity>
             ))}
@@ -97,8 +97,8 @@ export default function MedicalInfoScreen({ navigation }) {
             onPress={() => navigation.navigate("Terms")}
             activeOpacity={0.8}
           >
-            <Ionicons name="document-text-outline" size={18} color="#2e6bb8" style={{ marginRight: 8 }} />
-            <Text style={styles.learnMoreText}>Learn more in Terms</Text>
+            <Ionicons name="document-text-outline" size={18} color="#2158ad" style={{ marginRight: 8 }} />
+            <Text style={styles.learnMoreText}>Vezi mai multe în Termeni</Text>
           </TouchableOpacity>
         </ScrollView>
       </LinearGradient>
@@ -109,7 +109,7 @@ export default function MedicalInfoScreen({ navigation }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#ddeeff",
+    backgroundColor: "#dfeeff",
   },
   background: {
     flex: 1,
@@ -128,12 +128,12 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.75)",
+    backgroundColor: "rgba(255,255,255,0.88)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(74,144,226,0.15)",
-    shadowColor: "#4a90e2",
+    borderColor: "rgba(117,154,194,0.18)",
+    shadowColor: "#2f73d8",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
@@ -146,21 +146,21 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#1a2d45",
+    color: "#18324f",
   },
   subtitle: {
     fontSize: 13,
-    color: "#6c8096",
+    color: "#58718e",
     marginTop: 2,
   },
   disclaimerCard: {
     backgroundColor: "rgba(255,255,255,0.82)",
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "rgba(74,144,226,0.2)",
+    borderColor: "rgba(47,115,216,0.18)",
     padding: 16,
     marginBottom: 14,
-    shadowColor: "#4a90e2",
+    shadowColor: "#2f73d8",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(90,165,133,0.25)",
     padding: 16,
-    shadowColor: "#4a90e2",
+    shadowColor: "#2f73d8",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "rgba(74,144,226,0.13)",
+    backgroundColor: "rgba(47,115,216,0.12)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 8,
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#1a2d45",
+    color: "#18324f",
   },
   disclaimerText: {
     color: "#3e556b",
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   },
   sourceItem: {
     borderWidth: 1,
-    borderColor: "rgba(200,220,240,0.8)",
+    borderColor: "rgba(117,154,194,0.22)",
     borderRadius: 12,
     padding: 12,
     backgroundColor: "rgba(255,255,255,0.92)",
@@ -230,13 +230,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    backgroundColor: "rgba(74,144,226,0.12)",
+    backgroundColor: "rgba(47,115,216,0.1)",
     borderRadius: 9,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
   sourceActionText: {
-    color: "#2e6bb8",
+    color: "#2158ad",
     fontSize: 12,
     fontWeight: "700",
     marginRight: 4,
@@ -249,12 +249,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.76)",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(74,144,226,0.2)",
+    borderColor: "rgba(47,115,216,0.18)",
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
   learnMoreText: {
-    color: "#2e6bb8",
+    color: "#2158ad",
     fontWeight: "700",
     fontSize: 13,
   },

@@ -119,7 +119,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={['#ddeeff', '#eaf4ff', '#f5f9ff']}
+        colors={['#dfeeff', '#f4f9ff', '#edf8f4']}
         style={styles.gradient}
       >
         <KeyboardAvoidingView
@@ -133,26 +133,26 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                 onPress={() => navigation.goBack()}
                 style={styles.backButton}
               >
-                <Ionicons name="chevron-back" size={24} color="#4a90e2" />
+                <Ionicons name="chevron-back" size={24} color="#2f73d8" />
               </TouchableOpacity>
 
               <View style={styles.logoContainer}>
                 <View style={styles.logoCircle}>
-                  <Ionicons name="leaf" size={40} color="#4a90e2" />
+                  <Ionicons name="leaf" size={40} color="#2f73d8" />
                 </View>
               </View>
-              <Text style={styles.title}>Create Account</Text>
-              <Text style={styles.subtitle}>Join your safe space today</Text>
+              <Text style={styles.title}>Creează cont</Text>
+              <Text style={styles.subtitle}>Începe spațiul tău de lucru cu Dan</Text>
             </View>
 
             {/* Form */}
             <View style={styles.formContainer}>
               <View style={styles.inputContainer}>
-                <Ionicons name="person-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
+                <Ionicons name="person-outline" size={20} color="#2f73d8" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Full name"
-                  placeholderTextColor="#a0c4e8"
+                  placeholder="Nume complet"
+                  placeholderTextColor="#7d93aa"
                   value={fullName}
                   onChangeText={setFullName}
                   autoCapitalize="words"
@@ -160,11 +160,11 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
               </View>
 
               <View style={styles.inputContainer}>
-                <Ionicons name="mail-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
+                <Ionicons name="mail-outline" size={20} color="#2f73d8" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Email address"
-                  placeholderTextColor="#a0c4e8"
+                  placeholder="Email"
+                  placeholderTextColor="#7d93aa"
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -173,11 +173,11 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
               </View>
 
               <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
+                <Ionicons name="lock-closed-outline" size={20} color="#2f73d8" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Password"
-                  placeholderTextColor="#a0c4e8"
+                  placeholder="Parolă"
+                  placeholderTextColor="#7d93aa"
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -189,17 +189,17 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                   <Ionicons
                     name={showPassword ? "eye-outline" : "eye-off-outline"}
                     size={20}
-                    color="#4a90e2"
+                    color="#2f73d8"
                   />
                 </TouchableOpacity>
               </View>
 
               <View style={[styles.inputContainer, { marginBottom: 0 }]}>
-                <Ionicons name="lock-closed-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
+                <Ionicons name="lock-closed-outline" size={20} color="#2f73d8" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Confirm password"
-                  placeholderTextColor="#a0c4e8"
+                  placeholder="Confirmă parola"
+                  placeholderTextColor="#7d93aa"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showConfirmPassword}
@@ -211,7 +211,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                   <Ionicons
                     name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
                     size={20}
-                    color="#4a90e2"
+                    color="#2f73d8"
                   />
                 </TouchableOpacity>
               </View>
@@ -246,10 +246,10 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                 disabled={loading}
               >
                 <LinearGradient
-                  colors={['#4a90e2', '#357abd']}
+                  colors={['#2f73d8', '#2158ad']}
                   style={styles.buttonGradient}
                 >
-                  <Text style={styles.registerButtonText}>{loading ? 'Se creează...' : 'Create Account'}</Text>
+                  <Text style={styles.registerButtonText}>{loading ? 'Se creează...' : 'Creează cont'}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -257,7 +257,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
             {/* Divider */}
             <View style={styles.dividerContainer}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or sign up with</Text>
+              <Text style={styles.dividerText}>sau continuă cu</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -278,7 +278,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                   onPress={handleAppleSignUp}
                   disabled={loading}
                 >
-                  <Ionicons name="logo-apple" size={20} color="#2c3e50" style={{ marginRight: 8 }} />
+                  <Ionicons name="logo-apple" size={20} color="#18324f" style={{ marginRight: 8 }} />
                   <Text style={styles.socialButtonText}>Apple</Text>
                 </TouchableOpacity>
               )}
@@ -286,9 +286,9 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
 
             {/* Login Link */}
             <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Already have an account? </Text>
+              <Text style={styles.loginText}>Ai deja cont? </Text>
               <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                <Text style={styles.loginLink}>Sign In</Text>
+                <Text style={styles.loginLink}>Conectare</Text>
               </TouchableOpacity>
             </View>
 
@@ -306,7 +306,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
         <View style={styles.disclaimerOverlay}>
           <View style={styles.disclaimerBox}>
             <ScrollView contentContainerStyle={styles.disclaimerScroll}>
-              <Text style={styles.disclaimerTitle}>Disclaimer</Text>
+              <Text style={styles.disclaimerTitle}>Informații medicale</Text>
               <Text style={styles.disclaimerText}>
 Sunt coach și autor de cărți despre anxietate și am trecut personal prin această experiență, dar nu sunt specialist medical sau psiholog. Această aplicație oferă suport și resurse informative și nu înlocuiește sfatul unui medic sau psiholog. Dacă simptomele persistă sau se agravează, te rog să consulți un specialist.
               </Text>
@@ -318,7 +318,7 @@ Sunt coach și autor de cărți despre anxietate și am trecut personal prin ace
                 navigation.navigate('Onboarding');
               }}
             >
-              <LinearGradient colors={['#4a90e2', '#357abd']} style={styles.disclaimerButtonGrad}>
+              <LinearGradient colors={['#2f73d8', '#2158ad']} style={styles.disclaimerButtonGrad}>
                 <Text style={styles.disclaimerButtonText}>Am înțeles</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -330,7 +330,7 @@ Sunt coach și autor de cărți despre anxietate și am trecut personal prin ace
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#ddeeff' },
+  safeArea: { flex: 1, backgroundColor: '#dfeeff' },
   gradient: { flex: 1 },
   keyboardAvoid: {
     flex: 1,
@@ -349,15 +349,15 @@ const styles = StyleSheet.create({
   backButton: {
     position: 'absolute', left: 0, top: 0,
     padding: 8, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.75)',
-    borderWidth: 1, borderColor: 'rgba(74,144,226,0.15)',
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 2 },
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)',
+    shadowColor: '#2f73d8', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1, shadowRadius: 4, elevation: 4,
     width: 40, height: 40, justifyContent: 'center', alignItems: 'center',
   },
   backButtonText: {
     fontSize: 18,
-    color: '#4a90e2',
+    color: '#2f73d8',
     fontWeight: 'bold',
   },
   logoContainer: {
@@ -365,22 +365,22 @@ const styles = StyleSheet.create({
   },
   logoCircle: {
     width: 80, height: 80, borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.75)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
     justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: 'rgba(74,144,226,0.15)',
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 4 },
+    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)',
+    shadowColor: '#2f73d8', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15, shadowRadius: 8, elevation: 8,
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#2c3e50',
+    color: '#18324f',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#6c7b84',
+    color: '#58718e',
     textAlign: 'center',
     fontWeight: '400',
   },
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 16,
     paddingVertical: 4,
-    shadowColor: '#4a90e2',
+    shadowColor: '#2f73d8',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     borderWidth: 1,
-    borderColor: '#e8f4fd',
+    borderColor: 'rgba(117,154,194,0.18)',
   },
   inputIcon: {
     marginRight: 12,
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#2c3e50',
+    color: '#18324f',
     paddingVertical: 16,
     fontWeight: '400',
   },
@@ -432,31 +432,31 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#4a90e2',
+    borderColor: '#2f73d8',
     backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   checkboxChecked: {
-    backgroundColor: '#4a90e2',
+    backgroundColor: '#2f73d8',
   },
   agreementText: {
     fontSize: 14,
-    color: '#2c3e50',
+    color: '#18324f',
     lineHeight: 20,
     flex: 1,
     fontWeight: '400',
   },
   linkText: {
-    color: '#4a90e2',
+    color: '#2f73d8',
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
   registerButton: {
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#4a90e2',
+    shadowColor: '#2f73d8',
     shadowOffset: {
       width: 0,
       height: 4,
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   errorText: {
-    color: '#d9534f',
+    color: '#c94b4b',
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -487,11 +487,11 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#d1e7f5',
+    backgroundColor: 'rgba(117,154,194,0.22)',
   },
   dividerText: {
     marginHorizontal: 16,
-    color: '#6c7b84',
+    color: '#58718e',
     fontSize: 14,
     fontWeight: '400',
   },
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     marginHorizontal: 4,
-    shadowColor: '#4a90e2',
+    shadowColor: '#2f73d8',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -518,13 +518,13 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
     borderWidth: 1,
-    borderColor: '#e8f4fd',
+    borderColor: 'rgba(117,154,194,0.18)',
   },
   socialButtonText: {
     marginLeft: 8,
     fontSize: 14,
     fontWeight: '500',
-    color: '#2c3e50',
+    color: '#18324f',
   },
   loginContainer: {
     flexDirection: 'row',
@@ -534,12 +534,12 @@ const styles = StyleSheet.create({
     paddingTop: 15,
   },
   loginText: {
-    color: '#6c7b84',
+    color: '#58718e',
     fontSize: 15,
     fontWeight: '400',
   },
   loginLink: {
-    color: '#4a90e2',
+    color: '#2f73d8',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   termsText: {
-    color: '#6c7b84',
+    color: '#58718e',
     fontSize: 13,
     textDecorationLine: 'underline',
   },
@@ -579,7 +579,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 10,
     borderWidth: 1,
-    borderColor: '#e6f3ff',
+    borderColor: 'rgba(117,154,194,0.18)',
   },
   disclaimerScroll: {
     paddingBottom: 8,
@@ -587,14 +587,14 @@ const styles = StyleSheet.create({
   disclaimerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#2c3e50',
+    color: '#18324f',
     marginBottom: 12,
     textAlign: 'center',
   },
   disclaimerText: {
     fontSize: 14,
     lineHeight: 20,
-    color: '#2c3e50',
+    color: '#18324f',
     textAlign: 'left',
   },
   disclaimerButton: {

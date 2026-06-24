@@ -10,11 +10,11 @@ export default function AboutDanSectionScreen({ route, navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#ddeeff', '#eaf4ff', '#f5f9ff']} style={styles.background}>
+      <LinearGradient colors={['#dfeeff', '#f4f9ff', '#edf8f4']} style={styles.background}>
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.75}>
-              <Ionicons name="chevron-back" size={22} color="#4a90e2" />
+              <Ionicons name="chevron-back" size={22} color="#2f73d8" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>{title}</Text>
           </View>
@@ -29,23 +29,23 @@ export default function AboutDanSectionScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#ddeeff' },
+  safeArea: { flex: 1, backgroundColor: '#dfeeff' },
   background: { flex: 1 },
   content: { padding: 20 },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 24, marginTop: 4 },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.75)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(74,144,226,0.15)',
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 2 },
+    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)',
+    shadowColor: '#2f73d8', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12, shadowRadius: 6, elevation: 3, marginRight: 14,
   },
-  headerTitle: { fontSize: 22, fontWeight: '700', color: '#1a2d45', letterSpacing: -0.3, flex: 1 },
+  headerTitle: { fontSize: 22, fontWeight: '700', color: '#18324f', letterSpacing: -0.3, flex: 1 },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.72)', borderRadius: 18, padding: 18,
-    borderWidth: 1, borderColor: 'rgba(200,220,240,0.6)',
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
+    backgroundColor: 'rgba(255,255,255,0.86)', borderRadius: 18, padding: 18,
+    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)',
+    shadowColor: '#2f73d8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
   },
-  cardText: { fontSize: 14, color: '#6c8096', lineHeight: 20 },
+  cardText: { fontSize: 14, color: '#58718e', lineHeight: 20 },
 });

@@ -133,11 +133,11 @@ export default function DirectScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#ddeeff', '#eaf4ff', '#f5f9ff']} style={styles.gradient}>
+      <LinearGradient colors={['#dfeeff', '#f4f9ff', '#edf8f4']} style={styles.gradient}>
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.75}>
-              <Ionicons name="chevron-back" size={22} color="#4a90e2" />
+              <Ionicons name="chevron-back" size={22} color="#2f73d8" />
             </TouchableOpacity>
             <View style={styles.headerText}>
               <Text style={styles.title}>Intră în direct cu Dan</Text>
@@ -149,7 +149,7 @@ export default function DirectScreen({ navigation }) {
             <Text style={styles.cardTitle}>Programează-te</Text>
             <Text style={styles.cardText}>Deschide calendarul intern și rezervă direct un interval cu Dan.</Text>
             <TouchableOpacity style={styles.primaryBtn} onPress={openBookingModal}>
-              <LinearGradient colors={["#4a90e2", "#2e6bb8"]} style={styles.btnInner}>
+              <LinearGradient colors={["#2f73d8", "#2158ad"]} style={styles.btnInner}>
                 <Text style={styles.primaryText}>Programează-te</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -159,7 +159,7 @@ export default function DirectScreen({ navigation }) {
             <Text style={styles.cardTitle}>Trimite jurnalul</Text>
             <Text style={styles.cardText}>Trimite-ți jurnalul către Dan pentru feedback.</Text>
             <TouchableOpacity style={styles.primaryBtn} onPress={sendJournal}>
-              <LinearGradient colors={["#5cb85c", "#4cae4c"]} style={styles.btnInner}>
+              <LinearGradient colors={["#3f9f64", "#4cae4c"]} style={styles.btnInner}>
                 <Text style={styles.primaryText}>Trimite jurnal</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -183,7 +183,7 @@ export default function DirectScreen({ navigation }) {
                   onPress={() => setSelectedDayOffset((v) => Math.max(0, v - 1))}
                   disabled={selectedDayOffset <= 0 || submitting}
                 >
-                  <Ionicons name="chevron-back" size={18} color="#4a90e2" />
+                  <Ionicons name="chevron-back" size={18} color="#2f73d8" />
                 </TouchableOpacity>
                 <Text style={styles.selectedDayText}>{formatDayLabel(selectedDate)}</Text>
                 <TouchableOpacity
@@ -191,7 +191,7 @@ export default function DirectScreen({ navigation }) {
                   onPress={() => setSelectedDayOffset((v) => Math.min(20, v + 1))}
                   disabled={selectedDayOffset >= 20 || submitting}
                 >
-                  <Ionicons name="chevron-forward" size={18} color="#4a90e2" />
+                  <Ionicons name="chevron-forward" size={18} color="#2f73d8" />
                 </TouchableOpacity>
               </View>
 
@@ -227,7 +227,7 @@ export default function DirectScreen({ navigation }) {
               <TextInput
                 style={styles.notesInput}
                 placeholder="Spune pe scurt ce ai vrea să discutați..."
-                placeholderTextColor="#99a6ae"
+                placeholderTextColor="#7d93aa"
                 multiline
                 value={notes}
                 onChangeText={setNotes}
@@ -235,7 +235,7 @@ export default function DirectScreen({ navigation }) {
               />
 
               <TouchableOpacity style={[styles.primaryBtn, submitting && { opacity: 0.7 }]} onPress={createMeeting} disabled={submitting}>
-                <LinearGradient colors={["#4a90e2", "#2e6bb8"]} style={styles.btnInner}>
+                <LinearGradient colors={["#2f73d8", "#2158ad"]} style={styles.btnInner}>
                   {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Confirmă programarea</Text>}
                 </LinearGradient>
               </TouchableOpacity>
@@ -264,28 +264,28 @@ function formatDisplayDate(date) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#ddeeff' },
+  safeArea: { flex: 1, backgroundColor: '#dfeeff' },
   gradient: { flex: 1 },
   content: { padding: 20 },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 24, marginTop: 4 },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.75)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(74,144,226,0.15)',
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 2 },
+    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)',
+    shadowColor: '#2f73d8', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12, shadowRadius: 6, elevation: 3, marginRight: 14,
   },
   headerText: { flex: 1 },
-  title: { fontSize: 20, fontWeight: '700', color: '#1a2d45' },
-  subtitle: { fontSize: 13, color: '#6c8096', marginTop: 2 },
+  title: { fontSize: 20, fontWeight: '700', color: '#18324f' },
+  subtitle: { fontSize: 13, color: '#58718e', marginTop: 2 },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.72)', borderRadius: 18, padding: 18, marginBottom: 14,
-    borderWidth: 1, borderColor: 'rgba(200,220,240,0.6)',
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
+    backgroundColor: 'rgba(255,255,255,0.86)', borderRadius: 18, padding: 18, marginBottom: 14,
+    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)',
+    shadowColor: '#2f73d8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#1a2d45', marginBottom: 6 },
-  cardText: { fontSize: 14, color: '#6c8096' },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: '#18324f', marginBottom: 6 },
+  cardText: { fontSize: 14, color: '#58718e' },
   primaryBtn: { marginTop: 12, borderRadius: 12, overflow: 'hidden' },
   btnInner: { paddingVertical: 12, alignItems: 'center' },
   primaryText: { color: '#fff', fontWeight: '700' },
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 8,
   },
-  modalTitle: { fontSize: 17, fontWeight: '700', color: '#1a2d45', flex: 1, marginRight: 8 },
+  modalTitle: { fontSize: 17, fontWeight: '700', color: '#18324f', flex: 1, marginRight: 8 },
   sectionLabel: { marginTop: 8, marginBottom: 6, color: '#5f7690', fontSize: 13, fontWeight: '600' },
 
   dayRow: {
@@ -323,34 +323,34 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(74,144,226,0.1)',
+    backgroundColor: 'rgba(47,115,216,0.1)',
   },
   navDayBtnDisabled: { opacity: 0.4 },
-  selectedDayText: { flex: 1, textAlign: 'center', color: '#1a2d45', fontWeight: '600', textTransform: 'capitalize' },
+  selectedDayText: { flex: 1, textAlign: 'center', color: '#18324f', fontWeight: '600', textTransform: 'capitalize' },
 
   choiceWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choiceChip: {
     borderWidth: 1,
     borderColor: 'rgba(145,180,215,0.65)',
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(255,255,255,0.94)',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   choiceChipSelected: {
-    borderColor: '#4a90e2',
-    backgroundColor: 'rgba(74,144,226,0.14)',
+    borderColor: '#2f73d8',
+    backgroundColor: 'rgba(47,115,216,0.12)',
   },
   choiceChipText: { color: '#466581', fontWeight: '600' },
-  choiceChipTextSelected: { color: '#2e6bb8' },
+  choiceChipTextSelected: { color: '#2158ad' },
 
   notesInput: {
     minHeight: 80,
     borderWidth: 1,
     borderColor: 'rgba(145,180,215,0.65)',
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    color: '#1a2d45',
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    color: '#18324f',
     padding: 10,
     textAlignVertical: 'top',
   },

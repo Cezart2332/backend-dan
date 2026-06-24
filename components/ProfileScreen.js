@@ -80,7 +80,7 @@ export default function ProfileScreen({ navigation }) {
         name: resolvedName,
       });
     } catch (error) {
-      Alert.alert('Eroare', String(error?.message || 'Nu am putut incarca profilul.'));
+      Alert.alert('Eroare', String(error?.message || 'Nu am putut încărca profilul.'));
     } finally {
       setLoading(false);
     }
@@ -102,7 +102,7 @@ export default function ProfileScreen({ navigation }) {
       if (Platform.OS === 'ios') {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permission?.granted) {
-          Alert.alert('Permisiune necesara', 'Permite accesul la galerie pentru a selecta o poza de profil.');
+          Alert.alert('Permisiune necesară', 'Permite accesul la galerie pentru a selecta o poză de profil.');
           return;
         }
       }
@@ -119,13 +119,13 @@ export default function ProfileScreen({ navigation }) {
 
       const asset = Array.isArray(result?.assets) ? result.assets[0] : null;
       if (!asset || typeof asset.base64 !== 'string' || !asset.base64.length) {
-        Alert.alert('Imagine invalida', 'Nu am putut procesa imaginea selectata.');
+        Alert.alert('Imagine invalidă', 'Nu am putut procesa imaginea selectată.');
         return;
       }
 
       const estimatedBytes = estimateBase64Bytes(asset.base64);
       if (estimatedBytes > MAX_AVATAR_BYTES) {
-        Alert.alert('Imagine prea mare', 'Avatarul trebuie sa aiba maximum 3MB.');
+        Alert.alert('Imagine prea mare', 'Avatarul trebuie să aibă maximum 3MB.');
         return;
       }
 
@@ -149,13 +149,13 @@ export default function ProfileScreen({ navigation }) {
   const handleSave = useCallback(async () => {
     const nextName = normalizeName(name);
     if (nextName.length < 2 || nextName.length > 60) {
-      Alert.alert('Nume invalid', 'Numele trebuie sa aiba intre 2 si 60 de caractere.');
+      Alert.alert('Nume invalid', 'Numele trebuie să aibă între 2 și 60 de caractere.');
       return;
     }
 
     const token = await getToken();
     if (!token) {
-      Alert.alert('Eroare', 'Sesiunea a expirat. Te rugam sa te autentifici din nou.');
+      Alert.alert('Eroare', 'Sesiunea a expirat. Te rugăm să te autentifici din nou.');
       return;
     }
 
@@ -203,10 +203,10 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#ddeeff', '#eaf4ff', '#f5f9ff']} style={styles.gradient}>
+      <LinearGradient colors={['#dfeeff', '#f4f9ff', '#edf8f4']} style={styles.gradient}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.75}>
-            <Ionicons name="chevron-back" size={22} color="#4a90e2" />
+            <Ionicons name="chevron-back" size={22} color="#2f73d8" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Profilul meu</Text>
           <View style={styles.headerSpacer} />
@@ -214,8 +214,8 @@ export default function ProfileScreen({ navigation }) {
 
         {loading ? (
           <View style={styles.loaderWrap}>
-            <ActivityIndicator size="large" color="#4a90e2" />
-            <Text style={styles.loaderText}>Se incarca profilul...</Text>
+            <ActivityIndicator size="large" color="#2f73d8" />
+            <Text style={styles.loaderText}>Se încărca profilul...</Text>
           </View>
         ) : (
           <KeyboardAvoidingView
@@ -229,19 +229,19 @@ export default function ProfileScreen({ navigation }) {
                   <Image source={{ uri: displayedAvatarUri }} style={styles.avatarImage} />
                 ) : (
                   <View style={styles.avatarPlaceholder}>
-                    <Ionicons name="person" size={38} color="#4a90e2" />
+                    <Ionicons name="person" size={38} color="#2f73d8" />
                   </View>
                 )}
                 <View style={styles.avatarBadge}>
                   <Ionicons name="camera" size={12} color="#fff" />
                 </View>
               </TouchableOpacity>
-              <Text style={styles.avatarHint}>Apasa pe avatar pentru a schimba poza</Text>
+              <Text style={styles.avatarHint}>Apasa pe avatar pentru a schimba poză</Text>
 
               {displayedAvatarUri ? (
                 <TouchableOpacity style={styles.removeAvatarBtn} onPress={handleRemoveAvatar}>
                   <Ionicons name="trash-outline" size={14} color="#b54f5b" />
-                  <Text style={styles.removeAvatarText}>Sterge poza</Text>
+                  <Text style={styles.removeAvatarText}>Sterge poză</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -257,7 +257,7 @@ export default function ProfileScreen({ navigation }) {
                 maxLength={60}
                 autoCapitalize="words"
               />
-              <Text style={styles.helperText}>Numele apare in comunitate si in chat.</Text>
+              <Text style={styles.helperText}>Numele apare in comunitate și in chat.</Text>
             </View>
 
             <TouchableOpacity
@@ -283,7 +283,7 @@ export default function ProfileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#ddeeff' },
+  safeArea: { flex: 1, backgroundColor: '#dfeeff' },
   gradient: { flex: 1, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 18 },
   headerRow: {
     flexDirection: 'row',
@@ -295,16 +295,16 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.75)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(74,144,226,0.15)',
+    borderColor: 'rgba(117,154,194,0.18)',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1a2d45',
+    color: '#18324f',
   },
   headerSpacer: {
     width: 38,
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   },
   loaderText: {
     marginTop: 8,
-    color: '#4a90e2',
+    color: '#2f73d8',
   },
   contentWrap: {
     flex: 1,
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     height: 110,
     borderRadius: 55,
     borderWidth: 2,
-    borderColor: 'rgba(74,144,226,0.25)',
+    borderColor: 'rgba(47,115,216,0.2)',
   },
   avatarPlaceholder: {
     width: 110,
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(74,144,226,0.22)',
+    borderColor: 'rgba(47,115,216,0.2)',
     backgroundColor: 'rgba(255,255,255,0.82)',
   },
   avatarBadge: {
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#4a90e2',
+    backgroundColor: '#2f73d8',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   },
   avatarHint: {
     marginTop: 8,
-    color: '#6c8096',
+    color: '#58718e',
     fontSize: 12,
   },
   removeAvatarBtn: {
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.95)',
     borderWidth: 1,
     borderColor: 'rgba(180,205,230,0.8)',
-    color: '#1a2d45',
+    color: '#18324f',
     fontSize: 15,
   },
   helperText: {
@@ -416,11 +416,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#4a90e2',
+    backgroundColor: '#2f73d8',
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    shadowColor: '#4a90e2',
+    shadowColor: '#2f73d8',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
     shadowRadius: 8,

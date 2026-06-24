@@ -198,12 +198,12 @@ export default function QuoteOfTheDayScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#ddeeff', '#eaf4ff', '#f5f9ff']} style={styles.background}>
+      <LinearGradient colors={['#dfeeff', '#f4f9ff', '#edf8f4']} style={styles.background}>
         <ScrollView contentContainerStyle={styles.scroll}>
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Ionicons name="chevron-back" size={22} color="#4a90e2" />
+              <Ionicons name="chevron-back" size={22} color="#2f73d8" />
             </TouchableOpacity>
             <Text style={styles.title}>Gândul de azi de la Dan</Text>
             <Text style={styles.subtitle}>Un gând pentru liniște și acceptare</Text>
@@ -211,7 +211,7 @@ export default function QuoteOfTheDayScreen({ navigation }) {
 
           {/* Quote Card */}
           <View style={styles.card}>
-            <Ionicons name="chatbubble-ellipses-outline" size={30} color="#4a90e2" style={{ marginBottom: 14, alignSelf: 'center' }} />
+            <Ionicons name="chatbubble-ellipses-outline" size={30} color="#2f73d8" style={{ marginBottom: 14, alignSelf: 'center' }} />
             <Text style={styles.quoteText}>{quote}</Text>
             <TouchableOpacity style={styles.refreshBtn} onPress={refreshQuote}>
               <Text style={styles.refreshText}>Alt gând</Text>
@@ -235,7 +235,7 @@ export default function QuoteOfTheDayScreen({ navigation }) {
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Ionicons name="leaf-outline" size={14} color="#6c8096" style={{ marginRight: 5 }} />
+            <Ionicons name="leaf-outline" size={14} color="#58718e" style={{ marginRight: 5 }} />
             <Text style={styles.footerText}>Ești în siguranță. Respirația ta e ancora ta.</Text>
           </View>
         </ScrollView>
@@ -245,47 +245,47 @@ export default function QuoteOfTheDayScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#ddeeff' },
+  safeArea: { flex: 1, backgroundColor: '#dfeeff' },
   background: { flex: 1 },
   scroll: { padding: 20 },
   header: { alignItems: 'center', marginBottom: 10 },
   backButton: {
     position: 'absolute', left: 0, top: -2,
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.75)',
-    borderWidth: 1, borderColor: 'rgba(74,144,226,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)',
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
+    shadowColor: '#2f73d8', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
   },
-  title: { fontSize: 22, fontWeight: '700', color: '#1a2d45', marginTop: 10, textAlign: 'center' },
-  subtitle: { fontSize: 14, color: '#6c8096', marginTop: 6, marginBottom: 8, textAlign: 'center' },
+  title: { fontSize: 22, fontWeight: '700', color: '#18324f', marginTop: 10, textAlign: 'center' },
+  subtitle: { fontSize: 14, color: '#58718e', marginTop: 6, marginBottom: 8, textAlign: 'center' },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.72)', borderRadius: 18, padding: 22, marginVertical: 12,
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 5,
-    borderWidth: 1, borderColor: 'rgba(200,220,240,0.6)', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.86)', borderRadius: 18, padding: 22, marginVertical: 12,
+    shadowColor: '#2f73d8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 5,
+    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)', alignItems: 'center',
   },
-  quoteText: { fontSize: 17, color: '#1a2d45', textAlign: 'center', lineHeight: 26 },
+  quoteText: { fontSize: 17, color: '#18324f', textAlign: 'center', lineHeight: 26 },
   refreshBtn: {
     marginTop: 16, borderRadius: 12, alignSelf: 'center',
-    backgroundColor: 'rgba(255,255,255,0.75)',
-    borderWidth: 1, borderColor: 'rgba(74,144,226,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    borderWidth: 1, borderColor: 'rgba(47,115,216,0.18)',
     paddingVertical: 10, paddingHorizontal: 20,
   },
-  refreshText: { color: '#4a90e2', fontWeight: '600', fontSize: 14 },
+  refreshText: { color: '#2f73d8', fontWeight: '600', fontSize: 14 },
   notifyCard: {
-    backgroundColor: 'rgba(255,255,255,0.72)', borderRadius: 18, padding: 18, marginTop: 8,
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
-    borderWidth: 1, borderColor: 'rgba(200,220,240,0.6)',
+    backgroundColor: 'rgba(255,255,255,0.86)', borderRadius: 18, padding: 18, marginTop: 8,
+    shadowColor: '#2f73d8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
+    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)',
   },
   notifyRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  notifyTitle: { fontSize: 15, fontWeight: '600', color: '#1a2d45' },
-  notifyDesc: { fontSize: 13, color: '#6c8096', marginTop: 4 },
-  notifyHint: { fontSize: 12, color: '#4a90e2', marginTop: 8, fontWeight: '600' },
+  notifyTitle: { fontSize: 15, fontWeight: '600', color: '#18324f' },
+  notifyDesc: { fontSize: 13, color: '#58718e', marginTop: 4 },
+  notifyHint: { fontSize: 12, color: '#2f73d8', marginTop: 8, fontWeight: '600' },
   testBtn: {
     marginTop: 14, borderRadius: 12, alignSelf: 'flex-start',
-    backgroundColor: '#4a90e2', paddingVertical: 10, paddingHorizontal: 18,
+    backgroundColor: '#2f73d8', paddingVertical: 10, paddingHorizontal: 18,
   },
   testBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
   footer: { marginTop: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  footerText: { fontSize: 13, color: '#6c8096' },
+  footerText: { fontSize: 13, color: '#58718e' },
 });

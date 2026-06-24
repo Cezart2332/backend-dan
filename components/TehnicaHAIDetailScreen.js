@@ -17,7 +17,7 @@ export default function TehnicaHAIDetailScreen({ navigation, route }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={["#ddeeff", "#eaf4ff", "#f5f9ff"]}
+        colors={["#dfeeff", "#f4f9ff", "#edf8f4"]}
         style={styles.background}
       >
         <ScrollView contentContainerStyle={styles.content}>
@@ -41,7 +41,7 @@ export default function TehnicaHAIDetailScreen({ navigation, route }) {
             style={styles.backBtn}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="chevron-back" size={20} color="#4a90e2" />
+            <Ionicons name="chevron-back" size={20} color="#2f73d8" />
             <Text style={styles.backText}>Înapoi</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -52,38 +52,38 @@ export default function TehnicaHAIDetailScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#ddeeff' },
+  safeArea: { flex: 1, backgroundColor: '#dfeeff' },
   background: { flex: 1 },
   content: { padding: 20 },
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#1a2d45",
+    color: "#18324f",
     textAlign: "center",
     marginBottom: 16,
   },
   paragraph: {
     fontSize: 15,
-    color: "#1a2d45",
+    color: "#18324f",
     lineHeight: 22,
     marginBottom: 12,
     textAlign: "center",
   },
   note: {
     fontStyle: "italic",
-    color: "#4a90e2",
+    color: "#2f73d8",
   },
   backBtn: {
     flexDirection: 'row',
     alignSelf: "center",
     marginTop: 20,
-    backgroundColor: 'rgba(255,255,255,0.75)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(74,144,226,0.15)',
+    borderColor: 'rgba(117,154,194,0.18)',
     alignItems: 'center',
   },
-  backText: { color: "#4a90e2", fontWeight: "600", marginLeft: 2 },
+  backText: { color: "#2f73d8", fontWeight: "600", marginLeft: 2 },
 });

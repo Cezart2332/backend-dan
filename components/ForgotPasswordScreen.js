@@ -41,7 +41,7 @@ export default function ForgotPasswordScreen({ navigation }) {
       await api.requestPasswordReset(trimmedEmail);
       setSent(true);
     } catch (e) {
-      setError(e.message || 'Eroare. Incearca din nou.');
+      setError(e.message || 'Eroare. Încearcă din nou.');
     } finally {
       setLoading(false);
     }
@@ -60,7 +60,7 @@ export default function ForgotPasswordScreen({ navigation }) {
     }
 
     if (trimmedPassword.length < 8) {
-      setError('Parola trebuie sa aiba cel putin 8 caractere.');
+      setError('Parola trebuie să aibă cel putin 8 caractere.');
       return;
     }
 
@@ -74,7 +74,7 @@ export default function ForgotPasswordScreen({ navigation }) {
       await api.resetPassword({ newPassword: trimmedPassword, token: trimmedCode });
       setDone(true);
     } catch (e) {
-      setError(e.message || 'Resetarea a esuat. Verifica codul si incearca din nou.');
+      setError(e.message || 'Resetarea a esuat. Verifica codul si încearcă din nou.');
     } finally {
       setLoading(false);
     }
@@ -82,14 +82,14 @@ export default function ForgotPasswordScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#ddeeff', '#eaf4ff', '#f5f9ff']} style={styles.gradient}>
+      <LinearGradient colors={['#dfeeff', '#f4f9ff', '#edf8f4']} style={styles.gradient}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardAvoid}
         >
           <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled" onScrollBeginDrag={Keyboard.dismiss}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.75}>
-              <Ionicons name="chevron-back" size={22} color="#4a90e2" />
+              <Ionicons name="chevron-back" size={22} color="#2f73d8" />
             </TouchableOpacity>
 
             {done ? (
@@ -104,7 +104,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                   onPress={() => navigation.navigate('Login')}
                   activeOpacity={0.8}
                 >
-                  <LinearGradient colors={['#4a90e2', '#357abd']} style={styles.buttonGradient}>
+                  <LinearGradient colors={['#2f73d8', '#2158ad']} style={styles.buttonGradient}>
                     <Text style={styles.buttonText}>Inapoi la autentificare</Text>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -113,23 +113,23 @@ export default function ForgotPasswordScreen({ navigation }) {
               <>
                 <View style={styles.header}>
                   <View style={styles.iconCircle}>
-                    <Ionicons name="key-outline" size={36} color="#4a90e2" />
+                    <Ionicons name="key-outline" size={36} color="#2f73d8" />
                   </View>
                   <Text style={styles.title}>Codul de resetare</Text>
                   <Text style={styles.subtitle}>
                     Am trimis un cod la adresa {'\n'}
-                    <Text style={{ fontWeight: '700', color: '#1a2d45' }}>{email.trim()}</Text>{'\n'}
+                    <Text style={{ fontWeight: '700', color: '#18324f' }}>{email.trim()}</Text>{'\n'}
                     Introdu codul primit si alege o noua parola.
                   </Text>
                 </View>
 
                 <View style={styles.formContainer}>
                   <View style={styles.inputContainer}>
-                    <Ionicons name="key-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
+                    <Ionicons name="key-outline" size={20} color="#2f73d8" style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
                       placeholder="Codul din email"
-                      placeholderTextColor="#a0c4e8"
+                      placeholderTextColor="#7d93aa"
                       value={token}
                       onChangeText={setToken}
                       autoCapitalize="none"
@@ -138,11 +138,11 @@ export default function ForgotPasswordScreen({ navigation }) {
                   </View>
 
                   <View style={styles.inputContainer}>
-                    <Ionicons name="lock-closed-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
+                    <Ionicons name="lock-closed-outline" size={20} color="#2f73d8" style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
                       placeholder="Parola noua"
-                      placeholderTextColor="#a0c4e8"
+                      placeholderTextColor="#7d93aa"
                       value={newPassword}
                       onChangeText={setNewPassword}
                       secureTextEntry={!showPassword}
@@ -151,11 +151,11 @@ export default function ForgotPasswordScreen({ navigation }) {
                   </View>
 
                   <View style={styles.inputContainer}>
-                    <Ionicons name="lock-closed-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
+                    <Ionicons name="lock-closed-outline" size={20} color="#2f73d8" style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
                       placeholder="Confirma parola noua"
-                      placeholderTextColor="#a0c4e8"
+                      placeholderTextColor="#7d93aa"
                       value={confirmPassword}
                       onChangeText={setConfirmPassword}
                       secureTextEntry={!showPassword}
@@ -165,7 +165,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                       <Ionicons
                         name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                         size={20}
-                        color="#4a90e2"
+                        color="#2f73d8"
                       />
                     </TouchableOpacity>
                   </View>
@@ -178,7 +178,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                     disabled={loading}
                     activeOpacity={0.8}
                   >
-                    <LinearGradient colors={['#4a90e2', '#357abd']} style={styles.buttonGradient}>
+                    <LinearGradient colors={['#2f73d8', '#2158ad']} style={styles.buttonGradient}>
                       {loading ? (
                         <ActivityIndicator color="#fff" />
                       ) : (
@@ -192,7 +192,7 @@ export default function ForgotPasswordScreen({ navigation }) {
               <>
                 <View style={styles.header}>
                   <View style={styles.iconCircle}>
-                    <Ionicons name="lock-open-outline" size={36} color="#4a90e2" />
+                    <Ionicons name="lock-open-outline" size={36} color="#2f73d8" />
                   </View>
                   <Text style={styles.title}>Ai uitat parola?</Text>
                   <Text style={styles.subtitle}>
@@ -202,11 +202,11 @@ export default function ForgotPasswordScreen({ navigation }) {
 
                 <View style={styles.formContainer}>
                   <View style={styles.inputContainer}>
-                    <Ionicons name="mail-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
+                    <Ionicons name="mail-outline" size={20} color="#2f73d8" style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
                       placeholder="Adresa de email"
-                      placeholderTextColor="#a0c4e8"
+                      placeholderTextColor="#7d93aa"
                       value={email}
                       onChangeText={setEmail}
                       keyboardType="email-address"
@@ -223,7 +223,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                     disabled={loading}
                     activeOpacity={0.8}
                   >
-                    <LinearGradient colors={['#4a90e2', '#357abd']} style={styles.buttonGradient}>
+                    <LinearGradient colors={['#2f73d8', '#2158ad']} style={styles.buttonGradient}>
                       {loading ? (
                         <ActivityIndicator color="#fff" />
                       ) : (
@@ -242,7 +242,7 @@ export default function ForgotPasswordScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#ddeeff' },
+  safeArea: { flex: 1, backgroundColor: '#dfeeff' },
   gradient: { flex: 1 },
   keyboardAvoid: { flex: 1 },
   scrollContainer: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 20 },
@@ -250,11 +250,11 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.75)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(74,144,226,0.15)',
+    borderColor: 'rgba(117,154,194,0.18)',
     marginBottom: 20,
   },
   header: { alignItems: 'center', marginBottom: 36 },
@@ -262,45 +262,45 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.75)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(74,144,226,0.15)',
+    borderColor: 'rgba(117,154,194,0.18)',
     marginBottom: 20,
-    shadowColor: '#4a90e2',
+    shadowColor: '#2f73d8',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 8,
   },
-  title: { fontSize: 24, fontWeight: '700', color: '#1a2d45', textAlign: 'center', marginBottom: 8 },
-  subtitle: { fontSize: 15, color: '#6c8096', textAlign: 'center', lineHeight: 22 },
+  title: { fontSize: 24, fontWeight: '700', color: '#18324f', textAlign: 'center', marginBottom: 8 },
+  subtitle: { fontSize: 15, color: '#58718e', textAlign: 'center', lineHeight: 22 },
   formContainer: { marginTop: 8 },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(255,255,255,0.94)',
     borderRadius: 16,
     marginBottom: 16,
     paddingHorizontal: 16,
     paddingVertical: 4,
-    shadowColor: '#4a90e2',
+    shadowColor: '#2f73d8',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 4,
     borderWidth: 1,
-    borderColor: 'rgba(200,220,240,0.6)',
+    borderColor: 'rgba(117,154,194,0.18)',
   },
   inputIcon: { marginRight: 12 },
-  input: { flex: 1, fontSize: 16, color: '#1a2d45', paddingVertical: 16, fontWeight: '400' },
+  input: { flex: 1, fontSize: 16, color: '#18324f', paddingVertical: 16, fontWeight: '400' },
   eyeIcon: { padding: 4 },
-  errorText: { color: '#d9534f', textAlign: 'center', marginBottom: 12, fontSize: 14 },
+  errorText: { color: '#c94b4b', textAlign: 'center', marginBottom: 12, fontSize: 14 },
   submitBtn: {
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#4a90e2',
+    shadowColor: '#2f73d8',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
@@ -309,6 +309,6 @@ const styles = StyleSheet.create({
   buttonGradient: { paddingVertical: 18, alignItems: 'center' },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   successCard: { alignItems: 'center', marginTop: 16 },
-  successTitle: { fontSize: 20, fontWeight: '700', color: '#1a2d45', marginTop: 16, marginBottom: 8 },
-  successText: { fontSize: 15, color: '#6c8096', textAlign: 'center', lineHeight: 22, marginBottom: 28 },
+  successTitle: { fontSize: 20, fontWeight: '700', color: '#18324f', marginTop: 16, marginBottom: 8 },
+  successText: { fontSize: 15, color: '#58718e', textAlign: 'center', lineHeight: 22, marginBottom: 28 },
 });

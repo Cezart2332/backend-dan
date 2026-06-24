@@ -36,10 +36,10 @@ export default function ProgressDetailScreen({ route, navigation }) {
   if (!entry) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <LinearGradient colors={['#ddeeff', '#eaf4ff', '#f5f9ff']} style={styles.background}>
+        <LinearGradient colors={['#dfeeff', '#f4f9ff', '#edf8f4']} style={styles.background}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Ionicons name="chevron-back" size={22} color="#4a90e2" />
+              <Ionicons name="chevron-back" size={22} color="#2f73d8" />
             </TouchableOpacity>
             <Text style={styles.title}>Detaliu Progres</Text>
           </View>
@@ -54,10 +54,10 @@ export default function ProgressDetailScreen({ route, navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#ddeeff', '#eaf4ff', '#f5f9ff']} style={styles.background}>
+      <LinearGradient colors={['#dfeeff', '#f4f9ff', '#edf8f4']} style={styles.background}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="chevron-back" size={22} color="#4a90e2" />
+            <Ionicons name="chevron-back" size={22} color="#2f73d8" />
           </TouchableOpacity>
           <Text style={styles.title}>Detaliu Progres</Text>
         </View>
@@ -85,7 +85,7 @@ export default function ProgressDetailScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#ddeeff' },
+  safeArea: { flex: 1, backgroundColor: '#dfeeff' },
   background: { flex: 1 },
   headerRow: {
     flexDirection: 'row', alignItems: 'center',
@@ -94,22 +94,22 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 38, height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.75)',
-    borderWidth: 1, borderColor: 'rgba(74,144,226,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)',
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
+    shadowColor: '#2f73d8', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
     marginRight: 14,
   },
-  title: { fontSize: 22, fontWeight: '700', color: '#1a2d45' },
+  title: { fontSize: 22, fontWeight: '700', color: '#18324f' },
   content: { padding: 16 },
   card: {
     marginBottom: 12,
-    backgroundColor: 'rgba(255,255,255,0.72)', borderRadius: 18, padding: 16,
-    borderWidth: 1, borderColor: 'rgba(200,220,240,0.6)',
-    shadowColor: '#4a90e2', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
+    backgroundColor: 'rgba(255,255,255,0.86)', borderRadius: 18, padding: 16,
+    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)',
+    shadowColor: '#2f73d8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
   },
-  label: { color: '#8ca8c4', fontSize: 11, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6 },
-  value: { color: '#1a2d45', fontWeight: '600', fontSize: 15 },
+  label: { color: '#7d93aa', fontSize: 11, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6 },
+  value: { color: '#18324f', fontWeight: '600', fontSize: 15 },
   loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loading: { color: '#6c8096' },
+  loading: { color: '#58718e' },
 });

@@ -195,7 +195,7 @@ export default function App() {
         onReady={handleNavUpdate}
         onStateChange={handleNavUpdate}
       >
-          <StatusBar style="light" backgroundColor="#4a90e2" />
+          <StatusBar style="light" backgroundColor="#2f73d8" />
           <Stack.Navigator
             initialRouteName={isAuthed ? "Dashboard" : "Login"}
             screenOptions={{

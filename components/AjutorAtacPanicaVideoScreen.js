@@ -21,7 +21,7 @@ export default function AjutorAtacPanicaVideoScreen({ route, navigation }) {
       nowPlayingTitle={nowPlayingTitle || title || "Ajutor - atac de panică"}
       nowPlayingArtist={nowPlayingArtist || "Dan fost anxios · Ajutor atac de panică"}
       nowPlayingArtwork={nowPlayingArtwork}
-      nowPlayingAccent={nowPlayingAccent || "#5cb85c"}
+      nowPlayingAccent={nowPlayingAccent || "#3f9f64"}
     />
   );
 }

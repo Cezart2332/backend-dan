@@ -23,9 +23,9 @@ const TERMS_OF_USE_URL = "https://www.apple.com/legal/internet-services/itunes/d
 const PRIVACY_POLICY_URL = "https://danfostanxios.ro/politica-cookie-uri-ue/";
 
 const OFFERING_DURATION_FALLBACK = {
-  [OFFERING_IDS.basic]: "Monthly subscription",
-  [OFFERING_IDS.premium]: "Yearly subscription",
-  [OFFERING_IDS.vip]: "Lifetime access",
+  [OFFERING_IDS.basic]: "Abonament lunar",
+  [OFFERING_IDS.premium]: "Abonament anual",
+  [OFFERING_IDS.vip]: "Acces pe viață",
 };
 
 const PLAN_FEATURES = {
@@ -62,27 +62,27 @@ function inferDurationLabel(packageItem, fallbackLabel) {
     const unitRaw = String(period?.unit || period?.periodUnit || "").toLowerCase();
     const units = Number(period?.numberOfUnits || period?.value || 1);
 
-    if (unitRaw.includes("month") && units === 1) return "Monthly subscription";
-    if (unitRaw.includes("year") && units === 1) return "Yearly subscription";
-    if (unitRaw.includes("week") && units === 1) return "Weekly subscription";
+    if (unitRaw.includes("month") && units === 1) return "Abonament lunar";
+    if (unitRaw.includes("year") && units === 1) return "Abonament anual";
+    if (unitRaw.includes("week") && units === 1) return "Abonament săptămânal";
     if (Number.isFinite(units) && units > 1 && unitRaw) {
-      return `Renews every ${units} ${unitRaw}${units > 1 ? "s" : ""}`;
+      return `Se reînnoiește la ${units} ${unitRaw}${units > 1 ? "s" : ""}`;
     }
   }
 
   const periodText = String(period || "").toLowerCase();
-  if (periodText.includes("p1m") || periodText.includes("month")) return "Monthly subscription";
-  if (periodText.includes("p1y") || periodText.includes("year")) return "Yearly subscription";
-  if (periodText.includes("p1w") || periodText.includes("week")) return "Weekly subscription";
+  if (periodText.includes("p1m") || periodText.includes("month")) return "Abonament lunar";
+  if (periodText.includes("p1y") || periodText.includes("year")) return "Abonament anual";
+  if (periodText.includes("p1w") || periodText.includes("week")) return "Abonament săptămânal";
 
   const idText = String(
     packageItem?.identifier || packageItem?.packageType || packageItem?.product?.identifier || ""
   ).toLowerCase();
-  if (idText.includes("month")) return "Monthly subscription";
-  if (idText.includes("year") || idText.includes("annual")) return "Yearly subscription";
-  if (idText.includes("life")) return "Lifetime access";
+  if (idText.includes("month")) return "Abonament lunar";
+  if (idText.includes("year") || idText.includes("annual")) return "Abonament anual";
+  if (idText.includes("life")) return "Acces pe viață";
 
-  return fallbackLabel || "Subscription";
+  return fallbackLabel || "Abonament";
 }
 
 function ProductCard({ title, subtitle, durationText, packageItem, selected, onSelect, features }) {
@@ -157,25 +157,25 @@ export default function SubscriptionsScreen({ navigation }) {
       const selectedPackage = productPackages?.[selectedOffering] || null;
       const result = await purchasePackage(selectedPackage);
       if (!result?.success) {
-        throw new Error(result?.error || "Achizitia a esuat.");
+        throw new Error(result?.error || "Achiziția a eșuat.");
       }
-      Alert.alert("Succes", "Abonamentul a fost activat.");
+      Alert.alert("Abonament activ", "Abonamentul a fost activat.");
     } catch (error) {
       if (isUserCancelledPurchase(error)) return;
-      Alert.alert("Eroare", getRevenueCatErrorMessage(error, "Achizitia a esuat."));
+      Alert.alert("Eroare", getRevenueCatErrorMessage(error, "Achiziția a eșuat."));
     } finally {
       setProcessing("");
     }
   };
 
-  const handleRestore = async () => {
+  const handleRestaurare = async () => {
     try {
       setProcessing("restore");
       await restorePermissions();
       await refresh();
-      Alert.alert("Restore", "Am sincronizat achizitiile tale.");
+      Alert.alert("Restaurare", "Am sincronizat achizițiile tale.");
     } catch (error) {
-      Alert.alert("Eroare", getRevenueCatErrorMessage(error, "Nu am putut restaura achizitiile."));
+      Alert.alert("Eroare", getRevenueCatErrorMessage(error, "Nu am putut restaura achizițiile."));
     } finally {
       setProcessing("");
     }
@@ -235,11 +235,11 @@ export default function SubscriptionsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={["#ddeeff", "#eaf4ff", "#f5f9ff"]} style={styles.gradient}>
+      <LinearGradient colors={["#dfeeff", "#f4f9ff", "#edf8f4"]} style={styles.gradient}>
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.headerRow}>
             <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={22} color="#4a90e2" />
+              <Ionicons name="chevron-back" size={22} color="#2f73d8" />
             </TouchableOpacity>
             <Text style={styles.title}>RevenueCat Subscriptions</Text>
             <TouchableOpacity
@@ -255,9 +255,9 @@ export default function SubscriptionsScreen({ navigation }) {
               }}
             >
               {processing === "refresh" ? (
-                <ActivityIndicator size="small" color="#4a90e2" />
+                <ActivityIndicator size="small" color="#2f73d8" />
               ) : (
-                <Ionicons name="refresh-outline" size={20} color="#4a90e2" />
+                <Ionicons name="refresh-outline" size={20} color="#2f73d8" />
               )}
             </TouchableOpacity>
           </View>
@@ -332,13 +332,13 @@ export default function SubscriptionsScreen({ navigation }) {
 
           <TouchableOpacity
             style={[styles.secondaryBtn, processing === "restore" && styles.disabledBtn]}
-            onPress={handleRestore}
+            onPress={handleRestaurare}
             disabled={processing === "restore"}
           >
             {processing === "restore" ? (
-              <ActivityIndicator size="small" color="#4a90e2" />
+              <ActivityIndicator size="small" color="#2f73d8" />
             ) : (
-              <Text style={styles.secondaryBtnText}>Restore Purchases</Text>
+              <Text style={styles.secondaryBtnText}>Restaurează achizițiile</Text>
             )}
           </TouchableOpacity>
 
@@ -348,9 +348,9 @@ export default function SubscriptionsScreen({ navigation }) {
             disabled={processing === "customer-center"}
           >
             {processing === "customer-center" ? (
-              <ActivityIndicator size="small" color="#4a90e2" />
+              <ActivityIndicator size="small" color="#2f73d8" />
             ) : (
-              <Text style={styles.secondaryBtnText}>Open Customer Center</Text>
+              <Text style={styles.secondaryBtnText}>Deschide centrul client</Text>
             )}
           </TouchableOpacity>
 
@@ -361,12 +361,12 @@ export default function SubscriptionsScreen({ navigation }) {
               disabled={processing === "trial"}
             >
               {processing === "trial" ? (
-                <ActivityIndicator size="small" color="#4a90e2" />
+                <ActivityIndicator size="small" color="#2f73d8" />
               ) : (
                 <Text style={styles.secondaryBtnText}>
                   {trialEligible
-                    ? "Porneste trial gratuit (3 zile)"
-                    : "Porneste free trial (verificam eligibilitatea)"}
+                    ? "Pornește trial gratuit (3 zile)"
+                    : "Pornește trial gratuit (verificăm eligibilitatea)"}
                 </Text>
               )}
             </TouchableOpacity>
@@ -375,9 +375,9 @@ export default function SubscriptionsScreen({ navigation }) {
           <View style={styles.legalLinksRow}>
             <TouchableOpacity
               style={styles.legalLinkBtn}
-              onPress={() => openLegalLink(TERMS_OF_USE_URL, "Terms of use")}
+              onPress={() => openLegalLink(TERMS_OF_USE_URL, "Termeni de utilizare")}
             >
-              <Text style={styles.legalLinkText}>Terms of Use (EULA)</Text>
+              <Text style={styles.legalLinkText}>Termeni de utilizare (EULA)</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.legalLinkBtn}
@@ -416,7 +416,7 @@ export default function SubscriptionsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#ddeeff" },
+  safeArea: { flex: 1, backgroundColor: "#dfeeff" },
   gradient: { flex: 1 },
   content: { padding: 20, paddingBottom: 40 },
   headerRow: {
@@ -429,49 +429,49 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.75)",
+    backgroundColor: "rgba(255,255,255,0.88)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(74,144,226,0.15)",
+    borderColor: "rgba(117,154,194,0.18)",
   },
   refreshBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.75)",
+    backgroundColor: "rgba(255,255,255,0.88)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(74,144,226,0.15)",
+    borderColor: "rgba(117,154,194,0.18)",
   },
   title: {
     fontSize: 18,
-    color: "#1a2d45",
+    color: "#18324f",
     fontWeight: "700",
   },
   statusBox: {
     backgroundColor: "rgba(255,255,255,0.8)",
     borderWidth: 1,
-    borderColor: "rgba(74,144,226,0.2)",
+    borderColor: "rgba(47,115,216,0.18)",
     borderRadius: 16,
     padding: 14,
     marginBottom: 14,
   },
-  statusLabel: { fontSize: 13, color: "#6c8096" },
-  statusValue: { fontSize: 18, color: "#1a2d45", fontWeight: "700", marginTop: 3 },
-  entitlementText: { fontSize: 13, color: "#1a2d45", marginTop: 6 },
-  smallText: { fontSize: 12, color: "#6c8096", marginTop: 4 },
+  statusLabel: { fontSize: 13, color: "#58718e" },
+  statusValue: { fontSize: 18, color: "#18324f", fontWeight: "700", marginTop: 3 },
+  entitlementText: { fontSize: 13, color: "#18324f", marginTop: 6 },
+  smallText: { fontSize: 12, color: "#58718e", marginTop: 4 },
   card: {
     backgroundColor: "rgba(255,255,255,0.8)",
     borderWidth: 1,
-    borderColor: "rgba(74,144,226,0.2)",
+    borderColor: "rgba(47,115,216,0.18)",
     borderRadius: 16,
     padding: 14,
     marginBottom: 12,
   },
   cardSelected: {
-    borderColor: "#4a90e2",
+    borderColor: "#2f73d8",
     borderWidth: 2,
   },
   cardHeader: {
@@ -479,15 +479,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  cardTitle: { fontSize: 18, color: "#1a2d45", fontWeight: "700" },
-  cardSubtitle: { fontSize: 13, color: "#6c8096", marginTop: 4 },
-  cardDuration: { fontSize: 13, color: "#1a2d45", marginTop: 6, fontWeight: "600" },
-  cardPrice: { fontSize: 20, color: "#4a90e2", fontWeight: "700", marginTop: 8 },
-  cardSku: { fontSize: 12, color: "#6c8096", marginTop: 6 },
+  cardTitle: { fontSize: 18, color: "#18324f", fontWeight: "700" },
+  cardSubtitle: { fontSize: 13, color: "#58718e", marginTop: 4 },
+  cardDuration: { fontSize: 13, color: "#18324f", marginTop: 6, fontWeight: "600" },
+  cardPrice: { fontSize: 20, color: "#2f73d8", fontWeight: "700", marginTop: 8 },
+  cardSku: { fontSize: 12, color: "#58718e", marginTop: 6 },
   featureList: {
     marginTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(74,144,226,0.15)",
+    borderTopColor: "rgba(117,154,194,0.18)",
     paddingTop: 10,
   },
   featureRow: {
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   featureText: {
     flex: 1,
     fontSize: 13,
-    color: "#1a2d45",
+    color: "#18324f",
     lineHeight: 18,
   },
   featureTextExcluded: {
@@ -512,12 +512,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: "#4a90e2",
+    backgroundColor: "#2f73d8",
   },
   selectedPillText: { color: "#fff", fontSize: 10, fontWeight: "700" },
   primaryBtn: {
     marginTop: 6,
-    backgroundColor: "#4a90e2",
+    backgroundColor: "#2f73d8",
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
@@ -527,14 +527,14 @@ const styles = StyleSheet.create({
   secondaryBtn: {
     marginTop: 10,
     borderWidth: 1,
-    borderColor: "rgba(74,144,226,0.35)",
+    borderColor: "rgba(47,115,216,0.28)",
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 13,
-    backgroundColor: "rgba(255,255,255,0.72)",
+    backgroundColor: "rgba(255,255,255,0.86)",
   },
-  secondaryBtnText: { color: "#1a2d45", fontSize: 14, fontWeight: "600" },
+  secondaryBtnText: { color: "#18324f", fontSize: 14, fontWeight: "600" },
   disabledBtn: { opacity: 0.6 },
   legalLinksRow: {
     marginTop: 14,
@@ -544,12 +544,12 @@ const styles = StyleSheet.create({
   legalLinkBtn: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "rgba(74,144,226,0.3)",
+    borderColor: "rgba(47,115,216,0.24)",
     borderRadius: 12,
     paddingVertical: 10,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.72)",
+    backgroundColor: "rgba(255,255,255,0.86)",
   },
   legalLinkText: {
     color: "#2f67c4",
@@ -560,8 +560,8 @@ const styles = StyleSheet.create({
     marginTop: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(74,144,226,0.2)",
-    backgroundColor: "rgba(255,255,255,0.72)",
+    borderColor: "rgba(47,115,216,0.18)",
+    backgroundColor: "rgba(255,255,255,0.86)",
     padding: 12,
   },
   legalNoticeText: {
@@ -574,9 +574,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.8)",
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(74,144,226,0.2)",
+    borderColor: "rgba(47,115,216,0.18)",
     padding: 14,
   },
-  customerInfoTitle: { color: "#1a2d45", fontWeight: "700", fontSize: 15, marginBottom: 8 },
+  customerInfoTitle: { color: "#18324f", fontWeight: "700", fontSize: 15, marginBottom: 8 },
   customerInfoText: { color: "#44586f", fontSize: 12, marginTop: 4 },
 });

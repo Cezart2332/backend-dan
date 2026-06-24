@@ -114,7 +114,7 @@ export default function WebinariiScreen({ navigation, route }) {
       const authToken = await getToken();
       if (!authToken) {
         setItems([]);
-        setError('Autentificare necesara.');
+        setError('Autentificare necesară.');
         setAccessDenied(false);
         return;
       }
@@ -123,7 +123,7 @@ export default function WebinariiScreen({ navigation, route }) {
       setItems(Array.isArray(result?.items) ? result.items : []);
       setAccessDenied(false);
     } catch (e) {
-      const message = String(e?.message || 'Nu am putut incarca webinariile.');
+      const message = String(e?.message || 'Nu am putut încărca webinariile.');
       setError(message);
       const denied = /premium|vip|acces disponibil/i.test(message);
       setAccessDenied(denied);
@@ -192,10 +192,10 @@ export default function WebinariiScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#ddeeff', '#eaf4ff', '#f5f9ff']} style={styles.gradient}>
+      <LinearGradient colors={['#dfeeff', '#f4f9ff', '#edf8f4']} style={styles.gradient}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.75}>
-            <Ionicons name="chevron-back" size={22} color="#4a90e2" />
+            <Ionicons name="chevron-back" size={22} color="#2f73d8" />
           </TouchableOpacity>
           <View style={styles.headerTextWrap}>
             <Text style={styles.title}>Webinarii</Text>
@@ -219,8 +219,8 @@ export default function WebinariiScreen({ navigation, route }) {
           </View>
         ) : loading ? (
           <View style={styles.centerWrap}>
-            <ActivityIndicator size="large" color="#4a90e2" />
-            <Text style={styles.loadingText}>Se incarca webinariile...</Text>
+            <ActivityIndicator size="large" color="#2f73d8" />
+            <Text style={styles.loadingText}>Se încărca webinariile...</Text>
           </View>
         ) : (
           <ScrollView
@@ -229,7 +229,7 @@ export default function WebinariiScreen({ navigation, route }) {
           >
             {pushReady ? (
               <View style={styles.pushInfoCard}>
-                <Ionicons name="notifications" size={16} color="#2f6cad" />
+                <Ionicons name="notifications" size={16} color="#2158ad" />
                 <Text style={styles.pushInfoText}>Notificarile pentru webinarii sunt active pe acest dispozitiv.</Text>
               </View>
             ) : null}
@@ -290,19 +290,19 @@ export default function WebinariiScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#ddeeff' },
+  safeArea: { flex: 1, backgroundColor: '#dfeeff' },
   gradient: { flex: 1, padding: 20 },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 14, marginTop: 4 },
   backBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.75)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(74,144,226,0.15)',
-    shadowColor: '#4a90e2',
+    borderColor: 'rgba(117,154,194,0.18)',
+    shadowColor: '#2f73d8',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
@@ -310,29 +310,29 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   headerTextWrap: { flex: 1 },
-  title: { fontSize: 20, fontWeight: '700', color: '#1a2d45' },
-  subtitle: { fontSize: 13, color: '#6c8096', marginTop: 2 },
+  title: { fontSize: 20, fontWeight: '700', color: '#18324f' },
+  subtitle: { fontSize: 13, color: '#58718e', marginTop: 2 },
   centerWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { marginTop: 8, color: '#4a90e2' },
+  loadingText: { marginTop: 8, color: '#2f73d8' },
   scrollContent: { paddingBottom: 20 },
   pushInfoCard: {
     borderRadius: 12,
     padding: 10,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: 'rgba(74,144,226,0.2)',
-    backgroundColor: 'rgba(74,144,226,0.08)',
+    borderColor: 'rgba(47,115,216,0.18)',
+    backgroundColor: 'rgba(47,115,216,0.08)',
     flexDirection: 'row',
     alignItems: 'center',
   },
-  pushInfoText: { marginLeft: 8, color: '#2f6cad', fontSize: 12, flex: 1 },
+  pushInfoText: { marginLeft: 8, color: '#2158ad', fontSize: 12, flex: 1 },
   webinarCard: {
-    backgroundColor: 'rgba(255,255,255,0.72)',
+    backgroundColor: 'rgba(255,255,255,0.86)',
     borderRadius: 16,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: 'rgba(200,220,240,0.6)',
+    borderColor: 'rgba(117,154,194,0.18)',
   },
   webinarCardFocused: {
     borderColor: '#6f67ff',
@@ -343,15 +343,15 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   webinarTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  webinarTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: '#1a2d45' },
-  webinarDate: { marginTop: 6, color: '#6c8096', fontSize: 12 },
+  webinarTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: '#18324f' },
+  webinarDate: { marginTop: 6, color: '#58718e', fontSize: 12 },
   webinarDescription: { marginTop: 8, color: '#34495e', fontSize: 13, lineHeight: 19 },
   actionRow: { marginTop: 12 },
   actionBtnJoin: {
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center',
-    backgroundColor: '#4a90e2',
+    backgroundColor: '#2f73d8',
   },
   actionBtnRecording: {
     borderRadius: 10,
@@ -362,11 +362,11 @@ const styles = StyleSheet.create({
   actionBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   noLinkText: { color: '#7d8ea1', fontSize: 12 },
   statusBadge: { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4 },
-  status_scheduled: { backgroundColor: 'rgba(74,144,226,0.16)' },
+  status_scheduled: { backgroundColor: 'rgba(47,115,216,0.14)' },
   status_live: { backgroundColor: 'rgba(232,77,101,0.16)' },
   status_held: { backgroundColor: 'rgba(20,184,110,0.16)' },
   status_cancelled: { backgroundColor: 'rgba(108,128,150,0.2)' },
-  statusText: { fontSize: 11, fontWeight: '700', color: '#1a2d45' },
+  statusText: { fontSize: 11, fontWeight: '700', color: '#18324f' },
   blockedCard: {
     marginTop: 20,
     borderRadius: 16,
@@ -393,10 +393,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(138,166,200,0.3)',
-    backgroundColor: 'rgba(255,255,255,0.7)',
+    backgroundColor: 'rgba(255,255,255,0.84)',
     padding: 18,
   },
-  emptyText: { marginTop: 8, color: '#6c8096' },
+  emptyText: { marginTop: 8, color: '#58718e' },
   upgradeBtn: {
     marginTop: 12,
     borderRadius: 10,

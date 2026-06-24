@@ -21,7 +21,7 @@ export default function TehnicaHAIVideoScreen({ route, navigation }) {
       nowPlayingTitle={nowPlayingTitle || title || "Tehnica HAI"}
       nowPlayingArtist={nowPlayingArtist || "Dan fost anxios · Tehnica HAI"}
       nowPlayingArtwork={nowPlayingArtwork}
-      nowPlayingAccent={nowPlayingAccent || "#2bbbad"}
+      nowPlayingAccent={nowPlayingAccent || "#1f9d91"}
     />
   );
 }
