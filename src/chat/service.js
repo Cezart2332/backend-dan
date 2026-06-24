@@ -389,13 +389,22 @@ export async function getUsersWithUnreadMessages({ minHoursSinceNotify = 6 } = {
     `SELECT
        u.id AS user_id,
        upt.expo_push_token,
-       (SELECT COUNT(*) FROM chat_messages cm WHERE cm.id > COALESCE(cur.last_read_message_id, 0)) AS unread_count
+       (SELECT COUNT(*)
+        FROM chat_messages cm
+        WHERE cm.user_id <> u.id
+          AND cm.id > COALESCE(cur.last_read_message_id, 0)) AS unread_count
      FROM users u
      INNER JOIN user_push_tokens upt ON upt.user_id = u.id AND upt.enabled = 1
      LEFT JOIN chat_user_reads cur ON cur.user_id = u.id
      WHERE
        COALESCE(cur.last_read_message_id, 0) < ?
        AND (cur.last_notified_at IS NULL OR cur.last_notified_at < DATE_SUB(NOW(), INTERVAL ? HOUR))
+       AND EXISTS (
+         SELECT 1
+         FROM chat_messages cm_unread
+         WHERE cm_unread.user_id <> u.id
+           AND cm_unread.id > COALESCE(cur.last_read_message_id, 0)
+       )
        AND EXISTS (
          SELECT 1 FROM subscriptions s
          WHERE s.user_id = u.id

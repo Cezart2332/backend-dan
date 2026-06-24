@@ -241,13 +241,25 @@ export async function registerAuthRoutes(app) {
         [token, expires, user.id]
       );
 
-      await sendPasswordResetEmail({
-        email: user.email,
-        name: user.name,
-        resetToken: token,
-      });
+      try {
+        await sendPasswordResetEmail({
+          email: user.email,
+          name: user.name,
+          resetToken: token,
+        });
+      } catch (emailError) {
+        await mysqlPool.query(
+          "UPDATE users SET password_reset_token = NULL, password_reset_expires = NULL WHERE id = ?",
+          [user.id]
+        );
+        request.log.error({ err: emailError, userId: user.id }, 'Password reset email send failed');
+        return reply.code(503).send({
+          error: 'Nu am putut trimite emailul de resetare. Verifică configurația Resend și încearcă din nou.',
+        });
+      }
     } catch (error) {
       request.log.error({ err: error }, 'Password reset request failed');
+      return reply.code(500).send({ error: 'Eroare server la resetarea parolei.' });
     }
 
     return reply.code(200).send({ status: true });
