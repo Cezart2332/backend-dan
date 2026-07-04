@@ -11,18 +11,36 @@ import {
 } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
+import { useIsFocused } from "@react-navigation/native";
+import { Feather } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEvent } from "expo";
 import Constants from "expo-constants";
 import Slider from "@react-native-community/slider";
 import HeadphonesDisclaimer from "./HeadphonesDisclaimer";
+import { PressableScale } from "./ui";
 
 const fromConstants =
   Constants?.expoConfig?.extra?.EXPO_PUBLIC_API_URL ||
   Constants?.manifest?.extra?.EXPO_PUBLIC_API_URL;
 const BASE_URL =
   fromConstants || process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
+
+const SERIF = Platform.OS === "ios" ? "Georgia" : "serif";
+
+// Culorile modului cinema (navy închis, derivat din cerneala logo-ului)
+const INK = {
+  bg: "#10161d",
+  bgSoft: "#16222f",
+  text: "#f6f7f8",
+  textMuted: "rgba(246,247,248,0.62)",
+  textSoft: "rgba(246,247,248,0.4)",
+  surface: "rgba(255,255,255,0.07)",
+  surfaceStrong: "rgba(255,255,255,0.12)",
+  border: "rgba(246,247,248,0.14)",
+  accent: "#b3924f",
+};
 
 /**
  * Reusable Video Player Screen component with audio-only background mode and
@@ -40,6 +58,7 @@ export default function VideoPlayerScreen({
   nowPlayingAccent,
 }) {
   const { width, height } = useWindowDimensions();
+  const isFocused = useIsFocused();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [audioOnly, setAudioOnly] = useState(false);
@@ -301,18 +320,19 @@ export default function VideoPlayerScreen({
     return `${min}:${sec < 10 ? "0" : ""}${sec}`;
   }
 
+  const controlsDisabled = isLoading || !!error;
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient
-        colors={["#f6f7f8", "#f3f4f6", "#eef0f2"]}
-        style={styles.gradient}
-      >
+      {isFocused ? <StatusBar style="light" /> : null}
+      <LinearGradient colors={[INK.bg, INK.bgSoft]} style={styles.gradient}>
         <ScrollView
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
+          {/* ── Header ── */}
           <View style={styles.header}>
-            <TouchableOpacity
+            <PressableScale
               onPress={() => {
                 player.pause();
                 player.staysActiveInBackground = false;
@@ -320,38 +340,44 @@ export default function VideoPlayerScreen({
                 if (navigation.canGoBack()) navigation.goBack();
                 else navigation.navigate("Dashboard");
               }}
-              style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              activeOpacity={0.75}
+              style={styles.backBtn}
+              scaleTo={0.9}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Feather name="chevron-left" size={22} color="#24384e" />
-            </TouchableOpacity>
+              <Feather name="chevron-left" size={22} color={INK.text} />
+            </PressableScale>
             <View style={styles.headerTextWrap}>
-              <Text style={styles.title}>{title}</Text>
-              {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+              {subtitle ? (
+                <Text style={styles.overline}>{subtitle.toUpperCase()}</Text>
+              ) : null}
+              <Text style={styles.title} numberOfLines={2}>{title}</Text>
             </View>
           </View>
 
-          {!audioOnly && (
+          {/* ── Scena ── */}
+          {!audioOnly ? (
             <View style={styles.playerWrap}>
               {isLoading && (
                 <View
                   style={[
-                    styles.loadingOverlay,
+                    styles.stateOverlay,
                     { width: videoWidth, height: videoHeight },
                   ]}
                 >
-                  <ActivityIndicator size="large" color="#24384e" />
-                  <Text style={styles.loadingText}>Se încarcă...</Text>
+                  <ActivityIndicator size="large" color={INK.text} />
+                  <Text style={styles.stateText}>Se încarcă...</Text>
                 </View>
               )}
               {error && (
                 <View
                   style={[
+                    styles.stateOverlay,
                     styles.errorOverlay,
                     { width: videoWidth, height: videoHeight },
                   ]}
                 >
-                  <Text style={styles.errorText}>{error}</Text>
+                  <Feather name="alert-triangle" size={22} color={INK.text} />
+                  <Text style={styles.stateText}>{error}</Text>
                   <TouchableOpacity style={styles.retryBtn} onPress={handleRetry}>
                     <Text style={styles.retryText}>Reîncearcă</Text>
                   </TouchableOpacity>
@@ -365,107 +391,108 @@ export default function VideoPlayerScreen({
                 contentFit="contain"
               />
             </View>
-          )}
-
-          {audioOnly && (
-            <View style={styles.audioWrap}>
+          ) : (
+            <View style={styles.audioStage}>
               {isLoading && (
-                <View style={styles.audioLoadingWrap}>
-                  <ActivityIndicator size="large" color="#24384e" />
-                  <Text style={styles.loadingText}>Se încarcă audio...</Text>
+                <View style={styles.audioCenter}>
+                  <ActivityIndicator size="large" color={INK.text} />
+                  <Text style={styles.stateText}>Se încarcă audio...</Text>
                 </View>
               )}
               {error && (
-                <View style={styles.audioErrorWrap}>
-                  <Text style={styles.errorTextDark}>{error}</Text>
+                <View style={styles.audioCenter}>
+                  <Feather name="alert-triangle" size={22} color={INK.text} />
+                  <Text style={styles.stateText}>{error}</Text>
                   <TouchableOpacity style={styles.retryBtn} onPress={handleRetry}>
                     <Text style={styles.retryText}>Reîncearcă</Text>
                   </TouchableOpacity>
                 </View>
               )}
               {!isLoading && !error && (
-                <>
-                  <View style={styles.audioIconWrap}>
-                    <Ionicons
-                      name={videoIsPlaying ? "musical-notes-outline" : "headset-outline"}
-                      size={36}
-                      color="#24384e"
-                    />
+                <View style={styles.audioCenter}>
+                  <View style={styles.audioHalo}>
+                    <View style={styles.audioRing}>
+                      <Feather
+                        name={videoIsPlaying ? "music" : "headphones"}
+                        size={30}
+                        color={INK.text}
+                      />
+                    </View>
                   </View>
-                  <Text style={styles.audioLabel}>Mod audio - ecranul poate fi blocat</Text>
-                  <Text style={styles.audioTime}>
-                    {formatTime(displayedPositionSeconds)} / {formatTime(durationSeconds)}
+                  <Text style={styles.audioHint}>
+                    Mod audio — ecranul poate fi blocat
                   </Text>
-
-                  <Slider
-                    style={styles.audioSlider}
-                    minimumValue={0}
-                    maximumValue={sliderMaximum}
-                    value={sliderValue}
-                    onSlidingStart={handleSeekStart}
-                    onValueChange={handleSeekChange}
-                    onSlidingComplete={handleSeekComplete}
-                    minimumTrackTintColor="#24384e"
-                    maximumTrackTintColor="#e3e7eb"
-                    thumbTintColor="#24384e"
-                    disabled={isLoading || !!error || durationSeconds <= 0}
-                  />
-                  <View style={styles.audioTimesRow}>
-                    <Text style={styles.audioTimeSmall}>{formatTime(displayedPositionSeconds)}</Text>
-                    <Text style={styles.audioTimeSmall}>{formatTime(durationSeconds)}</Text>
-                  </View>
-
-                  <View style={styles.skipControlsRow}>
-                    <TouchableOpacity
-                      style={[styles.skipBtn, (isLoading || !!error) && styles.btnDisabled]}
-                      onPress={() => handleSeekBy(-15)}
-                      disabled={isLoading || !!error}
-                    >
-                      <Ionicons
-                        name="play-back"
-                        size={16}
-                        color="#24384e"
-                        style={{ marginRight: 6 }}
-                      />
-                      <Text style={styles.skipBtnText}>-15s</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.skipBtn, (isLoading || !!error) && styles.btnDisabled]}
-                      onPress={() => handleSeekBy(15)}
-                      disabled={isLoading || !!error}
-                    >
-                      <Ionicons
-                        name="play-forward"
-                        size={16}
-                        color="#24384e"
-                        style={{ marginRight: 6 }}
-                      />
-                      <Text style={styles.skipBtnText}>+15s</Text>
-                    </TouchableOpacity>
-                  </View>
-                </>
+                </View>
               )}
             </View>
           )}
 
-          <TouchableOpacity
-            style={[styles.primaryBtn, (isLoading || error) && styles.btnDisabled]}
-            disabled={isLoading || !!error}
-            onPress={handlePlayPause}
-          >
-            <LinearGradient
-              colors={["rgba(28,43,58,0.94)", "rgba(22,34,47,0.96)"]}
-              style={styles.btnInner}
-            >
-              <Text style={styles.primaryText}>
-                {videoIsPlaying ? "Pauză" : audioOnly ? "Redă audio" : playButtonText}
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+          {/* ── Progres (mod audio) ── */}
+          {audioOnly && !isLoading && !error ? (
+            <View style={styles.progressWrap}>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={sliderMaximum}
+                value={sliderValue}
+                onSlidingStart={handleSeekStart}
+                onValueChange={handleSeekChange}
+                onSlidingComplete={handleSeekComplete}
+                minimumTrackTintColor={INK.accent}
+                maximumTrackTintColor="rgba(246,247,248,0.18)"
+                thumbTintColor={INK.text}
+                disabled={controlsDisabled || durationSeconds <= 0}
+              />
+              <View style={styles.timesRow}>
+                <Text style={styles.timeText}>{formatTime(displayedPositionSeconds)}</Text>
+                <Text style={styles.timeText}>{formatTime(durationSeconds)}</Text>
+              </View>
+            </View>
+          ) : null}
 
+          {/* ── Transport ── */}
+          <View style={styles.transportRow}>
+            <PressableScale
+              onPress={() => handleSeekBy(-15)}
+              disabled={controlsDisabled}
+              style={[styles.skipBtn, controlsDisabled && styles.disabled]}
+              scaleTo={0.9}
+            >
+              <Feather name="rotate-ccw" size={19} color={INK.text} />
+              <Text style={styles.skipLabel}>15</Text>
+            </PressableScale>
+
+            <PressableScale
+              onPress={handlePlayPause}
+              disabled={controlsDisabled}
+              style={[styles.playBtn, controlsDisabled && styles.disabled]}
+              scaleTo={0.93}
+            >
+              <Feather
+                name={videoIsPlaying ? "pause" : "play"}
+                size={28}
+                color="#10161d"
+                style={videoIsPlaying ? null : { marginLeft: 3 }}
+              />
+            </PressableScale>
+
+            <PressableScale
+              onPress={() => handleSeekBy(15)}
+              disabled={controlsDisabled}
+              style={[styles.skipBtn, controlsDisabled && styles.disabled]}
+              scaleTo={0.9}
+            >
+              <Feather name="rotate-cw" size={19} color={INK.text} />
+              <Text style={styles.skipLabel}>15</Text>
+            </PressableScale>
+          </View>
+
+          <Text style={styles.playHint}>
+            {videoIsPlaying ? "Redare..." : audioOnly ? "Redă audio" : playButtonText}
+          </Text>
+
+          {/* ── Viteză ── */}
           <View style={styles.speedRow}>
-            <Text style={styles.speedLabel}>Viteză:</Text>
             {SPEEDS.map((rate) => (
               <TouchableOpacity
                 key={rate}
@@ -474,12 +501,12 @@ export default function VideoPlayerScreen({
                   playbackRate === rate && styles.speedBtnActive,
                 ]}
                 onPress={() => handleSpeedChange(rate)}
-                disabled={isLoading || !!error}
+                disabled={controlsDisabled}
               >
                 <Text
                   style={[
-                    styles.speedBtnText,
-                    playbackRate === rate && styles.speedBtnTextActive,
+                    styles.speedText,
+                    playbackRate === rate && styles.speedTextActive,
                   ]}
                 >
                   {rate}x
@@ -488,30 +515,22 @@ export default function VideoPlayerScreen({
             ))}
           </View>
 
-          <TouchableOpacity
-            style={styles.audioToggleBtn}
+          {/* ── Mod audio ── */}
+          <PressableScale
             onPress={toggleAudioOnly}
+            style={[styles.audioToggle, audioOnly && styles.audioToggleActive]}
+            scaleTo={0.97}
           >
-            <LinearGradient
-              colors={audioOnly ? ["#24384e", "#16222f"] : ["rgba(255,255,255,0.68)", "rgba(246,247,248,0.9)"]}
-              style={styles.audioToggleInner}
-            >
-              <Ionicons
-                name={audioOnly ? "musical-notes-outline" : "headset-outline"}
-                size={18}
-                color={audioOnly ? "#fff" : "#24384e"}
-                style={{ marginRight: 8 }}
-              />
-              <Text
-                style={[
-                  styles.audioToggleText,
-                  audioOnly && styles.audioToggleTextActive,
-                ]}
-              >
-                {audioOnly ? "Revino la video" : "Doar audio (fundal)"}
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+            <Feather
+              name={audioOnly ? "film" : "headphones"}
+              size={16}
+              color={audioOnly ? "#10161d" : INK.text}
+              style={{ marginRight: 8 }}
+            />
+            <Text style={[styles.audioToggleText, audioOnly && styles.audioToggleTextActive]}>
+              {audioOnly ? "Revino la video" : "Doar audio (fundal)"}
+            </Text>
+          </PressableScale>
         </ScrollView>
         <HeadphonesDisclaimer />
       </LinearGradient>
@@ -519,237 +538,232 @@ export default function VideoPlayerScreen({
   );
 }
 
-
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#f6f7f8" },
+  safeArea: { flex: 1, backgroundColor: INK.bg },
   gradient: { flex: 1 },
   scrollContainer: {
     padding: 20,
     flexGrow: 1,
   },
+
   header: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12, // Reduced margin
+    marginBottom: 18,
     marginTop: 4,
   },
-  headerTextWrap: {
-    flex: 1,
-  },
   backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.55)",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: INK.surface,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(32,47,62,0.18)",
-    shadowColor: "#24384e",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 3,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: INK.border,
     marginRight: 14,
+    zIndex: 10,
+  },
+  headerTextWrap: { flex: 1 },
+  overline: {
+    fontSize: 10,
+    fontWeight: "600",
+    letterSpacing: 2.2,
+    color: INK.textSoft,
+    marginBottom: 4,
   },
   title: {
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    fontFamily: SERIF,
     letterSpacing: 0.2,
     fontSize: 20,
+    lineHeight: 26,
     fontWeight: "700",
-    color: "#1c2b3a",
+    color: INK.text,
   },
-  subtitle: {
-    fontSize: 14,
-    color: "#5b6a7a",
-    marginTop: 2, // Reduced margin
-  },
+
   playerWrap: {
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 8,
-    marginBottom: 16,
+    marginTop: 6,
+    marginBottom: 22,
     position: "relative",
   },
   video: {
     alignSelf: "center",
     backgroundColor: "#000",
-    borderRadius: 8,
+    borderRadius: 18,
+    overflow: "hidden",
   },
-  loadingOverlay: {
+  stateOverlay: {
     position: "absolute",
     zIndex: 10,
     alignItems: "center",
     justifyContent: "center",
-  },
-  loadingText: {
-    color: "#24384e",
-    marginTop: 8,
-    fontSize: 14,
+    gap: 8,
   },
   errorOverlay: {
-    position: "absolute",
-    zIndex: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.7)",
-    borderRadius: 8,
+    backgroundColor: "rgba(0,0,0,0.72)",
+    borderRadius: 18,
   },
-  errorText: {
-    color: "#fff",
-    fontSize: 14,
+  stateText: {
+    color: INK.textMuted,
+    fontSize: 13,
     textAlign: "center",
-    marginBottom: 12,
-  },
-  errorTextDark: {
-    color: "#c0392b",
-    fontSize: 14,
-    textAlign: "center",
-    marginBottom: 12,
+    paddingHorizontal: 16,
   },
   retryBtn: {
-    backgroundColor: "#24384e",
-    paddingHorizontal: 16,
+    marginTop: 6,
+    backgroundColor: INK.surfaceStrong,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: INK.border,
+    paddingHorizontal: 18,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 999,
   },
-  retryText: { color: "#fff", fontWeight: "600" },
-  audioWrap: {
+  retryText: { color: INK.text, fontWeight: "600", fontSize: 13 },
+
+  audioStage: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.58)",
-    borderRadius: 18,
-    padding: 24,
-    marginTop: 8,
-    marginBottom: 16,
+    minHeight: 210,
+    marginTop: 6,
+    marginBottom: 10,
+  },
+  audioCenter: { alignItems: "center", gap: 10 },
+  audioHalo: {
+    width: 132,
+    height: 132,
+    borderRadius: 66,
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(32,47,62,0.18)",
-    shadowColor: "#24384e",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-    minHeight: 220,
+    borderColor: "rgba(246,247,248,0.1)",
   },
-  audioLoadingWrap: {
+  audioRing: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: INK.surface,
+    borderWidth: 1,
+    borderColor: INK.border,
   },
-  audioErrorWrap: {
+  audioHint: {
+    fontSize: 12.5,
+    color: INK.textSoft,
+    marginTop: 4,
+  },
+
+  progressWrap: { marginBottom: 6 },
+  slider: { width: "100%", height: 36 },
+  timesRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: -4,
+  },
+  timeText: {
+    fontSize: 11.5,
+    color: INK.textMuted,
+    fontVariant: ["tabular-nums"],
+  },
+
+  transportRow: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 26,
+    marginTop: 10,
   },
-  audioIconWrap: {
+  playBtn: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#f6f7f8",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
-  },
-  audioLabel: {
-    fontSize: 14,
-    color: "#5b6a7a",
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  audioTime: {
-    fontSize: 13,
-    color: "#1c2b3a",
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  audioSlider: {
-    width: "100%",
-    height: 36,
-  },
-  audioTimesRow: {
-    width: "100%",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: -2,
-    marginBottom: 10,
-  },
-  audioTimeSmall: {
-    fontSize: 12,
-    color: "#5b6a7a",
-  },
-  skipControlsRow: {
-    width: "100%",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    elevation: 6,
   },
   skipBtn: {
-    width: "48%",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#e3e7eb",
-    backgroundColor: "#f5f6f8",
-    paddingVertical: 10,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
-    flexDirection: "row",
+    backgroundColor: INK.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: INK.border,
   },
-  skipBtnText: {
-    fontSize: 13,
+  skipLabel: {
+    position: "absolute",
+    fontSize: 8.5,
     fontWeight: "700",
-    color: "#16222f",
+    color: INK.text,
+    top: 21,
   },
-  primaryBtn: { borderRadius: 12, overflow: "hidden" },
-  btnDisabled: { opacity: 0.6 },
-  btnInner: { paddingVertical: 12, alignItems: "center" },
-  primaryText: { color: "#fff", fontWeight: "700" },
-  audioToggleBtn: {
-    borderRadius: 12,
-    overflow: "hidden",
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: "rgba(32,47,62,0.18)",
+  playHint: {
+    textAlign: "center",
+    marginTop: 12,
+    fontSize: 12,
+    letterSpacing: 1.6,
+    textTransform: "uppercase",
+    color: INK.textSoft,
+    fontWeight: "600",
   },
-  audioToggleInner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 11,
-    paddingHorizontal: 16,
-  },
-  audioToggleText: { fontSize: 14, fontWeight: "600", color: "#1c2b3a" },
-  audioToggleTextActive: { color: "#fff" },
+  disabled: { opacity: 0.4 },
+
   speedRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 12,
-    marginBottom: 4,
+    marginTop: 22,
     gap: 6,
     flexWrap: "wrap",
   },
-  speedLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#5b6a7a",
-    marginRight: 4,
-  },
   speedBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#e3e7eb",
-    backgroundColor: "#f5f6f8",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: INK.border,
+    backgroundColor: "transparent",
   },
   speedBtnActive: {
-    borderColor: "#24384e",
-    backgroundColor: "#24384e",
+    backgroundColor: "#f6f7f8",
+    borderColor: "#f6f7f8",
   },
-  speedBtnText: {
+  speedText: {
     fontSize: 12,
-    fontWeight: "700",
-    color: "#16222f",
+    fontWeight: "600",
+    color: INK.textMuted,
   },
-  speedBtnTextActive: {
-    color: "#fff",
+  speedTextActive: { color: "#10161d", fontWeight: "700" },
+
+  audioToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
+    marginTop: 22,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: INK.border,
+    backgroundColor: INK.surface,
   },
+  audioToggleActive: {
+    backgroundColor: "#f6f7f8",
+    borderColor: "#f6f7f8",
+  },
+  audioToggleText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: INK.text,
+  },
+  audioToggleTextActive: { color: "#10161d" },
 });

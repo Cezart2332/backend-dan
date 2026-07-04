@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Dimensions,
   Linking,
   Alert,
   Image,
@@ -14,7 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { PressableScale } from "./ui";
 import { clearSubscription } from "../utils/subscriptionStorage";
 import { clearToken, getToken } from "../utils/authStorage";
@@ -25,7 +24,7 @@ import { logoutRevenueCatUser } from "../utils/revenuecat";
 import { useSubscription } from "../contexts/SubscriptionContext";
 import { api, toAbsoluteApiUrl } from "../utils/api";
 
-const { width } = Dimensions.get("window");
+const SERIF = Platform.OS === "ios" ? "Georgia" : "serif";
 
 function EnterFade({ index = 0, children, style }) {
   const anim = React.useRef(new Animated.Value(0)).current;
@@ -34,7 +33,7 @@ function EnterFade({ index = 0, children, style }) {
     Animated.timing(anim, {
       toValue: 1,
       duration: 420,
-      delay: Math.min(index, 10) * 55,
+      delay: Math.min(index, 12) * 50,
       useNativeDriver: true,
     }).start();
   }, [anim, index]);
@@ -61,20 +60,26 @@ function EnterFade({ index = 0, children, style }) {
   );
 }
 
+function greetingForNow() {
+  const h = new Date().getHours();
+  if (h < 12) return "Bună dimineața";
+  if (h < 18) return "Bună ziua";
+  return "Bună seara";
+}
+
 export default function DashboardScreen({ navigation, onLogout }) {
   const { subscription, hasProEntitlement } = useSubscription();
   const subType = subscription?.type || null;
-  const normalizedSubType = String(subType || '').toLowerCase();
-  const hasWebinarAccess = ['premium', 'vip', 'pro'].includes(normalizedSubType);
-  const hasChatAccess = hasProEntitlement || ['basic', 'premium', 'vip', 'pro'].includes(normalizedSubType);
-  const medicalDisclaimerPreview = "Aplicația oferă conținut informativ și sprijin pentru stare de bine.";
-  const [profileName, setProfileName] = useState("În spațiul tău sigur");
+  const normalizedSubType = String(subType || "").toLowerCase();
+  const hasWebinarAccess = ["premium", "vip", "pro"].includes(normalizedSubType);
+  const hasChatAccess = hasProEntitlement || ["basic", "premium", "vip", "pro"].includes(normalizedSubType);
+  const [profileName, setProfileName] = useState("");
   const [profileAvatarUrl, setProfileAvatarUrl] = useState(null);
   const [cmsSections, setCmsSections] = useState([]);
 
   const applyProfilePreview = useCallback((userPayload) => {
-    const resolvedName = String(userPayload?.name || '').trim();
-    setProfileName(resolvedName || "În spațiul tău sigur");
+    const resolvedName = String(userPayload?.name || "").trim();
+    setProfileName(resolvedName);
     setProfileAvatarUrl(toAbsoluteApiUrl(userPayload?.avatar_url));
   }, []);
 
@@ -95,7 +100,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
       const mergedUser = {
         ...(localUser || {}),
         ...profileUser,
-        name: String(profileUser?.name || '').trim(),
+        name: String(profileUser?.name || "").trim(),
       };
 
       await saveUser(mergedUser);
@@ -106,7 +111,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
   }, [applyProfilePreview]);
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
+    const unsubscribe = navigation.addListener("focus", () => {
       refreshProfilePreview().catch(() => {});
     });
 
@@ -117,7 +122,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
   useEffect(() => {
     api.getCmsVideoSections()
       .then((data) => setCmsSections(data.items || []))
-      .catch((err) => console.warn('[CMS] dashboard:', err));
+      .catch((err) => console.warn("[CMS] dashboard:", err));
   }, []);
 
   const handleLogout = useCallback(async () => {
@@ -137,110 +142,32 @@ export default function DashboardScreen({ navigation, onLogout }) {
       navigation.reset({ index: 0, routes: [{ name: "Login" }] });
     }
   }, [navigation, onLogout]);
-  const menuItems = [
-    // 1) SOS first
-    {
-      id: 7,
-      title: "Ajutor",
-      subtitle: "Am nevoie acum",
-      iconName: "alert-circle",
-      color: "#3d7d5f",
-    },
-    // 2) Tehnici second
-    {
-      id: 6,
-      title: "Tehnica HAI – metoda care elimină anxietatea",
-      subtitle: "Descoperă pașii și aplicațiile",
-      iconName: "feather",
-      color: "#3e7e76",
-    },
-    // 3) About Dan
-    {
-      id: 8,
-      title: "Eu sunt Dan fost anxios",
-      subtitle: "Cunoaște-mă",
-      iconName: "user",
-      color: "#6d6b8f",
-    },
-    // Rest of items
-    {
-      id: 1,
-      title: "Progresul meu",
-      subtitle: "Urmărește-ți evoluția",
-      iconName: "bar-chart-2",
-      color: "#24384e",
-    },
-    {
-      id: 2,
-      title: "Gândul de azi de la Dan",
-      subtitle: "Înțelepciune zilnică",
-      iconName: "message-circle",
-      color: "#3d7d5f",
-    },
-    {
-      id: 3,
-      title: "Provocări",
-      subtitle: "Depășește-ți limitele",
-      iconName: "award",
-      color: "#b07e3e",
-    },
-    {
-      id: 4,
-      title:
-        "Intră în direct cu Dan sau trimite-i jurnalul lui Dan pentru analiza",
-      subtitle: "Conectează-te direct",
-      iconName: "video",
-      color: "#a8544c",
-    },
-    {
-      id: 5,
-      title: "Trimite-mi o întrebare",
-      subtitle: "Pune-ți întrebările",
-      iconName: "help-circle",
-      color: "#4a7a96",
-    },
-    {
-      id: 11,
-      title: "Webinarii",
-      subtitle: "Acces live + înregistrări",
-      iconName: "video",
-      color: "#5c5a80",
-    },
-    {
-      id: 12,
-      title: "Comunitate chat",
-      subtitle: "Discuții în timp real cu comunitatea",
-      iconName: "message-square",
-      color: "#16222f",
-    },
-    {
-      id: 9,
-      title: "Abonamente & Acces",
-      subtitle: "Planuri Basic / Premium / VIP",
-      iconName: "star",
-      color: "#b3924f",
-    },
-    {
-      id: 10,
-      title: "Înțelege anxietatea",
-      subtitle: "Audio-uri și video explicative",
-      iconName: "headphones",
-      color: "#5c5a80",
-    },
-  ];
 
   // Items locked during trial gratuit (only available with paid subscription)
   const trialLockedIds = new Set([4, 5, 6, 7, 10]);
-  const isTrial = subType === 'trial';
+  const isTrial = subType === "trial";
+
+  const lockStateFor = (id) => {
+    const webinarLocked = id === 11 && !hasWebinarAccess;
+    const chatLocked = id === 12 && !hasChatAccess;
+    const trialLocked = isTrial && trialLockedIds.has(id);
+    const locked = webinarLocked || chatLocked || trialLocked;
+    const lockLabel = webinarLocked
+      ? "Disponibil cu Premium/VIP"
+      : chatLocked
+        ? "Disponibil cu abonament activ"
+        : "Disponibil cu abonament";
+    return { locked, lockLabel };
+  };
 
   const handleMenuPress = (item) => {
     if (item.id === 11 && !hasWebinarAccess) {
       Alert.alert(
-        'Funcție restricționată',
-        'Accesul la webinarii necesita Premium sau VIP',
+        "Funcție restricționată",
+        "Accesul la webinarii necesita Premium sau VIP",
         [
-          { text: 'Vezi abonamente', onPress: () => navigation.navigate('Subscriptions') },
-          { text: 'OK', style: 'cancel' },
+          { text: "Vezi abonamente", onPress: () => navigation.navigate("Subscriptions") },
+          { text: "OK", style: "cancel" },
         ]
       );
       return;
@@ -248,11 +175,11 @@ export default function DashboardScreen({ navigation, onLogout }) {
 
     if (item.id === 12 && !hasChatAccess) {
       Alert.alert(
-        'Funcție restricționată',
-        'Chat-ul comunității este disponibil doar cu abonament activ.',
+        "Funcție restricționată",
+        "Chat-ul comunității este disponibil doar cu abonament activ.",
         [
-          { text: 'Vezi abonamente', onPress: () => navigation.navigate('Subscriptions') },
-          { text: 'OK', style: 'cancel' },
+          { text: "Vezi abonamente", onPress: () => navigation.navigate("Subscriptions") },
+          { text: "OK", style: "cancel" },
         ]
       );
       return;
@@ -261,51 +188,99 @@ export default function DashboardScreen({ navigation, onLogout }) {
     // Block locked items during trial
     if (isTrial && trialLockedIds.has(item.id)) {
       Alert.alert(
-        'Funcție restricționată',
-        'Această funcție este disponibilă doar cu un abonament activ. Alege un plan pentru acces complet.',
+        "Funcție restricționată",
+        "Această funcție este disponibilă doar cu un abonament activ. Alege un plan pentru acces complet.",
         [
-          { text: 'Vezi abonamente', onPress: () => navigation.navigate('Subscriptions') },
-          { text: 'OK', style: 'cancel' },
+          { text: "Vezi abonamente", onPress: () => navigation.navigate("Subscriptions") },
+          { text: "OK", style: "cancel" },
         ]
       );
       return;
     }
-    // Here you can navigate to different screens based on the item
-    if (item.id === 1) {
-      // Progresul meu
-      navigation.navigate("Progress");
-    } else if (item.id === 2) {
-      // Gândul de azi de la Dan
-      navigation.navigate("QuoteOfTheDay");
-    } else if (item.id === 3) {
-      // Provocări
-      navigation.navigate("Provocari");
-    } else if (item.id === 4) {
-      // Intra in direct cu Dan / trimite jurnal
-      navigation.navigate("Direct");
-    } else if (item.id === 5) {
-      // Intrebari
-      navigation.navigate("Intrebari");
-    } else if (item.id === 6) {
-      // Tehnici
-      navigation.navigate("Tehnici");
-    } else if (item.id === 7) {
-      // Ajutor
-      navigation.navigate("Ajutor");
-    } else if (item.id === 8) {
-      // Eu sunt Dan fost anxios
-      navigation.navigate("AboutDan");
-    } else if (item.id === 9) {
-      // Subscriptions
-      navigation.navigate("Subscriptions");
-    } else if (item.id === 10) {
-      navigation.navigate("IntelegeAnxietate");
-    } else if (item.id === 11) {
-      navigation.navigate("Webinarii");
-    } else if (item.id === 12) {
-      navigation.navigate("CommunityChat");
-    }
+
+    const routes = {
+      1: "Progress",
+      2: "QuoteOfTheDay",
+      3: "Provocari",
+      4: "Direct",
+      5: "Intrebari",
+      6: "Tehnici",
+      7: "Ajutor",
+      8: "AboutDan",
+      9: "Subscriptions",
+      10: "IntelegeAnxietate",
+      11: "Webinarii",
+      12: "CommunityChat",
+    };
+    if (routes[item.id]) navigation.navigate(routes[item.id]);
   };
+
+  // "Pentru azi" — trei acțiuni scurte, zilnice
+  const todayTiles = [
+    { id: 2, label: "Gândul zilei", iconName: "message-circle" },
+    { id: 1, label: "Progresul meu", iconName: "bar-chart-2" },
+    { id: 3, label: "Provocări", iconName: "award" },
+  ];
+
+  // Secțiuni tematice
+  const sections = [
+    {
+      key: "drum",
+      title: "Drumul tău",
+      items: [
+        {
+          id: 6,
+          title: "Tehnica HAI",
+          subtitle: "Metoda care elimină anxietatea, pas cu pas",
+          iconName: "feather",
+        },
+        {
+          id: 10,
+          title: "Înțelege anxietatea",
+          subtitle: "Audio-uri și video explicative",
+          iconName: "headphones",
+        },
+        {
+          id: 8,
+          title: "Eu sunt Dan fost anxios",
+          subtitle: "Povestea din spatele metodei",
+          iconName: "user",
+        },
+      ],
+    },
+    {
+      key: "dan",
+      title: "Împreună cu Dan",
+      items: [
+        {
+          id: 4,
+          title: "Intră în direct cu Dan",
+          subtitle: "Sau trimite-i jurnalul tău pentru analiză",
+          iconName: "video",
+        },
+        {
+          id: 5,
+          title: "Trimite-mi o întrebare",
+          subtitle: "Primești răspuns personal",
+          iconName: "help-circle",
+        },
+        {
+          id: 11,
+          title: "Webinarii",
+          subtitle: "Acces live + înregistrări",
+          iconName: "cast",
+        },
+        {
+          id: 12,
+          title: "Comunitate chat",
+          subtitle: "Discuții în timp real cu comunitatea",
+          iconName: "message-square",
+        },
+      ],
+    },
+  ];
+
+  let animIndex = 0;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -313,256 +288,255 @@ export default function DashboardScreen({ navigation, onLogout }) {
         colors={["#f6f7f8", "#f3f4f6", "#eef0f2"]}
         style={styles.gradient}
       >
-        <Image
-          source={require("../assets/crescent.png")}
-          style={styles.watermark}
-          resizeMode="contain"
-          pointerEvents="none"
-        />
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.welcomeContainer}>
-              <Text style={styles.welcomeText}>Bine ai venit!</Text>
-              <Text style={styles.userName}>{profileName}</Text>
-              {subType && (
-                <View style={styles.subBadge}>
-                  <Text style={styles.subBadgeText}>
-                    {subType.toUpperCase()}
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* ── Header ── */}
+          <EnterFade index={animIndex++} style={styles.header}>
+            <View style={styles.headerText}>
+              <Text style={styles.overline}>{greetingForNow().toUpperCase()}</Text>
+              <Text style={styles.headline}>
+                {profileName ? profileName : "În spațiul tău sigur"}
+              </Text>
+              {subType ? (
+                <View style={styles.subRow}>
+                  <View style={styles.subDot} />
+                  <Text style={styles.subText}>Plan {subType.toUpperCase()}</Text>
+                </View>
+              ) : null}
+            </View>
+
+            <PressableScale
+              onPress={() => navigation.navigate("Profile")}
+              style={styles.avatarRing}
+              scaleTo={0.92}
+            >
+              {profileAvatarUrl ? (
+                <Image source={{ uri: profileAvatarUrl }} style={styles.avatar} />
+              ) : (
+                <Feather name="user" size={22} color="#24384e" />
+              )}
+            </PressableScale>
+          </EnterFade>
+
+          {/* ── SOS ── */}
+          <EnterFade index={animIndex++}>
+            <PressableScale onPress={() => handleMenuPress({ id: 7 })}>
+              <LinearGradient
+                colors={["rgba(28,43,58,0.94)", "rgba(22,34,47,0.97)"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.sosCard}
+              >
+                <View style={styles.sosIconRing}>
+                  <Feather name="wind" size={22} color="#f6f7f8" />
+                </View>
+                <View style={styles.sosTextWrap}>
+                  <Text style={styles.sosTitle}>Am nevoie de ajutor acum</Text>
+                  <Text style={styles.sosSubtitle}>
+                    Respiră. Intervenție ghidată, imediat.
                   </Text>
                 </View>
-              )}
-            </View>
+                <Feather name="arrow-right" size={20} color="rgba(246,247,248,0.85)" />
+              </LinearGradient>
+            </PressableScale>
+          </EnterFade>
 
-            <TouchableOpacity
-              style={styles.logoContainer}
-              onPress={() => navigation.navigate('Profile')}
-              activeOpacity={0.8}
-            >
-              <View style={styles.logoCircle}>
-                {profileAvatarUrl ? (
-                  <Image source={{ uri: profileAvatarUrl }} style={styles.logoAvatar} />
-                ) : (
-                  <Feather name="user" size={24} color="#24384e" />
-                )}
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.medicalCard}>
-            <View style={styles.medicalHeaderRow}>
-              <View style={styles.medicalIconWrap}>
-                <Feather name="activity" size={18} color="#16222f" />
-              </View>
-              <Text style={styles.medicalTitle}>Informații medicale</Text>
-            </View>
-            <Text style={styles.medicalBodyText}>{medicalDisclaimerPreview}</Text>
-            <TouchableOpacity
-              style={styles.medicalActionBtn}
-              onPress={() => navigation.navigate("MedicalInfo")}
-            >
-              <Text style={styles.medicalActionText}>Vezi detalii și surse</Text>
-              <Feather name="chevron-right" size={16} color="#16222f" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Menu Items */}
-          <View style={styles.menuContainer}>
-            <Text style={styles.menuTitle}>Ce vrei să faci astăzi?</Text>
-
-            {menuItems.map((item, index) => {
-              const trialLocked = isTrial && trialLockedIds.has(item.id);
-              const webinarLocked = item.id === 11 && !hasWebinarAccess;
-              const chatLocked = item.id === 12 && !hasChatAccess;
-              const locked = trialLocked || webinarLocked || chatLocked;
-              const lockLabel = webinarLocked
-                ? ' Disponibil cu Premium/VIP'
-                : chatLocked
-                  ? ' Disponibil cu abonament activ'
-                  : ' Disponibil cu abonament';
-              return (
-              <EnterFade
-                key={item.id}
-                index={index}
-                style={[
-                  styles.menuItem,
-                  index === menuItems.length - 1 && styles.lastMenuItem,
-                  locked && styles.lockedMenuItem,
-                ]}
-              >
-              <PressableScale onPress={() => handleMenuPress(item)}>
-                <View style={styles.menuItemCard}>
-                  <View style={styles.menuItemContent}>
-                    <View
-                      style={[
-                        styles.iconContainer,
-                        {
-                          backgroundColor: 'rgba(255,255,255,0.5)',
-                          borderWidth: 1,
-                          borderColor: locked ? 'rgba(0,0,0,0.08)' : item.color + '4d',
-                        },
-                      ]}
-                    >
-                      <Feather
-                        name={item.iconName}
-                        size={22}
-                        color={locked ? '#aaa' : item.color}
-                      />
-                    </View>
-
-                    <View style={styles.textContainer}>
-                      <Text style={[styles.menuItemTitle, locked && styles.lockedText]}>{item.title}</Text>
-                      {locked ? (
-                        <View style={styles.lockedRow}>
-                          <Feather name="lock" size={11} color="#bbb" />
-                          <Text style={[styles.menuItemSubtitle, styles.lockedText]}>{lockLabel}</Text>
-                        </View>
-                      ) : (
-                        <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
-                      )}
-                    </View>
-
-                    <View style={styles.arrowContainer}>
-                      <Feather
-                        name={locked ? "lock" : "chevron-right"}
-                        size={18}
-                        color={locked ? '#ccc' : '#8a97a5'}
-                      />
-                    </View>
+          {/* ── Pentru azi ── */}
+          <EnterFade index={animIndex++}>
+            <Text style={styles.sectionLabel}>Pentru azi</Text>
+            <View style={styles.tilesRow}>
+              {todayTiles.map((tile) => (
+                <PressableScale
+                  key={tile.id}
+                  onPress={() => handleMenuPress(tile)}
+                  style={styles.tile}
+                >
+                  <View style={styles.tileIconRing}>
+                    <Feather name={tile.iconName} size={19} color="#24384e" />
                   </View>
-                </View>
-              </PressableScale>
+                  <Text style={styles.tileLabel}>{tile.label}</Text>
+                </PressableScale>
+              ))}
+            </View>
+          </EnterFade>
+
+          {/* ── Secțiuni ── */}
+          {sections.map((section) => (
+            <View key={section.key} style={styles.section}>
+              <EnterFade index={animIndex++}>
+                <Text style={styles.sectionLabel}>{section.title}</Text>
               </EnterFade>
-              );
-            })}
-          </View>
-
-            {/* CMS Sections */}
-            {cmsSections.length > 0 && (
-              <>
-                <Text style={[styles.menuTitle, { marginTop: 24 }]}>Conținut nou</Text>
-                {cmsSections.map((section, index) => {
-                  const locked = !hasChatAccess; // reuse same subscription gate as chat
+              <EnterFade index={animIndex++} style={styles.groupCard}>
+                {section.items.map((item, i) => {
+                  const { locked, lockLabel } = lockStateFor(item.id);
                   return (
-                    <TouchableOpacity
-                      key={`cms-section-${section.id}`}
-                      style={[
-                        styles.menuItem,
-                        index === cmsSections.length - 1 && styles.lastMenuItem,
-                        locked && styles.lockedMenuItem,
-                      ]}
-                      onPress={() => {
-                        if (locked) {
-                          Alert.alert(
-                            'Funcție restricționată',
-                            'Acest conținut este disponibil doar cu abonament activ.',
-                            [
-                              { text: 'Vezi abonamente', onPress: () => navigation.navigate('Subscriptions') },
-                              { text: 'OK', style: 'cancel' },
-                            ]
-                          );
-                          return;
-                        }
-                        navigation.navigate('CmsSection', { slug: section.slug, title: section.title });
-                      }}
-                    >
-                      <View style={styles.menuItemCard}>
-                        <View style={styles.menuItemContent}>
-                          <View
-                            style={[
-                              styles.iconContainer,
-                              {
-                                backgroundColor: 'rgba(255,255,255,0.5)',
-                                borderWidth: 1,
-                                borderColor: locked ? 'rgba(0,0,0,0.08)' : 'rgba(36,56,78,0.3)',
-                              },
-                            ]}
-                          >
-                            <Feather
-                              name={locked ? 'lock' : 'layers'}
-                              size={22}
-                              color={locked ? '#aaa' : '#24384e'}
-                            />
-                          </View>
-
-                          <View style={styles.textContainer}>
-                            <Text style={[styles.menuItemTitle, locked && styles.lockedText]}>{section.title}</Text>
-                            {locked ? (
-                              <View style={styles.lockedRow}>
-                                <Feather name="lock" size={11} color="#bbb" />
-                                <Text style={[styles.menuItemSubtitle, styles.lockedText]}> Disponibil cu abonament</Text>
-                              </View>
-                            ) : (
-                              <Text style={styles.menuItemSubtitle}>{section.description || 'Conținut video'}</Text>
-                            )}
-                          </View>
-
-                          <View style={styles.arrowContainer}>
-                            <Feather
-                              name={locked ? 'lock' : 'chevron-right'}
-                              size={18}
-                              color={locked ? '#ccc' : '#8a97a5'}
-                            />
-                          </View>
+                    <View key={item.id}>
+                      {i > 0 ? <View style={styles.rowDivider} /> : null}
+                      <PressableScale
+                        onPress={() => handleMenuPress(item)}
+                        style={[styles.row, locked && styles.rowLocked]}
+                        scaleTo={0.985}
+                      >
+                        <View style={styles.rowIconRing}>
+                          <Feather
+                            name={item.iconName}
+                            size={18}
+                            color={locked ? "#9aa5b1" : "#24384e"}
+                          />
                         </View>
-                      </View>
-                    </TouchableOpacity>
+                        <View style={styles.rowText}>
+                          <Text style={[styles.rowTitle, locked && styles.rowTitleLocked]}>
+                            {item.title}
+                          </Text>
+                          <Text style={styles.rowSubtitle} numberOfLines={2}>
+                            {locked ? lockLabel : item.subtitle}
+                          </Text>
+                        </View>
+                        <Feather
+                          name={locked ? "lock" : "chevron-right"}
+                          size={17}
+                          color={locked ? "#b6bfc9" : "#8a97a5"}
+                        />
+                      </PressableScale>
+                    </View>
                   );
                 })}
-              </>
-            )}
+              </EnterFade>
+            </View>
+          ))}
 
-          {/* External Links */}
-          <View style={styles.externalLinks}>
-            <TouchableOpacity
-              style={styles.externalLinkBtn}
-              onPress={() => Linking.openURL('https://www.facebook.com/groups/820094195023604/')}
-            >
-              <LinearGradient colors={['#1877F2', '#145dbf']} style={styles.externalLinkGradient}>
-                <Feather name="users" size={20} color="#fff" style={styles.externalLinkIcon} />
-                <Text style={styles.externalLinkText}>Comunitate</Text>
-                <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.9)" />
-              </LinearGradient>
-            </TouchableOpacity>
+          {/* ── Conținut nou (CMS) ── */}
+          {cmsSections.length > 0 && (
+            <View style={styles.section}>
+              <EnterFade index={animIndex++}>
+                <Text style={styles.sectionLabel}>Conținut nou</Text>
+              </EnterFade>
+              <EnterFade index={animIndex++} style={styles.groupCard}>
+                {cmsSections.map((section, i) => {
+                  const locked = !hasChatAccess;
+                  return (
+                    <View key={`cms-section-${section.id}`}>
+                      {i > 0 ? <View style={styles.rowDivider} /> : null}
+                      <PressableScale
+                        onPress={() => {
+                          if (locked) {
+                            Alert.alert(
+                              "Funcție restricționată",
+                              "Acest conținut este disponibil doar cu abonament activ.",
+                              [
+                                { text: "Vezi abonamente", onPress: () => navigation.navigate("Subscriptions") },
+                                { text: "OK", style: "cancel" },
+                              ]
+                            );
+                            return;
+                          }
+                          navigation.navigate("CmsSection", { slug: section.slug, title: section.title });
+                        }}
+                        style={[styles.row, locked && styles.rowLocked]}
+                        scaleTo={0.985}
+                      >
+                        <View style={styles.rowIconRing}>
+                          <Feather
+                            name={locked ? "lock" : "layers"}
+                            size={18}
+                            color={locked ? "#9aa5b1" : "#24384e"}
+                          />
+                        </View>
+                        <View style={styles.rowText}>
+                          <Text style={[styles.rowTitle, locked && styles.rowTitleLocked]}>
+                            {section.title}
+                          </Text>
+                          <Text style={styles.rowSubtitle} numberOfLines={2}>
+                            {locked ? "Disponibil cu abonament" : section.description || "Conținut video"}
+                          </Text>
+                        </View>
+                        <Feather
+                          name={locked ? "lock" : "chevron-right"}
+                          size={17}
+                          color={locked ? "#b6bfc9" : "#8a97a5"}
+                        />
+                      </PressableScale>
+                    </View>
+                  );
+                })}
+              </EnterFade>
+            </View>
+          )}
 
-            <TouchableOpacity
-              style={styles.externalLinkBtn}
-              onPress={() => Linking.openURL('https://danfostanxios.ro/testimoniale-2/')}
+          {/* ── Abonament ── */}
+          <EnterFade index={animIndex++}>
+            <PressableScale
+              onPress={() => handleMenuPress({ id: 9 })}
+              style={styles.planRow}
+              scaleTo={0.985}
             >
-              <LinearGradient colors={['#3d7d5f', '#2f6349']} style={styles.externalLinkGradient}>
-                <Feather name="star" size={20} color="#fff" style={styles.externalLinkIcon} />
-                <Text style={styles.externalLinkText}>Testimoniale Dan</Text>
-                <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.9)" />
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
+              <Feather name="star" size={16} color="#b3924f" />
+              <Text style={styles.planText}>Abonamente & Acces</Text>
+              <Text style={styles.planMeta}>Basic · Premium · VIP</Text>
+              <Feather name="chevron-right" size={16} color="#8a97a5" />
+            </PressableScale>
+          </EnterFade>
 
-          {/* Bottom Actions */}
-          <View style={styles.bottomActions}>
-            <TouchableOpacity
-              style={styles.termsButton}
-              onPress={() => navigation.navigate("Terms")}
+          {/* ── Comunitate externă ── */}
+          <EnterFade index={animIndex++} style={styles.externalRow}>
+            <PressableScale
+              style={styles.externalBtn}
+              onPress={() => Linking.openURL("https://www.facebook.com/groups/820094195023604/")}
             >
-              <Feather name="file-text" size={18} color="#5b6a7a" style={{ marginRight: 6 }} />
-              <Text style={styles.termsText}>Termeni</Text>
-            </TouchableOpacity>
+              <Feather name="users" size={15} color="#24384e" />
+              <Text style={styles.externalText}>Grup Facebook</Text>
+            </PressableScale>
+            <PressableScale
+              style={styles.externalBtn}
+              onPress={() => Linking.openURL("https://danfostanxios.ro/testimoniale-2/")}
+            >
+              <Feather name="heart" size={15} color="#24384e" />
+              <Text style={styles.externalText}>Testimoniale</Text>
+            </PressableScale>
+          </EnterFade>
 
-            <TouchableOpacity
-              style={styles.settingsButton}
-              onPress={() => navigation.navigate("Settings")}
-            >
-              <Feather name="settings" size={18} color="#5b6a7a" style={{ marginRight: 6 }} />
-              <Text style={styles.settingsText}>Setări</Text>
-            </TouchableOpacity>
+          {/* ── Footer ── */}
+          <EnterFade index={animIndex++} style={styles.footer}>
+            <View style={styles.footerLine} />
+            <Text style={styles.medicalNote}>
+              Aplicația oferă conținut informativ și sprijin pentru stare de bine — nu
+              înlocuiește un consult medical.{" "}
+              <Text
+                style={styles.medicalLink}
+                onPress={() => navigation.navigate("MedicalInfo")}
+              >
+                Detalii și surse
+              </Text>
+            </Text>
 
-            <TouchableOpacity
-              style={styles.logoutButton}
-              onPress={handleLogout}
-            >
-              <Feather name="log-out" size={18} color="#a8544c" style={{ marginRight: 6 }} />
-              <Text style={styles.logoutText}>Ieșire</Text>
-            </TouchableOpacity>
-          </View>
+            <View style={styles.footerActions}>
+              <TouchableOpacity
+                style={styles.footerBtn}
+                onPress={() => navigation.navigate("Terms")}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.footerBtnText}>Termeni</Text>
+              </TouchableOpacity>
+              <Text style={styles.footerSep}>·</Text>
+              <TouchableOpacity
+                style={styles.footerBtn}
+                onPress={() => navigation.navigate("Settings")}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.footerBtnText}>Setări</Text>
+              </TouchableOpacity>
+              <Text style={styles.footerSep}>·</Text>
+              <TouchableOpacity
+                style={styles.footerBtn}
+                onPress={handleLogout}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={[styles.footerBtnText, styles.footerLogout]}>Ieșire</Text>
+              </TouchableOpacity>
+            </View>
+          </EnterFade>
         </ScrollView>
       </LinearGradient>
     </SafeAreaView>
@@ -575,317 +549,271 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingTop: 14,
+    paddingBottom: 28,
   },
-  watermark: {
-    position: "absolute",
-    top: -30,
-    right: -60,
-    width: 260,
-    height: 312,
-    opacity: 0.05,
-    transform: [{ rotate: "8deg" }],
-  },
+
+  // Header
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 25,
-    paddingTop: 10,
+    alignItems: "flex-start",
+    marginBottom: 22,
   },
-  welcomeContainer: {
-    flex: 1,
+  headerText: { flex: 1, paddingRight: 12 },
+  overline: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 2.6,
+    color: "#8a97a5",
+    marginBottom: 6,
   },
-  welcomeText: {
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    fontSize: 26,
+  headline: {
+    fontFamily: SERIF,
+    fontSize: 28,
+    lineHeight: 34,
     fontWeight: "700",
     letterSpacing: 0.2,
     color: "#1c2b3a",
-    marginBottom: 4,
   },
-  userName: {
-    fontSize: 16,
-    color: "#5b6a7a",
-    fontWeight: "400",
-  },
-  subBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: "#24384e",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 6,
-    shadowColor: "#24384e",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  subBadgeText: {
-    color: "#fff",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1,
-  },
-  logoContainer: {
-    marginLeft: 15,
-  },
-  logoCircle: {
-    width: 50, height: 50, borderRadius: 25,
-    backgroundColor: "rgba(255,255,255,0.55)",
-    justifyContent: "center", alignItems: "center",
-    borderWidth: 1, borderColor: "rgba(32,47,62,0.18)",
-    shadowColor: "#24384e",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15, shadowRadius: 6, elevation: 6,
-  },
-  logoAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-  },
-  medicalCard: {
-    backgroundColor: "rgba(255,255,255,0.62)",
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "rgba(32,47,62,0.18)",
-    padding: 14,
-    marginBottom: 18,
-    shadowColor: "#24384e",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  medicalHeaderRow: {
+  subRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginTop: 8,
   },
-  medicalIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  subDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#b3924f",
+    marginRight: 6,
+  },
+  subText: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 1.4,
+    color: "#5b6a7a",
+  },
+  avatarRing: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(36,56,78,0.12)",
-    marginRight: 8,
-  },
-  medicalTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#1c2b3a",
-  },
-  medicalBodyText: {
-    fontSize: 13,
-    color: "#4f6780",
-    lineHeight: 19,
-  },
-  medicalActionBtn: {
-    marginTop: 10,
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(36,56,78,0.1)",
-    borderRadius: 10,
-    paddingVertical: 7,
-    paddingHorizontal: 10,
-  },
-  medicalActionText: {
-    color: "#16222f",
-    fontWeight: "700",
-    fontSize: 12,
-    marginRight: 2,
-  },
-  quoteSection: {
-    marginBottom: 30,
-  },
-  quoteCard: {
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: "#24384e",
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: "rgba(32,47,62,0.18)",
-  },
-  quoteIcon: {
-    fontSize: 24,
-    textAlign: "center",
-    marginBottom: 12,
-  },
-  quoteText: {
-    fontSize: 16,
-    fontStyle: "italic",
-    color: "#1c2b3a",
-    textAlign: "center",
-    lineHeight: 24,
-    marginBottom: 8,
-  },
-  quoteAuthor: {
-    fontSize: 14,
-    color: "#24384e",
-    textAlign: "center",
-    fontWeight: "600",
-  },
-  menuContainer: {
-    marginBottom: 30,
-  },
-  menuTitle: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#5b6a7a",
-    letterSpacing: 2.4,
-    textTransform: "uppercase",
-    marginBottom: 14,
-    marginLeft: 4,
-  },
-  menuItem: {
-    marginBottom: 12,
-    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(32,47,62,0.3)",
     overflow: "hidden",
   },
-  lastMenuItem: {
-    marginBottom: 0,
-  },
-  lockedMenuItem: {
-    opacity: 0.55,
-  },
-  lockedText: {
-    color: '#999',
-  },
-  menuItemCard: {
-    backgroundColor: "rgba(255,255,255,0.55)",
+  avatar: { width: 46, height: 46, borderRadius: 23 },
+
+  // SOS
+  sosCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 24,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    marginBottom: 26,
     shadowColor: "#16222f",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.05, shadowRadius: 10, elevation: 2,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(32,47,62,0.28)",
-    borderRadius: 20,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    elevation: 5,
   },
-  menuItemContent: {
-    flexDirection: "row",
+  sosIconRing: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
-    padding: 16,
-  },
-  iconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
     justifyContent: "center",
-    alignItems: "center",
-    marginRight: 15,
+    borderWidth: 1,
+    borderColor: "rgba(246,247,248,0.35)",
+    marginRight: 14,
   },
-  lockedRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 1,
+  sosTextWrap: { flex: 1, paddingRight: 10 },
+  sosTitle: {
+    fontFamily: SERIF,
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#f6f7f8",
+    marginBottom: 3,
   },
-  textContainer: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  menuItemTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1c2b3a",
-    marginBottom: 4,
-    lineHeight: 22,
-  },
-  menuItemSubtitle: {
-    fontSize: 14,
-    color: "#5b6a7a",
-    fontWeight: "400",
-  },
-  arrowContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    width: 30,
+  sosSubtitle: {
+    fontSize: 12.5,
+    color: "rgba(246,247,248,0.72)",
   },
 
-  externalLinks: {
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  externalLinkBtn: {
-    borderRadius: 14,
-    overflow: "hidden",
+  // Etichete de secțiune
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 2.6,
+    textTransform: "uppercase",
+    color: "#8a97a5",
     marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    marginLeft: 2,
   },
-  externalLinkGradient: {
+  section: { marginBottom: 24 },
+
+  // Tiles "Pentru azi"
+  tilesRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 26,
+  },
+  tile: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 6,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.5)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(32,47,62,0.28)",
+  },
+  tileIconRing: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(36,56,78,0.06)",
+    marginBottom: 9,
+  },
+  tileLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#1c2b3a",
+    textAlign: "center",
+  },
+
+  // Grupuri de rânduri
+  groupCard: {
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.5)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(32,47,62,0.28)",
+    overflow: "hidden",
+  },
+  row: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
   },
-  externalLinkIcon: {
-    marginRight: 10,
+  rowLocked: { opacity: 0.55 },
+  rowDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "rgba(32,47,62,0.16)",
+    marginLeft: 62,
   },
-  externalLinkText: {
-    flex: 1,
+  rowIconRing: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(36,56,78,0.06)",
+    marginRight: 12,
+  },
+  rowText: { flex: 1, paddingRight: 8 },
+  rowTitle: {
     fontSize: 15,
-    fontWeight: "700",
-    color: "#fff",
+    fontWeight: "600",
+    color: "#1c2b3a",
+    marginBottom: 2,
+  },
+  rowTitleLocked: { color: "#8a97a5" },
+  rowSubtitle: {
+    fontSize: 12.5,
+    color: "#5b6a7a",
+    lineHeight: 17,
   },
 
-  bottomActions: {
+  // Abonament
+  planRow: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(32,47,62,0.18)",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 999,
+    paddingVertical: 13,
+    paddingHorizontal: 18,
+    backgroundColor: "rgba(255,255,255,0.5)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(179,146,79,0.45)",
+    marginBottom: 14,
+  },
+  planText: {
+    flex: 1,
+    fontSize: 13.5,
+    fontWeight: "700",
+    color: "#1c2b3a",
+  },
+  planMeta: {
+    fontSize: 11,
+    color: "#8a97a5",
+    marginRight: 4,
+  },
+
+  // Linkuri externe
+  externalRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 10,
+  },
+  externalBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.5)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(32,47,62,0.28)",
+  },
+  externalText: {
+    fontSize: 12.5,
+    fontWeight: "600",
+    color: "#1c2b3a",
+  },
+
+  // Footer
+  footer: {
     marginTop: "auto",
+    paddingTop: 20,
+    alignItems: "center",
   },
-  settingsButton: {
+  footerLine: {
+    width: 36,
+    height: 1,
+    backgroundColor: "rgba(32,47,62,0.2)",
+    marginBottom: 14,
+  },
+  medicalNote: {
+    fontSize: 11.5,
+    lineHeight: 17,
+    color: "#8a97a5",
+    textAlign: "center",
+    paddingHorizontal: 12,
+    marginBottom: 12,
+  },
+  medicalLink: {
+    color: "#5b6a7a",
+    fontWeight: "600",
+    textDecorationLine: "underline",
+  },
+  footerActions: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.58)",
-    paddingHorizontal: 20, paddingVertical: 12,
-    borderRadius: 20,
-    shadowColor: "#24384e",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08, shadowRadius: 6, elevation: 4,
-    borderWidth: 1, borderColor: "rgba(32,47,62,0.18)",
   },
-  settingsText: {
-    fontSize: 14, color: "#1c2b3a", fontWeight: "500",
+  footerBtn: { paddingHorizontal: 8, paddingVertical: 4 },
+  footerBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#5b6a7a",
   },
-  logoutButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.58)",
-    paddingHorizontal: 20, paddingVertical: 12,
-    borderRadius: 20,
-    shadowColor: "#24384e",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08, shadowRadius: 6, elevation: 4,
-    borderWidth: 1, borderColor: "rgba(32,47,62,0.18)",
-  },
-  logoutText: {
-    fontSize: 14, color: "#a8544c", fontWeight: "500",
-  },
-  termsButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.58)",
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderRadius: 20,
-    shadowColor: "#24384e",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08, shadowRadius: 6, elevation: 4,
-    borderWidth: 1, borderColor: "rgba(32,47,62,0.18)",
-  },
-  termsText: {
-    fontSize: 13, color: "#5b6a7a", fontWeight: "500",
-  },
+  footerLogout: { color: "#a8544c" },
+  footerSep: { color: "#b6bfc9" },
 });

@@ -19,6 +19,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
 import { useSubscription } from '../contexts/SubscriptionContext';
+import { PressableScale } from './ui';
 import { api, buildWebSocketUrl, toAbsoluteApiUrl } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { getUser } from '../utils/userStorage';
@@ -451,34 +452,46 @@ export default function CommunityChatScreen({ navigation }) {
       if (item.type === 'system') {
         return (
           <View style={styles.systemRow}>
-            <Text style={styles.systemText}>{item.content}</Text>
-            <Text style={styles.systemTime}>{formatMessageDate(item.createdAt)}</Text>
+            <View style={styles.systemLine} />
+            <Text style={styles.systemText}>
+              {item.content} · {formatMessageDate(item.createdAt)}
+            </Text>
+            <View style={styles.systemLine} />
           </View>
         );
       }
 
       const isMine = currentUserId && String(item.userId || '') === String(currentUserId);
 
-      return (
-        <View style={[styles.messageRow, isMine ? styles.messageRowMine : styles.messageRowOther]}>
-          {!isMine ? (
-            <View style={styles.senderRow}>
-              {item.avatar ? (
-                <Image source={{ uri: item.avatar }} style={styles.senderAvatar} />
-              ) : (
-                <View style={styles.senderAvatarFallback}>
-                  <Text style={styles.senderAvatarFallbackText}>{avatarInitial(item.displayName)}</Text>
-                </View>
-              )}
-              <Text style={styles.senderText}>{item.displayName}</Text>
+      if (isMine) {
+        return (
+          <View style={styles.mineRow}>
+            <View style={styles.mineBubble}>
+              <Text style={styles.mineText}>{item.content}</Text>
             </View>
-          ) : null}
-          <View style={[styles.messageBubble, isMine ? styles.messageBubbleMine : styles.messageBubbleOther]}>
-            <Text style={[styles.messageText, isMine ? styles.messageTextMine : styles.messageTextOther]}>
-              {item.content}
-            </Text>
+            <Text style={styles.mineTime}>{formatMessageDate(item.createdAt)}</Text>
           </View>
-          <Text style={styles.messageTime}>{formatMessageDate(item.createdAt)}</Text>
+        );
+      }
+
+      return (
+        <View style={styles.otherRow}>
+          {item.avatar ? (
+            <Image source={{ uri: item.avatar }} style={styles.otherAvatar} />
+          ) : (
+            <View style={styles.otherAvatarFallback}>
+              <Text style={styles.otherAvatarInitial}>{avatarInitial(item.displayName)}</Text>
+            </View>
+          )}
+          <View style={styles.otherContent}>
+            <Text style={styles.otherName}>
+              {item.displayName}
+              <Text style={styles.otherTime}>  {formatMessageDate(item.createdAt)}</Text>
+            </Text>
+            <View style={styles.otherBubble}>
+              <Text style={styles.otherText}>{item.content}</Text>
+            </View>
+          </View>
         </View>
       );
     },
@@ -488,31 +501,60 @@ export default function CommunityChatScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.gradient}>
+        {/* ── Header ── */}
         <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
+          <PressableScale
+            onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))}
+            style={styles.backBtn}
+            scaleTo={0.9}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
             <Feather name="chevron-left" size={22} color="#24384e" />
-          </TouchableOpacity>
+          </PressableScale>
           <View style={styles.headerTextWrap}>
-            <Text style={styles.title}>Comunitate chat</Text>
-            <Text style={styles.subtitle}>Doar pentru utilizatorii cu abonament activ</Text>
+            <Text style={styles.title}>Comunitatea</Text>
+            <View style={styles.statusRow}>
+              <View
+                style={[
+                  styles.statusDot,
+                  socketStatus === 'connected' ? styles.statusDotOnline : styles.statusDotOffline,
+                ]}
+              />
+              <Text style={styles.statusText}>{connectionLabel}</Text>
+            </View>
           </View>
+          {hasChatAccess ? (
+            <PressableScale
+              onPress={() => loadHistory({ before: null, appendOlder: false })}
+              style={styles.headerAction}
+              scaleTo={0.9}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Feather name="refresh-cw" size={17} color="#24384e" />
+            </PressableScale>
+          ) : null}
         </View>
 
         {!hasChatAccess ? (
-          <View style={styles.blockedCard}>
-            <Feather name="lock" size={24} color="#5c5a80" />
-            <Text style={styles.blockedTitle}>Acces cu abonament activ</Text>
+          <View style={styles.blockedWrap}>
+            <View style={styles.blockedRing}>
+              <Feather name="lock" size={24} color="#24384e" />
+            </View>
+            <Text style={styles.blockedTitle}>Un loc doar al comunității</Text>
             <Text style={styles.blockedText}>
-              Chat-ul comunitatii este disponibil doar pentru abonamente active Basic, Premium sau VIP.
+              Chat-ul este disponibil pentru abonamentele active Basic, Premium sau VIP.
             </Text>
-            <TouchableOpacity style={styles.upgradeBtn} onPress={() => navigation.navigate('Subscriptions')}>
-              <Text style={styles.upgradeBtnText}>Vezi abonamente</Text>
-            </TouchableOpacity>
+            <PressableScale
+              style={styles.blockedCta}
+              onPress={() => navigation.navigate('Subscriptions')}
+            >
+              <Text style={styles.blockedCtaText}>Vezi abonamente</Text>
+            </PressableScale>
           </View>
         ) : loading ? (
           <View style={styles.loaderWrap}>
             <ActivityIndicator size="large" color="#24384e" />
-            <Text style={styles.loaderText}>Se încărca mesajele...</Text>
+            <Text style={styles.loaderText}>Se încarcă mesajele...</Text>
           </View>
         ) : (
           <KeyboardAvoidingView
@@ -520,31 +562,17 @@ export default function CommunityChatScreen({ navigation }) {
             behavior={Platform.OS === 'android' ? 'height' : undefined}
             keyboardVerticalOffset={0}
           >
-            <View style={styles.statusBarRow}>
-              <View style={[styles.statusBadge, socketStatus === 'connected' ? styles.statusBadgeOnline : styles.statusBadgeOffline]}>
-                <View style={[styles.statusDot, socketStatus === 'connected' ? styles.statusDotOnline : styles.statusDotOffline]} />
-                <Text style={styles.statusText}>{connectionLabel}</Text>
-              </View>
-
-              <TouchableOpacity
-                style={styles.refreshBtn}
-                onPress={() => loadHistory({ before: null, appendOlder: false })}
-                activeOpacity={0.75}
-              >
-                <Feather name="refresh-cw" size={16} color="#16222f" />
-                <Text style={styles.refreshBtnText}>Actualizeaza</Text>
-              </TouchableOpacity>
-            </View>
-
             {historyError ? (
-              <View style={styles.errorCard}>
-                <Text style={styles.errorText}>{historyError}</Text>
+              <View style={styles.errorBanner}>
+                <Feather name="alert-circle" size={13} color="#a8544c" />
+                <Text style={styles.errorBannerText}>{historyError}</Text>
               </View>
             ) : null}
 
             {socketError ? (
-              <View style={styles.errorCardSecondary}>
-                <Text style={styles.errorTextSecondary}>{socketError}</Text>
+              <View style={[styles.errorBanner, styles.warnBanner]}>
+                <Feather name="wifi-off" size={13} color="#9a6a14" />
+                <Text style={[styles.errorBannerText, styles.warnBannerText]}>{socketError}</Text>
               </View>
             ) : null}
 
@@ -555,9 +583,9 @@ export default function CommunityChatScreen({ navigation }) {
                 disabled={loadingOlder}
               >
                 {loadingOlder ? (
-                  <ActivityIndicator size="small" color="#16222f" />
+                  <ActivityIndicator size="small" color="#5b6a7a" />
                 ) : (
-                  <Text style={styles.loadOlderText}>Incarca mesaje anterioare</Text>
+                  <Text style={styles.loadOlderText}>Mesaje anterioare</Text>
                 )}
               </TouchableOpacity>
             ) : null}
@@ -583,12 +611,20 @@ export default function CommunityChatScreen({ navigation }) {
                 setShowScrollDown(!isNearBottom && contentSize.height > layoutMeasurement.height);
               }}
               scrollEventThrottle={200}
-              ListEmptyComponent={<Text style={styles.emptyText}>Nu exista mesaje inca. Scrie primul mesaj.</Text>}
+              ListEmptyComponent={
+                <View style={styles.emptyWrap}>
+                  <View style={styles.emptyRing}>
+                    <Feather name="message-circle" size={22} color="#8a97a5" />
+                  </View>
+                  <Text style={styles.emptyText}>Liniște deocamdată.{'\n'}Scrie primul mesaj.</Text>
+                </View>
+              }
             />
 
             {showScrollDown ? (
-              <TouchableOpacity
+              <PressableScale
                 style={styles.scrollDownBtn}
+                scaleTo={0.9}
                 onPress={() => {
                   listRef.current?.scrollToEnd({ animated: true });
                   isNearBottomRef.current = true;
@@ -598,12 +634,12 @@ export default function CommunityChatScreen({ navigation }) {
                     if (token) api.markChatAsRead(token).catch(() => {});
                   });
                 }}
-                activeOpacity={0.75}
               >
                 <Feather name="chevron-down" size={18} color="#fff" />
-              </TouchableOpacity>
+              </PressableScale>
             ) : null}
 
+            {/* ── Composer ── */}
             <View
               style={[
                 styles.composerWrap,
@@ -613,11 +649,11 @@ export default function CommunityChatScreen({ navigation }) {
                 },
               ]}
             >
-              <View style={styles.inputWrap}>
+              <View style={styles.composerPill}>
                 <TextInput
                   style={styles.input}
-                  placeholder="Scrie un mesaj pentru comunitate..."
-                  placeholderTextColor="#8ea0b2"
+                  placeholder="Scrie un mesaj..."
+                  placeholderTextColor="#8a97a5"
                   value={draft}
                   onChangeText={setDraft}
                   onFocus={() => {
@@ -628,11 +664,17 @@ export default function CommunityChatScreen({ navigation }) {
                   multiline
                   maxLength={MAX_MESSAGE_LENGTH}
                 />
-                <Text style={styles.counterText}>{Math.max(0, remainingChars)}</Text>
+                {remainingChars < 60 ? (
+                  <Text style={styles.counterText}>{Math.max(0, remainingChars)}</Text>
+                ) : null}
+                <PressableScale
+                  style={[styles.sendBtn, !String(draft || '').trim().length && styles.sendBtnIdle]}
+                  onPress={handleSend}
+                  scaleTo={0.88}
+                >
+                  <Feather name="arrow-up" size={18} color="#fff" />
+                </PressableScale>
               </View>
-              <TouchableOpacity style={styles.sendBtn} onPress={handleSend} activeOpacity={0.8}>
-                <Feather name="send" size={18} color="#fff" />
-              </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
         )}
@@ -644,246 +686,292 @@ export default function CommunityChatScreen({ navigation }) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
   gradient: { flex: 1, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 10 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+
+  // Header
+  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
-    shadowColor: '#24384e',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 3,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(32,47,62,0.28)',
     marginRight: 12,
+    zIndex: 10,
   },
   headerTextWrap: { flex: 1 },
-  title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 20, fontWeight: '700', color: '#1c2b3a' },
-  subtitle: { fontSize: 12, color: '#5b6a7a', marginTop: 2 },
-
-  blockedCard: {
-    marginTop: 16,
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(92,90,128,0.24)',
-    backgroundColor: 'rgba(92,90,128,0.08)',
+  title: {
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    letterSpacing: 0.2,
+    fontSize: 21,
+    fontWeight: '700',
+    color: '#1c2b3a',
+  },
+  statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 3 },
+  statusDot: { width: 7, height: 7, borderRadius: 4, marginRight: 6 },
+  statusDotOnline: { backgroundColor: '#3d7d5f' },
+  statusDotOffline: { backgroundColor: '#9aa5b1' },
+  statusText: { color: '#5b6a7a', fontSize: 11.5, fontWeight: '500' },
+  headerAction: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(32,47,62,0.28)',
   },
-  blockedTitle: { marginTop: 8, fontSize: 17, fontWeight: '700', color: '#2b2f5f' },
-  blockedText: { marginTop: 6, textAlign: 'center', color: '#4a5d75' },
-  upgradeBtn: {
-    marginTop: 12,
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    backgroundColor: '#5c5a80',
+
+  // Gate
+  blockedWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingBottom: 60,
   },
-  upgradeBtnText: { color: '#fff', fontWeight: '700' },
+  blockedRing: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(32,47,62,0.28)',
+    marginBottom: 18,
+  },
+  blockedTitle: {
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1c2b3a',
+    textAlign: 'center',
+  },
+  blockedText: {
+    marginTop: 8,
+    textAlign: 'center',
+    color: '#5b6a7a',
+    fontSize: 13.5,
+    lineHeight: 20,
+  },
+  blockedCta: {
+    marginTop: 20,
+    borderRadius: 999,
+    paddingVertical: 13,
+    paddingHorizontal: 28,
+    backgroundColor: 'rgba(28,43,58,0.92)',
+  },
+  blockedCtaText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 12.5,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+  },
 
   loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loaderText: { marginTop: 8, color: '#24384e' },
+  loaderText: { marginTop: 8, color: '#5b6a7a' },
 
   chatContainer: { flex: 1 },
-  statusBarRow: {
+
+  // Bannere
+  errorBanner: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
-  },
-  statusBadge: {
-    borderRadius: 999,
+    gap: 6,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(168,84,76,0.35)',
+    backgroundColor: 'rgba(168,84,76,0.07)',
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusBadgeOnline: {
-    backgroundColor: 'rgba(61, 125, 95, 0.12)',
-    borderColor: 'rgba(61, 125, 95, 0.3)',
-  },
-  statusBadgeOffline: {
-    backgroundColor: 'rgba(107, 118, 131, 0.12)',
-    borderColor: 'rgba(107, 118, 131, 0.22)',
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 7,
-  },
-  statusDotOnline: { backgroundColor: '#2eae63' },
-  statusDotOffline: { backgroundColor: '#8aa0b6' },
-  statusText: { color: '#2d4257', fontWeight: '600', fontSize: 12 },
-
-  refreshBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(36,56,78,0.25)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(255,255,255,0.55)',
-  },
-  refreshBtnText: { marginLeft: 6, color: '#16222f', fontSize: 12, fontWeight: '600' },
-
-  errorCard: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(168,84,76,0.22)',
-    backgroundColor: 'rgba(168,84,76,0.1)',
-    padding: 10,
-    marginBottom: 8,
-  },
-  errorText: { color: '#a74457', fontSize: 12 },
-  errorCardSecondary: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(179,146,79,0.28)',
-    backgroundColor: 'rgba(179,146,79,0.1)',
-    padding: 10,
-    marginBottom: 8,
-  },
-  errorTextSecondary: { color: '#9a6a14', fontSize: 12 },
-
-  loadOlderBtn: {
-    alignSelf: 'center',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(36,56,78,0.2)',
-    backgroundColor: 'rgba(255,255,255,0.55)',
-    paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 8,
   },
-  loadOlderBtnDisabled: { opacity: 0.7 },
-  loadOlderText: { color: '#16222f', fontWeight: '600', fontSize: 12 },
+  errorBannerText: { color: '#a8544c', fontSize: 12, flex: 1 },
+  warnBanner: {
+    borderColor: 'rgba(179,146,79,0.4)',
+    backgroundColor: 'rgba(179,146,79,0.07)',
+  },
+  warnBannerText: { color: '#9a6a14' },
 
-  listContent: { paddingBottom: 10 },
-  emptyText: { textAlign: 'center', color: '#5b6a7a', marginTop: 20 },
-
-  systemRow: {
+  loadOlderBtn: {
     alignSelf: 'center',
-    maxWidth: '90%',
-    backgroundColor: 'rgba(107,118,131,0.16)',
-    borderRadius: 12,
-    paddingHorizontal: 10,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(32,47,62,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.45)',
+    paddingHorizontal: 16,
     paddingVertical: 7,
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  systemText: { color: '#4e6479', fontSize: 12, textAlign: 'center' },
-  systemTime: { color: '#8094a6', fontSize: 10, marginTop: 2, textAlign: 'center' },
+  loadOlderBtnDisabled: { opacity: 0.7 },
+  loadOlderText: {
+    color: '#5b6a7a',
+    fontWeight: '600',
+    fontSize: 11,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
 
-  messageRow: { maxWidth: '85%', marginBottom: 8 },
-  messageRowMine: { alignSelf: 'flex-end' },
-  messageRowOther: { alignSelf: 'flex-start' },
-  senderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 3,
-    marginLeft: 2,
-  },
-  senderAvatar: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    marginRight: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(160,188,214,0.55)',
-  },
-  senderAvatarFallback: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    marginRight: 6,
+  listContent: { paddingBottom: 10, paddingTop: 2 },
+
+  // Empty
+  emptyWrap: { alignItems: 'center', marginTop: 48 },
+  emptyRing: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(36,56,78,0.14)',
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(32,47,62,0.24)',
+    marginBottom: 12,
   },
-  senderAvatarFallbackText: {
-    fontSize: 10,
-    color: '#3b6797',
-    fontWeight: '700',
-  },
-  senderText: { color: '#64748b', fontSize: 11 },
-  messageBubble: {
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderWidth: 1,
-  },
-  messageBubbleMine: {
-    backgroundColor: '#24384e',
-    borderColor: 'rgba(36,56,78,0.6)',
-  },
-  messageBubbleOther: {
-    backgroundColor: 'rgba(255,255,255,0.58)',
-    borderColor: 'rgba(32,47,62,0.22)',
-  },
-  messageText: { fontSize: 14, lineHeight: 19 },
-  messageTextMine: { color: '#fff' },
-  messageTextOther: { color: '#1c2b3a' },
-  messageTime: { color: '#8397a8', fontSize: 10, marginTop: 3, marginHorizontal: 4 },
+  emptyText: { textAlign: 'center', color: '#8a97a5', fontSize: 13, lineHeight: 20 },
 
-  composerWrap: {
+  // Mesaje de sistem
+  systemRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(195,202,210,0.45)',
+    alignItems: 'center',
+    alignSelf: 'center',
+    maxWidth: '92%',
+    gap: 10,
+    marginVertical: 10,
   },
-  inputWrap: {
+  systemLine: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.45)',
-    borderRadius: 22,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(32,47,62,0.22)',
+    minWidth: 18,
+  },
+  systemText: {
+    color: '#8a97a5',
+    fontSize: 11,
+    textAlign: 'center',
+    flexShrink: 1,
+  },
+
+  // Mesajele mele
+  mineRow: {
+    alignSelf: 'flex-end',
+    maxWidth: '82%',
+    alignItems: 'flex-end',
+    marginBottom: 10,
+  },
+  mineBubble: {
+    backgroundColor: 'rgba(28,43,58,0.92)',
+    borderRadius: 20,
+    borderBottomRightRadius: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  mineText: { color: '#f6f7f8', fontSize: 14.5, lineHeight: 20 },
+  mineTime: { color: '#9aa5b1', fontSize: 10, marginTop: 4, marginRight: 4 },
+
+  // Mesajele altora
+  otherRow: {
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
+    maxWidth: '86%',
+    marginBottom: 10,
+  },
+  otherAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginRight: 8,
+    marginTop: 16,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(32,47,62,0.3)',
+  },
+  otherAvatarFallback: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginRight: 8,
+    marginTop: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(32,47,62,0.3)',
+  },
+  otherAvatarInitial: { fontSize: 11, color: '#24384e', fontWeight: '700' },
+  otherContent: { flexShrink: 1 },
+  otherName: {
+    color: '#8a97a5',
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 3,
+    marginLeft: 4,
+  },
+  otherTime: { color: '#b6bfc9', fontWeight: '400', fontSize: 10 },
+  otherBubble: {
+    backgroundColor: 'rgba(255,255,255,0.62)',
+    borderRadius: 20,
+    borderTopLeftRadius: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(32,47,62,0.24)',
     paddingHorizontal: 14,
-    paddingTop: 8,
-    paddingBottom: 6,
+    paddingVertical: 10,
+  },
+  otherText: { color: '#1c2b3a', fontSize: 14.5, lineHeight: 20 },
+
+  // Composer
+  composerWrap: {
+    marginTop: 6,
+    paddingTop: 4,
+  },
+  composerPill: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    borderRadius: 26,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(32,47,62,0.3)',
+    paddingLeft: 16,
+    paddingRight: 6,
+    paddingVertical: 6,
   },
   input: {
-    minHeight: 40,
+    flex: 1,
+    minHeight: 36,
     maxHeight: 110,
     color: '#1c2b3a',
-    fontSize: 14,
-    textAlignVertical: 'top',
+    fontSize: 14.5,
+    textAlignVertical: 'center',
+    paddingTop: Platform.OS === 'ios' ? 8 : 6,
+    paddingBottom: 6,
   },
   counterText: {
-    alignSelf: 'flex-end',
-    color: '#8da0b1',
+    alignSelf: 'center',
+    color: '#8a97a5',
     fontSize: 10,
-    marginTop: 2,
+    marginHorizontal: 6,
   },
   sendBtn: {
-    marginLeft: 8,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: 'rgba(28,43,58,0.92)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#16222f',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 4,
+    marginLeft: 6,
   },
+  sendBtnIdle: { opacity: 0.45 },
   scrollDownBtn: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 92,
     right: 8,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#24384e',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(28,43,58,0.92)',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
