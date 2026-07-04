@@ -14,16 +14,16 @@ export default function TermsScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={["#dfeeff", "#f4f9ff", "#edf8f4"]}
+        colors={["#f6f7f8", "#f3f4f6", "#eef0f2"]}
         style={styles.background}
       >
         <View style={styles.header}>
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backBtn}
+            onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))}
+            style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             activeOpacity={0.75}
           >
-            <Ionicons name="chevron-back" size={22} color="#2f73d8" />
+            <Ionicons name="chevron-back" size={22} color="#24384e" />
           </TouchableOpacity>
           <Text style={styles.title}>Termeni și Condiții</Text>
         </View>
@@ -34,7 +34,7 @@ export default function TermsScreen({ navigation }) {
         >
           <View style={styles.warningBox}>
             <View style={styles.warningTitleRow}>
-              <Ionicons name="warning-outline" size={18} color="#b64a3a" style={{ marginRight: 6 }} />
+              <Ionicons name="warning-outline" size={18} color="#a8544c" style={{ marginRight: 6 }} />
               <Text style={styles.warningTitle}>ATENȚIE!</Text>
             </View>
             <Text style={styles.warningText}>
@@ -197,7 +197,7 @@ export default function TermsScreen({ navigation }) {
 
           <View style={styles.contactBox}>
             <View style={styles.contactTitleRow}>
-              <Ionicons name="call-outline" size={16} color="#18324f" style={{ marginRight: 6 }} />
+              <Ionicons name="call-outline" size={16} color="#1c2b3a" style={{ marginRight: 6 }} />
               <Text style={styles.contactTitle}>Contact</Text>
             </View>
             <Text style={styles.contactText}>
@@ -221,7 +221,7 @@ export default function TermsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#dfeeff' },
+  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
   background: { flex: 1 },
   header: {
     flexDirection: "row",
@@ -229,20 +229,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(117,154,194,0.18)",
+    borderBottomColor: "rgba(32,47,62,0.18)",
   },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,
     backgroundColor: "rgba(255,255,255,0.88)",
     alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: "rgba(117,154,194,0.18)",
-    shadowColor: "#2f73d8", shadowOffset: { width: 0, height: 2 },
+    borderWidth: 1, borderColor: "rgba(32,47,62,0.18)",
+    shadowColor: "#24384e", shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12, shadowRadius: 6, elevation: 3, marginRight: 12,
   },
   title: {
     flex: 1,
     fontSize: 20, fontWeight: "700",
-    color: "#18324f",
+    color: "#1c2b3a",
     textAlign: "center",
     marginRight: 38,
   },
@@ -252,23 +252,23 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: "#f5d0ca",
   },
   warningTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 8 },
-  warningTitle: { fontSize: 16, fontWeight: "700", color: "#b64a3a" },
+  warningTitle: { fontSize: 16, fontWeight: "700", color: "#a8544c" },
   warningText: { fontSize: 14, color: "#8b3a2e", lineHeight: 22 },
   infoBox: {
-    backgroundColor: "#eaf3ff", borderRadius: 16, padding: 16, marginBottom: 20,
-    borderWidth: 1, borderColor: "rgba(117,154,194,0.22)",
+    backgroundColor: "#e8ebef", borderRadius: 16, padding: 16, marginBottom: 20,
+    borderWidth: 1, borderColor: "rgba(32,47,62,0.22)",
   },
   infoText: { fontSize: 14, color: "#2c5282", lineHeight: 22 },
-  sectionTitle: { fontSize: 16, fontWeight: "700", color: "#18324f", marginTop: 20, marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: "#1c2b3a", marginTop: 20, marginBottom: 12 },
   paragraph: { fontSize: 14, color: "#4a5568", lineHeight: 22, textAlign: "justify" },
-  bold: { fontWeight: "700", color: "#18324f" },
+  bold: { fontWeight: "700", color: "#1c2b3a" },
   contactBox: {
     backgroundColor: "rgba(255,255,255,0.86)", borderRadius: 18, padding: 16, marginTop: 24,
-    borderWidth: 1, borderColor: "rgba(117,154,194,0.18)",
-    shadowColor: "#2f73d8", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
+    borderWidth: 1, borderColor: "rgba(32,47,62,0.18)",
+    shadowColor: "#24384e", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
   },
   contactTitleRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
-  contactTitle: { fontSize: 16, fontWeight: "700", color: "#18324f" },
+  contactTitle: { fontSize: 16, fontWeight: "700", color: "#1c2b3a" },
   contactText: { fontSize: 14, color: "#4a5568", lineHeight: 22 },
-  lastUpdated: { fontSize: 12, color: "#7d93aa", textAlign: "center", marginTop: 24, fontStyle: "italic" },
+  lastUpdated: { fontSize: 12, color: "#8a97a5", textAlign: "center", marginTop: 24, fontStyle: "italic" },
 });

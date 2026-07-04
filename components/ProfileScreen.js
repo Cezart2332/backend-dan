@@ -203,10 +203,10 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#dfeeff', '#f4f9ff', '#edf8f4']} style={styles.gradient}>
+      <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.gradient}>
         <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.75}>
-            <Ionicons name="chevron-back" size={22} color="#2f73d8" />
+          <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
+            <Ionicons name="chevron-back" size={22} color="#24384e" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Profilul meu</Text>
           <View style={styles.headerSpacer} />
@@ -214,7 +214,7 @@ export default function ProfileScreen({ navigation }) {
 
         {loading ? (
           <View style={styles.loaderWrap}>
-            <ActivityIndicator size="large" color="#2f73d8" />
+            <ActivityIndicator size="large" color="#24384e" />
             <Text style={styles.loaderText}>Se încărca profilul...</Text>
           </View>
         ) : (
@@ -229,7 +229,7 @@ export default function ProfileScreen({ navigation }) {
                   <Image source={{ uri: displayedAvatarUri }} style={styles.avatarImage} />
                 ) : (
                   <View style={styles.avatarPlaceholder}>
-                    <Ionicons name="person" size={38} color="#2f73d8" />
+                    <Ionicons name="person" size={38} color="#24384e" />
                   </View>
                 )}
                 <View style={styles.avatarBadge}>
@@ -240,7 +240,7 @@ export default function ProfileScreen({ navigation }) {
 
               {displayedAvatarUri ? (
                 <TouchableOpacity style={styles.removeAvatarBtn} onPress={handleRemoveAvatar}>
-                  <Ionicons name="trash-outline" size={14} color="#b54f5b" />
+                  <Ionicons name="trash-outline" size={14} color="#a8544c" />
                   <Text style={styles.removeAvatarText}>Sterge poză</Text>
                 </TouchableOpacity>
               ) : null}
@@ -283,7 +283,7 @@ export default function ProfileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#dfeeff' },
+  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
   gradient: { flex: 1, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 18 },
   headerRow: {
     flexDirection: 'row',
@@ -299,12 +299,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(117,154,194,0.18)',
+    borderColor: 'rgba(32,47,62,0.18)',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#18324f',
+    color: '#1c2b3a',
   },
   headerSpacer: {
     width: 38,
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   },
   loaderText: {
     marginTop: 8,
-    color: '#2f73d8',
+    color: '#24384e',
   },
   contentWrap: {
     flex: 1,
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     height: 110,
     borderRadius: 55,
     borderWidth: 2,
-    borderColor: 'rgba(47,115,216,0.2)',
+    borderColor: 'rgba(36,56,78,0.2)',
   },
   avatarPlaceholder: {
     width: 110,
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(47,115,216,0.2)',
+    borderColor: 'rgba(36,56,78,0.2)',
     backgroundColor: 'rgba(255,255,255,0.82)',
   },
   avatarBadge: {
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#2f73d8',
+    backgroundColor: '#24384e',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   },
   avatarHint: {
     marginTop: 8,
-    color: '#58718e',
+    color: '#5b6a7a',
     fontSize: 12,
   },
   removeAvatarBtn: {
@@ -375,12 +375,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(181,79,91,0.25)',
-    backgroundColor: 'rgba(181,79,91,0.08)',
+    borderColor: 'rgba(168,84,76,0.25)',
+    backgroundColor: 'rgba(168,84,76,0.08)',
   },
   removeAvatarText: {
     marginLeft: 6,
-    color: '#b54f5b',
+    color: '#a8544c',
     fontWeight: '600',
     fontSize: 12,
   },
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.78)',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(180,205,230,0.65)',
+    borderColor: 'rgba(195,202,210,0.65)',
     padding: 14,
   },
   label: {
@@ -403,8 +403,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     backgroundColor: 'rgba(255,255,255,0.95)',
     borderWidth: 1,
-    borderColor: 'rgba(180,205,230,0.8)',
-    color: '#18324f',
+    borderColor: 'rgba(195,202,210,0.8)',
+    color: '#1c2b3a',
     fontSize: 15,
   },
   helperText: {
@@ -416,11 +416,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#2f73d8',
+    backgroundColor: '#24384e',
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    shadowColor: '#2f73d8',
+    shadowColor: '#24384e',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
     shadowRadius: 8,

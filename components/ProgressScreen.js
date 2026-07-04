@@ -9,6 +9,7 @@ import {
   Keyboard,
   Dimensions,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -79,9 +80,9 @@ export default function ProgressScreen({ navigation }) {
   };
 
   const getAnxietyColor = (level) => {
-    if (level <= 3) return '#3f9f64'; // Green
-    if (level <= 6) return '#d88a28'; // Orange
-    return '#c94b4b'; // Red
+    if (level <= 3) return '#3d7d5f'; // Green
+    if (level <= 6) return '#b07e3e'; // Orange
+    return '#a8544c'; // Red
   };
 
   const getAnxietyLabel = (level) => {
@@ -93,22 +94,22 @@ export default function ProgressScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={['#dfeeff', '#f4f9ff', '#edf8f4']}
+        colors={['#f6f7f8', '#f3f4f6', '#eef0f2']}
         style={styles.gradient}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled" onScrollBeginDrag={Keyboard.dismiss}>
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backButton}
+              onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))}
+              style={styles.backButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Ionicons name="chevron-back" size={22} color="#2f73d8" />
+              <Ionicons name="chevron-back" size={22} color="#24384e" />
             </TouchableOpacity>
 
             <View style={styles.headerContent}>
               <View style={styles.headerIcon}>
-                <Ionicons name="bar-chart-outline" size={36} color="#2f73d8" />
+                <Ionicons name="bar-chart-outline" size={36} color="#24384e" />
               </View>
               <Text style={styles.title}>Progresul Meu</Text>
               <Text style={styles.subtitle}>Urmărește-ți evoluția zilnică</Text>
@@ -116,7 +117,7 @@ export default function ProgressScreen({ navigation }) {
 
             <TouchableOpacity style={styles.headerAction} onPress={() => navigation.navigate('ProgressHistory')}>
               <View style={styles.headerActionInner}>
-                <Ionicons name="time-outline" size={16} color="#2f73d8" style={{ marginRight: 6 }} />
+                <Ionicons name="time-outline" size={16} color="#24384e" style={{ marginRight: 6 }} />
                 <Text style={styles.headerActionText}>Vezi istoric</Text>
               </View>
             </TouchableOpacity>
@@ -188,7 +189,7 @@ export default function ProgressScreen({ navigation }) {
               <TextInput
                 style={styles.feelingsInput}
                 placeholder="Ex: M-am simțit mai calm după exercițiile de respirație..."
-                placeholderTextColor="#7d93aa"
+                placeholderTextColor="#8a97a5"
                 value={feelings}
                 onChangeText={setFeelings}
                 multiline
@@ -208,7 +209,7 @@ export default function ProgressScreen({ navigation }) {
               <TextInput
                 style={styles.actionsInput}
                 placeholder="Ex: Am practicat tehnici de respirație, am făcut o plimbare, am meditat 10 minute..."
-                placeholderTextColor="#7d93aa"
+                placeholderTextColor="#8a97a5"
                 value={recentActions}
                 onChangeText={setRecentActions}
                 multiline
@@ -222,7 +223,7 @@ export default function ProgressScreen({ navigation }) {
           {/* Progress Insights */}
           <View style={styles.insightsSection}>
             <View style={styles.insightsCard}>
-              <Ionicons name="bulb-outline" size={28} color="#d88a28" style={{ marginBottom: 8 }} />
+              <Ionicons name="bulb-outline" size={28} color="#b07e3e" style={{ marginBottom: 8 }} />
               <Text style={styles.insightsTitle}>Sfat pentru astăzi</Text>
               <Text style={styles.insightsText}>
                 {anxietyLevel <= 3 
@@ -241,7 +242,7 @@ export default function ProgressScreen({ navigation }) {
             onPress={handleSendJournal}
           >
             <LinearGradient
-              colors={['#2f73d8', '#2158ad']}
+              colors={['#24384e', '#16222f']}
               style={styles.sendButtonGradient}
             >
               <Ionicons name="pencil-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
@@ -257,7 +258,7 @@ export default function ProgressScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#dfeeff',
+    backgroundColor: '#f6f7f8',
   },
   gradient: {
     flex: 1,
@@ -277,15 +278,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     top: 10,
+    zIndex: 10,
     width: 38,
     height: 38,
     borderRadius: 19,
     backgroundColor: 'rgba(255,255,255,0.88)',
     borderWidth: 1,
-    borderColor: 'rgba(117,154,194,0.18)',
+    borderColor: 'rgba(32,47,62,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#2f73d8',
+    shadowColor: '#24384e',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
@@ -293,7 +295,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 18,
-    color: '#2f73d8',
+    color: '#24384e',
   },
   headerAction: {
     position: 'absolute',
@@ -307,11 +309,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(117,154,194,0.18)',
+    borderColor: 'rgba(32,47,62,0.18)',
     backgroundColor: 'rgba(255,255,255,0.88)',
   },
   headerActionText: {
-    color: '#2f73d8',
+    color: '#24384e',
     fontWeight: '600',
     fontSize: 13,
   },
@@ -319,15 +321,17 @@ const styles = StyleSheet.create({
     fontSize: 35,
   },
   title: {
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    letterSpacing: 0.2,
     fontSize: 28,
     fontWeight: '700',
-    color: '#18324f',
+    color: '#1c2b3a',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#58718e',
+    color: '#5b6a7a',
     textAlign: 'center',
     fontWeight: '400',
   },
@@ -337,12 +341,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#18324f',
+    color: '#1c2b3a',
     marginBottom: 6,
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: '#58718e',
+    color: '#5b6a7a',
     marginBottom: 14,
   },
   anxietyLevels: {
@@ -360,13 +364,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.86)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#2f73d8',
+    shadowColor: '#24384e',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 3,
     borderWidth: 1,
-    borderColor: 'rgba(117,154,194,0.18)',
+    borderColor: 'rgba(32,47,62,0.18)',
   },
   anxietyButtonSelected: {
     shadowOpacity: 0.2,
@@ -376,7 +380,7 @@ const styles = StyleSheet.create({
   anxietyButtonText: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#18324f',
+    color: '#1c2b3a',
   },
   anxietyButtonTextSelected: {
     color: '#ffffff',
@@ -393,29 +397,29 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.86)',
     borderRadius: 18,
     padding: 16,
-    shadowColor: '#2f73d8',
+    shadowColor: '#24384e',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 4,
     borderWidth: 1,
-    borderColor: 'rgba(117,154,194,0.18)',
+    borderColor: 'rgba(32,47,62,0.18)',
   },
   feelingsInput: {
     fontSize: 15,
-    color: '#18324f',
+    color: '#1c2b3a',
     minHeight: 80,
     textAlignVertical: 'top',
   },
   actionsInput: {
     fontSize: 15,
-    color: '#18324f',
+    color: '#1c2b3a',
     minHeight: 100,
     textAlignVertical: 'top',
   },
   characterCount: {
     fontSize: 12,
-    color: '#58718e',
+    color: '#5b6a7a',
     textAlign: 'right',
     marginTop: 8,
   },
@@ -425,13 +429,13 @@ const styles = StyleSheet.create({
   insightsCard: {
     borderRadius: 18,
     padding: 20,
-    shadowColor: '#2f73d8',
+    shadowColor: '#24384e',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 5,
     borderWidth: 1,
-    borderColor: 'rgba(117,154,194,0.18)',
+    borderColor: 'rgba(32,47,62,0.18)',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.86)',
   },
@@ -442,13 +446,13 @@ const styles = StyleSheet.create({
   insightsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#18324f',
+    color: '#1c2b3a',
     marginBottom: 8,
     textAlign: 'center',
   },
   insightsText: {
     fontSize: 14,
-    color: '#58718e',
+    color: '#5b6a7a',
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -456,7 +460,7 @@ const styles = StyleSheet.create({
     marginBottom: 25,
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#2f73d8',
+    shadowColor: '#24384e',
     shadowOffset: {
       width: 0,
       height: 4,

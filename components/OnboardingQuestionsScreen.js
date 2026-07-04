@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView,
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -122,12 +124,12 @@ export default function OnboardingQuestionsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#dfeeff', '#f4f9ff', '#edf8f4']} style={styles.background}>
+      <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.background}>
         <ScrollView contentContainerStyle={styles.scroll}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Ionicons name="chevron-back" size={22} color="#2f73d8" />
+            <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+              <Ionicons name="chevron-back" size={22} color="#24384e" />
             </TouchableOpacity>
             <Text style={styles.title}>Întrebări inițiale</Text>
             <Text style={styles.subtitle}>Răspunde pentru a-ți personaliza experiența</Text>
@@ -151,7 +153,7 @@ export default function OnboardingQuestionsScreen({ navigation }) {
                       <Ionicons
                         name={isMulti ? (selected ? 'checkbox-outline' : 'square-outline') : (selected ? 'radio-button-on' : 'radio-button-off')}
                         size={20}
-                        color={selected ? '#2f73d8' : '#94a9bf'}
+                        color={selected ? '#24384e' : '#9aa5b1'}
                         style={{ marginRight: 8, marginTop: 1 }}
                       />
                       <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>{opt}</Text>
@@ -179,41 +181,41 @@ export default function OnboardingQuestionsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#dfeeff' },
+  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
   background: { flex: 1 },
   scroll: { padding: 20 },
   header: { marginBottom: 14, alignItems: 'center' },
   backButton: {
-    position: 'absolute', left: 0, top: -2,
+    position: 'absolute', left: 0, top: 0, zIndex: 10,
     width: 38, height: 38, borderRadius: 19,
     backgroundColor: 'rgba(255,255,255,0.88)',
-    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)',
+    borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#2f73d8', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
+    shadowColor: '#24384e', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
   },
-  title: { fontSize: 22, fontWeight: '700', color: '#18324f', marginTop: 10, textAlign: 'center' },
-  subtitle: { fontSize: 14, color: '#58718e', marginTop: 6, marginBottom: 8, textAlign: 'center' },
+  title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 22, fontWeight: '700', color: '#1c2b3a', marginTop: 10, textAlign: 'center' },
+  subtitle: { fontSize: 14, color: '#5b6a7a', marginTop: 6, marginBottom: 8, textAlign: 'center' },
   card: {
     backgroundColor: 'rgba(255,255,255,0.86)', borderRadius: 18, padding: 18, marginVertical: 10,
-    shadowColor: '#2f73d8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
-    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)',
+    shadowColor: '#24384e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
+    borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
   },
-  question: { fontSize: 15, color: '#18324f', marginBottom: 12, lineHeight: 22, fontWeight: '600' },
+  question: { fontSize: 15, color: '#1c2b3a', marginBottom: 12, lineHeight: 22, fontWeight: '600' },
   optionsCol: { marginTop: 6 },
   choice: {
     flexDirection: 'row', alignItems: 'flex-start',
     backgroundColor: 'rgba(255,255,255,0.84)', borderRadius: 12,
-    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)',
+    borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     paddingVertical: 10, paddingHorizontal: 12, marginVertical: 5,
   },
-  choiceSelected: { backgroundColor: 'rgba(47,115,216,0.1)', borderColor: 'rgba(47,115,216,0.24)' },
-  choiceText: { flex: 1, color: '#18324f', fontSize: 14, lineHeight: 20 },
-  choiceTextSelected: { color: '#18324f', fontWeight: '500' },
+  choiceSelected: { backgroundColor: 'rgba(36,56,78,0.1)', borderColor: 'rgba(36,56,78,0.24)' },
+  choiceText: { flex: 1, color: '#1c2b3a', fontSize: 14, lineHeight: 20 },
+  choiceTextSelected: { color: '#1c2b3a', fontWeight: '500' },
   continueBtn: { marginTop: 12, borderRadius: 16 },
   continueBtnDisabled: { opacity: 0.5 },
   continueInner: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#2f73d8', borderRadius: 16, paddingVertical: 16,
+    backgroundColor: '#24384e', borderRadius: 16, paddingVertical: 16,
   },
   continueText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });

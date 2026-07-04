@@ -1,31 +1,42 @@
+import { Platform } from "react-native";
+
+// Paletă derivată din logo: cerneală navy (#202F3E) pe ivory (#F3F3F3),
+// monocromă și calmă, cu un singur accent cald (champagne) folosit rar.
 export const colors = {
-  background: "#eef6ff",
-  backgroundTop: "#dfeeff",
-  backgroundMid: "#f4f9ff",
-  backgroundBottom: "#edf8f4",
-  surface: "rgba(255,255,255,0.86)",
-  surfaceStrong: "rgba(255,255,255,0.94)",
-  surfaceMuted: "rgba(239,247,255,0.88)",
-  border: "rgba(117,154,194,0.18)",
-  text: "#18324f",
-  textMuted: "#58718e",
-  textSoft: "#7d93aa",
-  primary: "#2f73d8",
-  primaryDark: "#2158ad",
-  primarySoft: "#e2efff",
-  success: "#3f9f64",
-  warning: "#d88a28",
-  danger: "#c94b4b",
-  violet: "#6f67ff",
-  teal: "#1f9d91",
+  background: "#f4f5f6",
+  backgroundTop: "#f6f7f8",
+  backgroundMid: "#f3f4f6",
+  backgroundBottom: "#eef0f2",
+  surface: "rgba(255,255,255,0.92)",
+  surfaceStrong: "#ffffff",
+  surfaceMuted: "rgba(243,244,246,0.9)",
+  border: "rgba(32,47,62,0.1)",
+  text: "#1c2b3a",
+  textMuted: "#5b6a7a",
+  textSoft: "#8a97a5",
+  primary: "#24384e",
+  primaryDark: "#16222f",
+  primarySoft: "#e8ebef",
+  accent: "#b3924f",
+  success: "#3d7d5f",
+  warning: "#b07e3e",
+  danger: "#a8544c",
+  violet: "#5c5a80",
+  teal: "#3e7e76",
   white: "#ffffff",
-  overlay: "rgba(19,40,68,0.42)",
+  overlay: "rgba(16,25,35,0.5)",
 };
 
 export const gradients = {
   screen: [colors.backgroundTop, colors.backgroundMid, colors.backgroundBottom],
   primary: [colors.primary, colors.primaryDark],
-  success: [colors.success, "#2f7d4d"],
+  success: [colors.success, "#2f6349"],
+};
+
+// Serif elegant pentru titluri, ca wordmark-ul „Dan" din logo.
+export const fonts = {
+  display: Platform.select({ ios: "Georgia", android: "serif", default: "serif" }),
+  body: Platform.select({ ios: "System", android: "sans-serif", default: "System" }),
 };
 
 export const radius = {
@@ -47,10 +58,21 @@ export const spacing = {
 };
 
 export const type = {
+  // Etichetă cu majuscule spațiate, ca „FOST ANXIOS" din logo.
+  overline: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "600",
+    letterSpacing: 2.4,
+    textTransform: "uppercase",
+    color: colors.textMuted,
+  },
   title: {
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: "800",
+    fontFamily: fonts.display,
+    fontSize: 26,
+    lineHeight: 33,
+    fontWeight: "700",
+    letterSpacing: 0.2,
     color: colors.text,
   },
   subtitle: {
@@ -59,37 +81,39 @@ export const type = {
     color: colors.textMuted,
   },
   sectionTitle: {
-    fontSize: 17,
-    lineHeight: 23,
-    fontWeight: "800",
+    fontFamily: fonts.display,
+    fontSize: 18,
+    lineHeight: 25,
+    fontWeight: "700",
     color: colors.text,
   },
   body: {
     fontSize: 14,
-    lineHeight: 21,
+    lineHeight: 22,
     color: colors.textMuted,
   },
   button: {
     fontSize: 15,
-    fontWeight: "800",
+    fontWeight: "700",
+    letterSpacing: 0.4,
   },
 };
 
 export const shadows = {
   card: {
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 18,
-    elevation: 4,
+    shadowColor: "#16222f",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.07,
+    shadowRadius: 16,
+    elevation: 3,
   },
   button: {
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowColor: "#16222f",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    elevation: 4,
   },
 };
 
-export const tokens = { colors, gradients, radius, spacing, type, shadows };
+export const tokens = { colors, gradients, fonts, radius, spacing, type, shadows };

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  Image,
   KeyboardAvoidingView,
   Keyboard,
   Platform,
@@ -107,7 +108,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={['#dfeeff', '#f4f9ff', '#edf8f4']}
+        colors={['#f6f7f8', '#f3f4f6', '#eef0f2']}
         style={styles.gradient}
       >
         <KeyboardAvoidingView
@@ -117,23 +118,23 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
           <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled" onScrollBeginDrag={Keyboard.dismiss}>
             {/* Header */}
             <View style={styles.header}>
-              <View style={styles.logoContainer}>
-                <View style={styles.logoCircle}>
-                  <Ionicons name="leaf" size={40} color="#2f73d8" />
-                </View>
-              </View>
+              <Image
+                source={require('../assets/brandmark.png')}
+                style={styles.brandmark}
+                resizeMode="contain"
+              />
               <Text style={styles.title}>Bine ai revenit</Text>
-              <Text style={styles.subtitle}>Intră în spațiul tău de lucru cu Dan</Text>
+              <Text style={styles.subtitle}>Intră în spațiul tău de liniște</Text>
             </View>
 
             {/* Form */}
             <View style={styles.formContainer}>
               <View style={styles.inputContainer}>
-                <Ionicons name="mail-outline" size={20} color="#2f73d8" style={styles.inputIcon} />
+                <Ionicons name="mail-outline" size={20} color="#24384e" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Email"
-                  placeholderTextColor="#7d93aa"
+                  placeholderTextColor="#8a97a5"
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -142,11 +143,11 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
               </View>
 
               <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed-outline" size={20} color="#2f73d8" style={styles.inputIcon} />
+                <Ionicons name="lock-closed-outline" size={20} color="#24384e" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Parolă"
-                  placeholderTextColor="#7d93aa"
+                  placeholderTextColor="#8a97a5"
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -158,7 +159,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
                   <Ionicons
                     name={showPassword ? "eye-outline" : "eye-off-outline"}
                     size={20}
-                    color="#2f73d8"
+                    color="#24384e"
                   />
                 </TouchableOpacity>
               </View>
@@ -177,7 +178,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
                 disabled={loading}
               >
                 <LinearGradient
-                  colors={['#2f73d8', '#2158ad']}
+                  colors={['#24384e', '#16222f']}
                   style={styles.buttonGradient}
                 >
                   <Text style={styles.loginButtonText}>{loading ? 'Se conectează...' : 'Conectare'}</Text>
@@ -209,7 +210,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
                   onPress={handleAppleLogin}
                   disabled={loading}
                 >
-                  <Ionicons name="logo-apple" size={20} color="#18324f" style={{ marginRight: 8 }} />
+                  <Ionicons name="logo-apple" size={20} color="#1c2b3a" style={{ marginRight: 8 }} />
                   <Text style={styles.socialButtonText}>Apple</Text>
                 </TouchableOpacity>
               )}
@@ -238,7 +239,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#dfeeff' },
+  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
   gradient: {
     flex: 1,
   },
@@ -255,25 +256,19 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 40,
   },
-  logoContainer: {
-    marginBottom: 20,
-  },
-  logoCircle: {
-    width: 80, height: 80, borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.88)',
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)',
-    shadowColor: '#2f73d8',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15, shadowRadius: 8, elevation: 8,
+  brandmark: {
+    width: 190,
+    height: 159,
+    marginBottom: 18,
   },
   title: {
-    fontSize: 28, fontWeight: '700',
-    color: '#18324f',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontSize: 28, fontWeight: '700', letterSpacing: 0.2,
+    color: '#1c2b3a',
     marginBottom: 8, textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16, color: '#58718e',
+    fontSize: 16, color: '#5b6a7a',
     textAlign: 'center', fontWeight: '400',
   },
   formContainer: {
@@ -284,16 +279,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.94)',
     borderRadius: 16, marginBottom: 16,
     paddingHorizontal: 16, paddingVertical: 4,
-    shadowColor: '#2f73d8',
+    shadowColor: '#24384e',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08, shadowRadius: 8, elevation: 4,
-    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)',
+    borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
   },
   inputIcon: {
     marginRight: 12,
   },
   input: {
-    flex: 1, fontSize: 16, color: '#18324f',
+    flex: 1, fontSize: 16, color: '#1c2b3a',
     paddingVertical: 16, fontWeight: '400',
   },
   eyeIcon: {
@@ -314,14 +309,14 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   forgotPasswordText: {
-    color: '#2f73d8',
+    color: '#24384e',
     fontSize: 14,
     fontWeight: '500',
   },
   loginButton: {
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#2f73d8',
+    shadowColor: '#24384e',
     shadowOffset: {
       width: 0,
       height: 4,
@@ -340,7 +335,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   errorText: {
-    color: '#c94b4b',
+    color: '#a8544c',
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -352,10 +347,10 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(117,154,194,0.22)',
+    backgroundColor: 'rgba(32,47,62,0.22)',
   },
   dividerText: {
-    marginHorizontal: 16, color: '#58718e',
+    marginHorizontal: 16, color: '#5b6a7a',
     fontSize: 14, fontWeight: '400',
   },
   socialContainer: {
@@ -372,7 +367,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     marginHorizontal: 4,
-    shadowColor: '#2f73d8',
+    shadowColor: '#24384e',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -381,13 +376,13 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
     borderWidth: 1,
-    borderColor: 'rgba(117,154,194,0.18)',
+    borderColor: 'rgba(32,47,62,0.18)',
   },
   socialButtonText: {
     marginLeft: 8,
     fontSize: 14,
     fontWeight: '500',
-    color: '#18324f',
+    color: '#1c2b3a',
   },
   registerContainer: {
     flexDirection: 'row',
@@ -397,12 +392,12 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   registerText: {
-    color: '#58718e',
+    color: '#5b6a7a',
     fontSize: 15,
     fontWeight: '400',
   },
   registerLink: {
-    color: '#2f73d8',
+    color: '#24384e',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -412,7 +407,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   termsText: {
-    color: '#58718e',
+    color: '#5b6a7a',
     fontSize: 13,
     textDecorationLine: 'underline',
   },

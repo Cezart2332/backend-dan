@@ -21,7 +21,7 @@ export default function DinExperientaMeaVideoScreen({ route, navigation }) {
       nowPlayingTitle={nowPlayingTitle || title || "Din experiența mea"}
       nowPlayingArtist={nowPlayingArtist || "Dan fost anxios · Experiențe reale"}
       nowPlayingArtwork={nowPlayingArtwork}
-      nowPlayingAccent={nowPlayingAccent || "#1f9d91"}
+      nowPlayingAccent={nowPlayingAccent || "#3e7e76"}
     />
   );
 }

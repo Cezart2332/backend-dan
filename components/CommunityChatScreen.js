@@ -17,6 +17,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
+import * as Notifications from 'expo-notifications';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { api, buildWebSocketUrl, toAbsoluteApiUrl } from '../utils/api';
 import { getToken } from '../utils/authStorage';
@@ -308,7 +309,8 @@ export default function CommunityChatScreen({ navigation }) {
       setHistoryError('');
 
       if (!appendOlder) {
-        await api.markChatAsRead(authToken);
+        // Nu blocăm afișarea istoricului dacă marcarea ca citit eșuează.
+        api.markChatAsRead(authToken).catch(() => {});
       }
     } catch (error) {
       setHistoryError(String(error?.message || 'Nu am putut încărca istoricul chatului.'));
@@ -317,6 +319,18 @@ export default function CommunityChatScreen({ navigation }) {
       setLoadingOlder(false);
     }
   }, []);
+
+  // Șterge din notification tray notificările de chat rămase după citire.
+  useEffect(() => {
+    if (!isFocused) return;
+    Notifications.getPresentedNotificationsAsync()
+      .then((presented) => Promise.all(
+        (presented || [])
+          .filter((n) => String(n?.request?.content?.data?.type || '').toLowerCase() === 'chat_unread')
+          .map((n) => Notifications.dismissNotificationAsync(n.request.identifier))
+      ))
+      .catch(() => {});
+  }, [isFocused]);
 
   useEffect(() => {
     if (!isFocused || !hasChatAccess) {
@@ -473,10 +487,10 @@ export default function CommunityChatScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#dfeeff', '#f4f9ff', '#edf8f4']} style={styles.gradient}>
+      <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.gradient}>
         <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.75}>
-            <Ionicons name="chevron-back" size={22} color="#2f73d8" />
+          <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
+            <Ionicons name="chevron-back" size={22} color="#24384e" />
           </TouchableOpacity>
           <View style={styles.headerTextWrap}>
             <Text style={styles.title}>Comunitate chat</Text>
@@ -486,7 +500,7 @@ export default function CommunityChatScreen({ navigation }) {
 
         {!hasChatAccess ? (
           <View style={styles.blockedCard}>
-            <Ionicons name="lock-closed" size={24} color="#6f67ff" />
+            <Ionicons name="lock-closed" size={24} color="#5c5a80" />
             <Text style={styles.blockedTitle}>Acces cu abonament activ</Text>
             <Text style={styles.blockedText}>
               Chat-ul comunitatii este disponibil doar pentru abonamente active Basic, Premium sau VIP.
@@ -497,7 +511,7 @@ export default function CommunityChatScreen({ navigation }) {
           </View>
         ) : loading ? (
           <View style={styles.loaderWrap}>
-            <ActivityIndicator size="large" color="#2f73d8" />
+            <ActivityIndicator size="large" color="#24384e" />
             <Text style={styles.loaderText}>Se încărca mesajele...</Text>
           </View>
         ) : (
@@ -517,7 +531,7 @@ export default function CommunityChatScreen({ navigation }) {
                 onPress={() => loadHistory({ before: null, appendOlder: false })}
                 activeOpacity={0.75}
               >
-                <Ionicons name="refresh" size={16} color="#2158ad" />
+                <Ionicons name="refresh" size={16} color="#16222f" />
                 <Text style={styles.refreshBtnText}>Actualizeaza</Text>
               </TouchableOpacity>
             </View>
@@ -541,7 +555,7 @@ export default function CommunityChatScreen({ navigation }) {
                 disabled={loadingOlder}
               >
                 {loadingOlder ? (
-                  <ActivityIndicator size="small" color="#2158ad" />
+                  <ActivityIndicator size="small" color="#16222f" />
                 ) : (
                   <Text style={styles.loadOlderText}>Incarca mesaje anterioare</Text>
                 )}
@@ -628,7 +642,7 @@ export default function CommunityChatScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#dfeeff' },
+  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
   gradient: { flex: 1, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 10 },
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   backBtn: {
@@ -639,8 +653,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(117,154,194,0.18)',
-    shadowColor: '#2f73d8',
+    borderColor: 'rgba(32,47,62,0.18)',
+    shadowColor: '#24384e',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
@@ -648,16 +662,16 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   headerTextWrap: { flex: 1 },
-  title: { fontSize: 20, fontWeight: '700', color: '#18324f' },
-  subtitle: { fontSize: 12, color: '#58718e', marginTop: 2 },
+  title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 20, fontWeight: '700', color: '#1c2b3a' },
+  subtitle: { fontSize: 12, color: '#5b6a7a', marginTop: 2 },
 
   blockedCard: {
     marginTop: 16,
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
-    borderColor: 'rgba(111,103,255,0.24)',
-    backgroundColor: 'rgba(111,103,255,0.08)',
+    borderColor: 'rgba(92,90,128,0.24)',
+    backgroundColor: 'rgba(92,90,128,0.08)',
     alignItems: 'center',
   },
   blockedTitle: { marginTop: 8, fontSize: 17, fontWeight: '700', color: '#2b2f5f' },
@@ -667,12 +681,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    backgroundColor: '#6f67ff',
+    backgroundColor: '#5c5a80',
   },
   upgradeBtnText: { color: '#fff', fontWeight: '700' },
 
   loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loaderText: { marginTop: 8, color: '#2f73d8' },
+  loaderText: { marginTop: 8, color: '#24384e' },
 
   chatContainer: { flex: 1 },
   statusBarRow: {
@@ -690,12 +704,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statusBadgeOnline: {
-    backgroundColor: 'rgba(46, 174, 99, 0.12)',
-    borderColor: 'rgba(46, 174, 99, 0.3)',
+    backgroundColor: 'rgba(61, 125, 95, 0.12)',
+    borderColor: 'rgba(61, 125, 95, 0.3)',
   },
   statusBadgeOffline: {
-    backgroundColor: 'rgba(108, 128, 150, 0.12)',
-    borderColor: 'rgba(108, 128, 150, 0.22)',
+    backgroundColor: 'rgba(107, 118, 131, 0.12)',
+    borderColor: 'rgba(107, 118, 131, 0.22)',
   },
   statusDot: {
     width: 8,
@@ -712,18 +726,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(47,108,173,0.25)',
+    borderColor: 'rgba(36,56,78,0.25)',
     paddingHorizontal: 10,
     paddingVertical: 6,
     backgroundColor: 'rgba(255,255,255,0.88)',
   },
-  refreshBtnText: { marginLeft: 6, color: '#2158ad', fontSize: 12, fontWeight: '600' },
+  refreshBtnText: { marginLeft: 6, color: '#16222f', fontSize: 12, fontWeight: '600' },
 
   errorCard: {
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(232,77,101,0.22)',
-    backgroundColor: 'rgba(232,77,101,0.1)',
+    borderColor: 'rgba(168,84,76,0.22)',
+    backgroundColor: 'rgba(168,84,76,0.1)',
     padding: 10,
     marginBottom: 8,
   },
@@ -731,8 +745,8 @@ const styles = StyleSheet.create({
   errorCardSecondary: {
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(245,158,11,0.28)',
-    backgroundColor: 'rgba(245,158,11,0.1)',
+    borderColor: 'rgba(179,146,79,0.28)',
+    backgroundColor: 'rgba(179,146,79,0.1)',
     padding: 10,
     marginBottom: 8,
   },
@@ -742,22 +756,22 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(47,115,216,0.2)',
+    borderColor: 'rgba(36,56,78,0.2)',
     backgroundColor: 'rgba(255,255,255,0.88)',
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 8,
   },
   loadOlderBtnDisabled: { opacity: 0.7 },
-  loadOlderText: { color: '#2158ad', fontWeight: '600', fontSize: 12 },
+  loadOlderText: { color: '#16222f', fontWeight: '600', fontSize: 12 },
 
   listContent: { paddingBottom: 10 },
-  emptyText: { textAlign: 'center', color: '#58718e', marginTop: 20 },
+  emptyText: { textAlign: 'center', color: '#5b6a7a', marginTop: 20 },
 
   systemRow: {
     alignSelf: 'center',
     maxWidth: '90%',
-    backgroundColor: 'rgba(108,128,150,0.16)',
+    backgroundColor: 'rgba(107,118,131,0.16)',
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 7,
@@ -790,14 +804,14 @@ const styles = StyleSheet.create({
     marginRight: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(47,115,216,0.14)',
+    backgroundColor: 'rgba(36,56,78,0.14)',
   },
   senderAvatarFallbackText: {
     fontSize: 10,
     color: '#3b6797',
     fontWeight: '700',
   },
-  senderText: { color: '#5f7690', fontSize: 11 },
+  senderText: { color: '#64748b', fontSize: 11 },
   messageBubble: {
     borderRadius: 14,
     paddingHorizontal: 12,
@@ -805,16 +819,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   messageBubbleMine: {
-    backgroundColor: '#2f73d8',
-    borderColor: 'rgba(44,110,187,0.6)',
+    backgroundColor: '#24384e',
+    borderColor: 'rgba(36,56,78,0.6)',
   },
   messageBubbleOther: {
     backgroundColor: 'rgba(255,255,255,0.85)',
-    borderColor: 'rgba(117,154,194,0.22)',
+    borderColor: 'rgba(32,47,62,0.22)',
   },
   messageText: { fontSize: 14, lineHeight: 19 },
   messageTextMine: { color: '#fff' },
-  messageTextOther: { color: '#18324f' },
+  messageTextOther: { color: '#1c2b3a' },
   messageTime: { color: '#8397a8', fontSize: 10, marginTop: 3, marginHorizontal: 4 },
 
   composerWrap: {
@@ -823,14 +837,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(180,205,230,0.45)',
+    borderTopColor: 'rgba(195,202,210,0.45)',
   },
   inputWrap: {
     flex: 1,
     backgroundColor: 'rgba(255,255,255,0.85)',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(180,205,230,0.65)',
+    borderColor: 'rgba(195,202,210,0.65)',
     paddingHorizontal: 10,
     paddingTop: 8,
     paddingBottom: 6,
@@ -838,7 +852,7 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 40,
     maxHeight: 110,
-    color: '#18324f',
+    color: '#1c2b3a',
     fontSize: 14,
     textAlignVertical: 'top',
   },
@@ -853,10 +867,10 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#2f73d8',
+    backgroundColor: '#24384e',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#2f73d8',
+    shadowColor: '#24384e',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.18,
     shadowRadius: 8,
@@ -869,7 +883,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#2f73d8',
+    backgroundColor: '#24384e',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',

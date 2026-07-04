@@ -120,7 +120,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={["#dfeeff", "#f4f9ff", "#edf8f4"]}
+        colors={["#f6f7f8", "#f3f4f6", "#eef0f2"]}
         style={styles.background}
       >
         <ScrollView
@@ -132,11 +132,11 @@ export default function SettingsScreen({ navigation, onLogout }) {
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backBtn}
+              onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))}
+              style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               activeOpacity={0.75}
             >
-              <Ionicons name="chevron-back" size={22} color="#2f73d8" />
+              <Ionicons name="chevron-back" size={22} color="#24384e" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Setări</Text>
           </View>
@@ -150,13 +150,13 @@ export default function SettingsScreen({ navigation, onLogout }) {
               activeOpacity={0.7}
             >
               <View style={[styles.iconWrap, { backgroundColor: "#eef5ff" }]}>
-                <Ionicons name="medkit-outline" size={20} color="#2158ad" />
+                <Ionicons name="medkit-outline" size={20} color="#16222f" />
               </View>
               <View style={styles.rowTextWrap}>
                 <Text style={styles.rowTitle}>Informații medicale și surse</Text>
                 <Text style={styles.rowSubtitle}>Conținut informativ. Vezi sursele rapid.</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#94a9bf" />
+              <Ionicons name="chevron-forward" size={18} color="#9aa5b1" />
             </TouchableOpacity>
           </View>
 
@@ -168,14 +168,14 @@ export default function SettingsScreen({ navigation, onLogout }) {
               onPress={() => setShowBugModal(true)}
               activeOpacity={0.7}
             >
-              <View style={[styles.iconWrap, { backgroundColor: "#fff7e6" }]}>
-                <Ionicons name="bug-outline" size={20} color="#f0a500" />
+              <View style={[styles.iconWrap, { backgroundColor: "#f7f2e7" }]}>
+                <Ionicons name="bug-outline" size={20} color="#b3924f" />
               </View>
               <View style={styles.rowTextWrap}>
                 <Text style={styles.rowTitle}>Raportează un bug</Text>
                 <Text style={styles.rowSubtitle}>Ajută-ne să îmbunătățim aplicația</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#94a9bf" />
+              <Ionicons name="chevron-forward" size={18} color="#9aa5b1" />
             </TouchableOpacity>
           </View>
 
@@ -187,11 +187,11 @@ export default function SettingsScreen({ navigation, onLogout }) {
               onPress={() => setShowDeleteModal(true)}
               activeOpacity={0.7}
             >
-              <View style={[styles.iconWrap, { backgroundColor: "#fff0f0" }]}>
-                <Ionicons name="trash-outline" size={20} color="#c94b4b" />
+              <View style={[styles.iconWrap, { backgroundColor: "#f6ecea" }]}>
+                <Ionicons name="trash-outline" size={20} color="#a8544c" />
               </View>
               <View style={styles.rowTextWrap}>
-                <Text style={[styles.rowTitle, { color: "#c94b4b" }]}>Șterge contul</Text>
+                <Text style={[styles.rowTitle, { color: "#a8544c" }]}>Șterge contul</Text>
                 <Text style={styles.rowSubtitle}>Această acțiune este permanentă</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#e8c8c8" />
@@ -210,8 +210,8 @@ export default function SettingsScreen({ navigation, onLogout }) {
         <View style={styles.overlay}>
           <View style={styles.sheet}>
             <View style={styles.sheetIconRow}>
-              <View style={[styles.sheetIconWrap, { backgroundColor: "#fff0f0" }]}>
-                <Ionicons name="trash-outline" size={26} color="#c94b4b" />
+              <View style={[styles.sheetIconWrap, { backgroundColor: "#f6ecea" }]}>
+                <Ionicons name="trash-outline" size={26} color="#a8544c" />
               </View>
             </View>
             <Text style={styles.sheetTitle}>Șterge contul</Text>
@@ -229,7 +229,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
               value={deleteConfirmText}
               onChangeText={setDeleteConfirmText}
               placeholder="STERGE"
-              placeholderTextColor="#c0c8d0"
+              placeholderTextColor="#c3cad2"
               autoCapitalize="characters"
             />
             <View style={styles.sheetActions}>
@@ -274,8 +274,8 @@ export default function SettingsScreen({ navigation, onLogout }) {
         <View style={styles.overlay}>
           <View style={styles.sheet}>
             <View style={styles.sheetIconRow}>
-              <View style={[styles.sheetIconWrap, { backgroundColor: "#fff7e6" }]}>
-                <Ionicons name="bug-outline" size={26} color="#f0a500" />
+              <View style={[styles.sheetIconWrap, { backgroundColor: "#f7f2e7" }]}>
+                <Ionicons name="bug-outline" size={26} color="#b3924f" />
               </View>
             </View>
             <Text style={styles.sheetTitle}>Raportează un bug</Text>
@@ -287,7 +287,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
               value={bugDescription}
               onChangeText={setBugDescription}
               placeholder="Descrie problema..."
-              placeholderTextColor="#c0c8d0"
+              placeholderTextColor="#c3cad2"
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -297,7 +297,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
               value={bugEmail}
               onChangeText={setBugEmail}
               placeholder="Email de contact (opțional)"
-              placeholderTextColor="#c0c8d0"
+              placeholderTextColor="#c3cad2"
               keyboardType="email-address"
               autoCapitalize="none"
             />
@@ -340,7 +340,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#dfeeff",
+    backgroundColor: "#f6f7f8",
   },
   background: {
     flex: 1,
@@ -366,8 +366,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(117,154,194,0.18)",
-    shadowColor: "#2f73d8",
+    borderColor: "rgba(32,47,62,0.18)",
+    shadowColor: "#24384e",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 26,
     fontWeight: "700",
-    color: "#18324f",
+    color: "#1c2b3a",
     letterSpacing: -0.4,
   },
 
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#7d93aa",
+    color: "#8a97a5",
     letterSpacing: 1.2,
     marginBottom: 8,
     marginLeft: 4,
@@ -396,9 +396,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.86)",
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "rgba(117,154,194,0.18)",
+    borderColor: "rgba(32,47,62,0.18)",
     overflow: "hidden",
-    shadowColor: "#2f73d8",
+    shadowColor: "#24384e",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -425,12 +425,12 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#18324f",
+    color: "#1c2b3a",
     marginBottom: 2,
   },
   rowSubtitle: {
     fontSize: 12,
-    color: "#7d93aa",
+    color: "#8a97a5",
     fontWeight: "400",
   },
 
@@ -447,12 +447,12 @@ const styles = StyleSheet.create({
   sheet: {
     width: "100%",
     maxWidth: 400,
-    backgroundColor: "rgba(245,250,255,0.97)",
+    backgroundColor: "rgba(246,247,248,0.97)",
     borderRadius: 26,
     padding: 28,
     borderWidth: 1,
     borderColor: "rgba(200,220,242,0.6)",
-    shadowColor: "#2f73d8",
+    shadowColor: "#24384e",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.18,
     shadowRadius: 24,
@@ -472,21 +472,21 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#18324f",
+    color: "#1c2b3a",
     textAlign: "center",
     marginBottom: 8,
     letterSpacing: -0.3,
   },
   sheetBody: {
     fontSize: 14,
-    color: "#58718e",
+    color: "#5b6a7a",
     lineHeight: 21,
     textAlign: "center",
     marginBottom: 8,
   },
   confirmWord: {
     fontWeight: "700",
-    color: "#c94b4b",
+    color: "#a8544c",
     letterSpacing: 0.5,
   },
 
@@ -497,11 +497,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 13,
     fontSize: 15,
-    color: "#18324f",
+    color: "#1c2b3a",
     borderWidth: 1,
-    borderColor: "rgba(117,154,194,0.22)",
+    borderColor: "rgba(32,47,62,0.22)",
     marginBottom: 12,
-    shadowColor: "#2f73d8",
+    shadowColor: "#24384e",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -521,10 +521,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: "rgba(200,215,230,0.35)",
+    backgroundColor: "rgba(201,208,215,0.35)",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(200,215,230,0.5)",
+    borderColor: "rgba(201,208,215,0.5)",
   },
   cancelBtnText: {
     fontSize: 15,
@@ -535,9 +535,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: "#c94b4b",
+    backgroundColor: "#a8544c",
     alignItems: "center",
-    shadowColor: "#c94b4b",
+    shadowColor: "#a8544c",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -552,9 +552,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: "#2f73d8",
+    backgroundColor: "#24384e",
     alignItems: "center",
-    shadowColor: "#2f73d8",
+    shadowColor: "#24384e",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

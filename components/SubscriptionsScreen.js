@@ -235,11 +235,11 @@ export default function SubscriptionsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={["#dfeeff", "#f4f9ff", "#edf8f4"]} style={styles.gradient}>
+      <LinearGradient colors={["#f6f7f8", "#f3f4f6", "#eef0f2"]} style={styles.gradient}>
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.headerRow}>
-            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={22} color="#2f73d8" />
+            <TouchableOpacity style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))}>
+              <Ionicons name="chevron-back" size={22} color="#24384e" />
             </TouchableOpacity>
             <Text style={styles.title}>RevenueCat Subscriptions</Text>
             <TouchableOpacity
@@ -255,9 +255,9 @@ export default function SubscriptionsScreen({ navigation }) {
               }}
             >
               {processing === "refresh" ? (
-                <ActivityIndicator size="small" color="#2f73d8" />
+                <ActivityIndicator size="small" color="#24384e" />
               ) : (
-                <Ionicons name="refresh-outline" size={20} color="#2f73d8" />
+                <Ionicons name="refresh-outline" size={20} color="#24384e" />
               )}
             </TouchableOpacity>
           </View>
@@ -336,7 +336,7 @@ export default function SubscriptionsScreen({ navigation }) {
             disabled={processing === "restore"}
           >
             {processing === "restore" ? (
-              <ActivityIndicator size="small" color="#2f73d8" />
+              <ActivityIndicator size="small" color="#24384e" />
             ) : (
               <Text style={styles.secondaryBtnText}>Restaurează achizițiile</Text>
             )}
@@ -348,7 +348,7 @@ export default function SubscriptionsScreen({ navigation }) {
             disabled={processing === "customer-center"}
           >
             {processing === "customer-center" ? (
-              <ActivityIndicator size="small" color="#2f73d8" />
+              <ActivityIndicator size="small" color="#24384e" />
             ) : (
               <Text style={styles.secondaryBtnText}>Deschide centrul client</Text>
             )}
@@ -361,7 +361,7 @@ export default function SubscriptionsScreen({ navigation }) {
               disabled={processing === "trial"}
             >
               {processing === "trial" ? (
-                <ActivityIndicator size="small" color="#2f73d8" />
+                <ActivityIndicator size="small" color="#24384e" />
               ) : (
                 <Text style={styles.secondaryBtnText}>
                   {trialEligible
@@ -416,7 +416,7 @@ export default function SubscriptionsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#dfeeff" },
+  safeArea: { flex: 1, backgroundColor: "#f6f7f8" },
   gradient: { flex: 1 },
   content: { padding: 20, paddingBottom: 40 },
   headerRow: {
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(117,154,194,0.18)",
+    borderColor: "rgba(32,47,62,0.18)",
   },
   refreshBtn: {
     width: 38,
@@ -443,35 +443,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(117,154,194,0.18)",
+    borderColor: "rgba(32,47,62,0.18)",
   },
   title: {
     fontSize: 18,
-    color: "#18324f",
+    color: "#1c2b3a",
     fontWeight: "700",
   },
   statusBox: {
     backgroundColor: "rgba(255,255,255,0.8)",
     borderWidth: 1,
-    borderColor: "rgba(47,115,216,0.18)",
+    borderColor: "rgba(36,56,78,0.18)",
     borderRadius: 16,
     padding: 14,
     marginBottom: 14,
   },
-  statusLabel: { fontSize: 13, color: "#58718e" },
-  statusValue: { fontSize: 18, color: "#18324f", fontWeight: "700", marginTop: 3 },
-  entitlementText: { fontSize: 13, color: "#18324f", marginTop: 6 },
-  smallText: { fontSize: 12, color: "#58718e", marginTop: 4 },
+  statusLabel: { fontSize: 13, color: "#5b6a7a" },
+  statusValue: { fontSize: 18, color: "#1c2b3a", fontWeight: "700", marginTop: 3 },
+  entitlementText: { fontSize: 13, color: "#1c2b3a", marginTop: 6 },
+  smallText: { fontSize: 12, color: "#5b6a7a", marginTop: 4 },
   card: {
     backgroundColor: "rgba(255,255,255,0.8)",
     borderWidth: 1,
-    borderColor: "rgba(47,115,216,0.18)",
+    borderColor: "rgba(36,56,78,0.18)",
     borderRadius: 16,
     padding: 14,
     marginBottom: 12,
   },
   cardSelected: {
-    borderColor: "#2f73d8",
+    borderColor: "#24384e",
     borderWidth: 2,
   },
   cardHeader: {
@@ -479,15 +479,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  cardTitle: { fontSize: 18, color: "#18324f", fontWeight: "700" },
-  cardSubtitle: { fontSize: 13, color: "#58718e", marginTop: 4 },
-  cardDuration: { fontSize: 13, color: "#18324f", marginTop: 6, fontWeight: "600" },
-  cardPrice: { fontSize: 20, color: "#2f73d8", fontWeight: "700", marginTop: 8 },
-  cardSku: { fontSize: 12, color: "#58718e", marginTop: 6 },
+  cardTitle: { fontSize: 18, color: "#1c2b3a", fontWeight: "700" },
+  cardSubtitle: { fontSize: 13, color: "#5b6a7a", marginTop: 4 },
+  cardDuration: { fontSize: 13, color: "#1c2b3a", marginTop: 6, fontWeight: "600" },
+  cardPrice: { fontSize: 20, color: "#24384e", fontWeight: "700", marginTop: 8 },
+  cardSku: { fontSize: 12, color: "#5b6a7a", marginTop: 6 },
   featureList: {
     marginTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(117,154,194,0.18)",
+    borderTopColor: "rgba(32,47,62,0.18)",
     paddingTop: 10,
   },
   featureRow: {
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   featureText: {
     flex: 1,
     fontSize: 13,
-    color: "#18324f",
+    color: "#1c2b3a",
     lineHeight: 18,
   },
   featureTextExcluded: {
@@ -512,12 +512,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: "#2f73d8",
+    backgroundColor: "#24384e",
   },
   selectedPillText: { color: "#fff", fontSize: 10, fontWeight: "700" },
   primaryBtn: {
     marginTop: 6,
-    backgroundColor: "#2f73d8",
+    backgroundColor: "#24384e",
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
@@ -527,14 +527,14 @@ const styles = StyleSheet.create({
   secondaryBtn: {
     marginTop: 10,
     borderWidth: 1,
-    borderColor: "rgba(47,115,216,0.28)",
+    borderColor: "rgba(36,56,78,0.28)",
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 13,
     backgroundColor: "rgba(255,255,255,0.86)",
   },
-  secondaryBtnText: { color: "#18324f", fontSize: 14, fontWeight: "600" },
+  secondaryBtnText: { color: "#1c2b3a", fontSize: 14, fontWeight: "600" },
   disabledBtn: { opacity: 0.6 },
   legalLinksRow: {
     marginTop: 14,
@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
   legalLinkBtn: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "rgba(47,115,216,0.24)",
+    borderColor: "rgba(36,56,78,0.24)",
     borderRadius: 12,
     paddingVertical: 10,
     alignItems: "center",
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(47,115,216,0.18)",
+    borderColor: "rgba(36,56,78,0.18)",
     backgroundColor: "rgba(255,255,255,0.86)",
     padding: 12,
   },
@@ -574,9 +574,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.8)",
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(47,115,216,0.18)",
+    borderColor: "rgba(36,56,78,0.18)",
     padding: 14,
   },
-  customerInfoTitle: { color: "#18324f", fontWeight: "700", fontSize: 15, marginBottom: 8 },
+  customerInfoTitle: { color: "#1c2b3a", fontWeight: "700", fontSize: 15, marginBottom: 8 },
   customerInfoText: { color: "#44586f", fontSize: 12, marginTop: 4 },
 });

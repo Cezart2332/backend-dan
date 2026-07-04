@@ -11,7 +11,7 @@ export default function AboutDanCineVideoScreen({ navigation }) {
       playButtonText="Redă video"
       nowPlayingTitle="Cine sunt eu?"
       nowPlayingArtist="Dan fost anxios · Povestea lui Dan"
-      nowPlayingAccent="#9b59b6"
+      nowPlayingAccent="#6d6b8f"
     />
   );
 }

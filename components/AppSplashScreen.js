@@ -2,69 +2,36 @@ import React, { useEffect, useRef } from "react";
 import { Animated, Dimensions, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
-import { Ionicons } from "@expo/vector-icons";
-import { colors, gradients, radius, shadows } from "./ui";
+import { colors, fonts, gradients } from "./ui";
 
 const { width } = Dimensions.get("window");
+const MARK_WIDTH = Math.min(width * 0.58, 300);
 
 export default function AppSplashScreen() {
-  const pulse = useRef(new Animated.Value(0)).current;
-  const drift = useRef(new Animated.Value(0)).current;
+  const fade = useRef(new Animated.Value(0)).current;
+  const rise = useRef(new Animated.Value(14)).current;
+  const lineGrow = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const pulseLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 1600,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulse, {
-          toValue: 0,
-          duration: 1600,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    const driftLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(drift, {
-          toValue: 1,
-          duration: 2300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(drift, {
-          toValue: 0,
-          duration: 2300,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    pulseLoop.start();
-    driftLoop.start();
-
-    return () => {
-      pulseLoop.stop();
-      driftLoop.stop();
-    };
-  }, [pulse, drift]);
-
-  const ringScale = pulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.17],
-  });
-
-  const ringOpacity = pulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.32, 0.09],
-  });
-
-  const cardTranslate = drift.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -8],
-  });
+    Animated.parallel([
+      Animated.timing(fade, {
+        toValue: 1,
+        duration: 900,
+        useNativeDriver: true,
+      }),
+      Animated.timing(rise, {
+        toValue: 0,
+        duration: 900,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      Animated.timing(lineGrow, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }).start();
+    });
+  }, [fade, rise, lineGrow]);
 
   return (
     <LinearGradient
@@ -74,34 +41,23 @@ export default function AppSplashScreen() {
       style={styles.root}
     >
       <StatusBar style="dark" />
-      <View style={styles.backPlate} />
 
       <Animated.View
         style={[
-          styles.card,
-          {
-            transform: [{ translateY: cardTranslate }],
-          },
+          styles.center,
+          { opacity: fade, transform: [{ translateY: rise }] },
         ]}
       >
-        <Animated.View
-          style={[
-            styles.ring,
-            {
-              transform: [{ scale: ringScale }],
-              opacity: ringOpacity,
-            },
-          ]}
+        <Animated.Image
+          source={require("../assets/brandmark.png")}
+          style={styles.mark}
+          resizeMode="contain"
         />
+      </Animated.View>
 
-        <View style={styles.iconShell}>
-          <Ionicons name="leaf-outline" size={31} color={colors.primary} />
-        </View>
-
-        <Text style={styles.title}>HAI că poți</Text>
-        <Text style={styles.subtitle}>
-          Dan este cu tine când ai nevoie de un pas simplu.
-        </Text>
+      <Animated.View style={[styles.footer, { opacity: lineGrow }]}>
+        <View style={styles.footerLine} />
+        <Text style={styles.footerText}>Liniște, pas cu pas</Text>
       </Animated.View>
     </LinearGradient>
   );
@@ -112,62 +68,29 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
   },
-  backPlate: {
-    position: "absolute",
-    width: Math.min(width - 48, 420),
-    height: 220,
-    borderRadius: radius.xl,
-    backgroundColor: "rgba(47,115,216,0.08)",
-    borderWidth: 1,
-    borderColor: colors.border,
-    transform: [{ rotate: "-4deg" }],
-  },
-  card: {
-    width: Math.min(width - 42, 380),
-    borderRadius: radius.xl,
-    paddingVertical: 34,
-    paddingHorizontal: 24,
+  center: {
     alignItems: "center",
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.card,
   },
-  ring: {
+  mark: {
+    width: MARK_WIDTH,
+    height: MARK_WIDTH * 0.835,
+  },
+  footer: {
     position: "absolute",
-    width: 114,
-    height: 114,
-    borderRadius: 57,
-    borderWidth: 2,
-    borderColor: "rgba(47,115,216,0.28)",
-    top: 18,
-  },
-  iconShell: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    bottom: 64,
     alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 22,
-    backgroundColor: colors.surfaceStrong,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
-  title: {
-    fontSize: 40,
-    fontWeight: "800",
-    letterSpacing: 0.4,
-    color: colors.text,
-    textAlign: "center",
-    marginBottom: 10,
+  footerLine: {
+    width: 36,
+    height: 1,
+    backgroundColor: colors.textSoft,
+    marginBottom: 12,
   },
-  subtitle: {
+  footerText: {
+    fontFamily: fonts.display,
     fontSize: 14,
-    lineHeight: 22,
+    letterSpacing: 1.2,
     color: colors.textMuted,
-    textAlign: "center",
-    maxWidth: 300,
   },
 });

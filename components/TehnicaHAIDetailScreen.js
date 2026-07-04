@@ -5,7 +5,8 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-} from "react-native";
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,7 +18,7 @@ export default function TehnicaHAIDetailScreen({ navigation, route }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={["#dfeeff", "#f4f9ff", "#edf8f4"]}
+        colors={["#f6f7f8", "#f3f4f6", "#eef0f2"]}
         style={styles.background}
       >
         <ScrollView contentContainerStyle={styles.content}>
@@ -38,10 +39,10 @@ export default function TehnicaHAIDetailScreen({ navigation, route }) {
           ) : null}
 
           <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation.goBack()}
+            style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))}
           >
-            <Ionicons name="chevron-back" size={20} color="#2f73d8" />
+            <Ionicons name="chevron-back" size={20} color="#24384e" />
             <Text style={styles.backText}>Înapoi</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -52,26 +53,28 @@ export default function TehnicaHAIDetailScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#dfeeff' },
+  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
   background: { flex: 1 },
   content: { padding: 20 },
   title: {
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    letterSpacing: 0.2,
     fontSize: 22,
     fontWeight: "700",
-    color: "#18324f",
+    color: "#1c2b3a",
     textAlign: "center",
     marginBottom: 16,
   },
   paragraph: {
     fontSize: 15,
-    color: "#18324f",
+    color: "#1c2b3a",
     lineHeight: 22,
     marginBottom: 12,
     textAlign: "center",
   },
   note: {
     fontStyle: "italic",
-    color: "#2f73d8",
+    color: "#24384e",
   },
   backBtn: {
     flexDirection: 'row',
@@ -82,8 +85,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(117,154,194,0.18)',
+    borderColor: 'rgba(32,47,62,0.18)',
     alignItems: 'center',
   },
-  backText: { color: "#2f73d8", fontWeight: "600", marginLeft: 2 },
+  backText: { color: "#24384e", fontWeight: "600", marginLeft: 2 },
 });

@@ -9,7 +9,8 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from "react-native";
+  Platform,
+} from 'react-native';
 import { Ionicons } from "@expo/vector-icons";
 import { useSubscription } from "../contexts/SubscriptionContext";
 import { clearToken } from "../utils/authStorage";
@@ -158,7 +159,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
       <Modal visible transparent animationType="fade">
         <View style={styles.backdrop}>
           <View style={styles.loadingCard}>
-            <ActivityIndicator size="large" color="#2f73d8" />
+            <ActivityIndicator size="large" color="#24384e" />
             <Text style={styles.loadingTitle}>Verificăm abonamentul</Text>
             <Text style={styles.loadingSubtitle}>Sincronizăm statusul din RevenueCat</Text>
           </View>
@@ -199,7 +200,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
         >
           <View style={styles.gradient}>
             <View style={styles.headerIcon}>
-              <Ionicons name="star-outline" size={32} color="#2f73d8" />
+              <Ionicons name="star-outline" size={32} color="#24384e" />
             </View>
             <Text style={styles.title}>Abonament sau trial gratuit</Text>
             <Text style={styles.subtitle}>
@@ -239,7 +240,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
                 disabled={pendingAction === "trial"}
               >
                 {pendingAction === "trial" ? (
-                  <ActivityIndicator color="#2f73d8" />
+                  <ActivityIndicator color="#24384e" />
                 ) : (
                   <Text style={styles.secondaryText}>
                     {trialEligible
@@ -264,7 +265,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
               disabled={Boolean(pendingAction)}
             >
               {pendingAction === "logout" ? (
-                <ActivityIndicator color="#c43c3c" />
+                <ActivityIndicator color="#a8544c" />
               ) : (
                 <Text style={styles.logoutText}>Schimbă contul</Text>
               )}
@@ -276,7 +277,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
               disabled={pendingAction === "restore"}
             >
               {pendingAction === "restore" ? (
-                <ActivityIndicator color="#2f73d8" />
+                <ActivityIndicator color="#24384e" />
               ) : (
                 <Text style={styles.refreshText}>Restaurează achizițiile</Text>
               )}
@@ -288,7 +289,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
               disabled={pendingAction === "refresh"}
             >
               {pendingAction === "refresh" ? (
-                <ActivityIndicator color="#2f73d8" />
+                <ActivityIndicator color="#24384e" />
               ) : (
                 <Text style={styles.refreshText}>Reverifică abonamentul</Text>
               )}
@@ -303,7 +304,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(12, 24, 44, 0.65)",
+    backgroundColor: "rgba(16, 25, 35, 0.65)",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
@@ -312,7 +313,7 @@ const styles = StyleSheet.create({
     width: Math.min(width - 32, 360),
     borderRadius: 24,
     overflow: "hidden",
-    shadowColor: "#2f73d8",
+    shadowColor: "#24384e",
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.15,
     shadowRadius: 24,
@@ -321,44 +322,46 @@ const styles = StyleSheet.create({
   gradient: {
     padding: 24,
     alignItems: "center",
-    backgroundColor: "rgba(241,247,255,0.97)",
+    backgroundColor: "rgba(246,247,248,0.97)",
     borderWidth: 1,
-    borderColor: "rgba(117,154,194,0.18)",
+    borderColor: "rgba(32,47,62,0.18)",
   },
   headerIcon: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: "rgba(47,115,216,0.1)",
+    backgroundColor: "rgba(36,56,78,0.1)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
   },
   title: {
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    letterSpacing: 0.2,
     fontSize: 22,
     fontWeight: "700",
-    color: "#18324f",
+    color: "#1c2b3a",
     textAlign: "center",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 14,
-    color: "#58718e",
+    color: "#5b6a7a",
     textAlign: "center",
     marginBottom: 16,
     lineHeight: 20,
   },
   statusPill: {
-    backgroundColor: "rgba(47,115,216,0.1)",
+    backgroundColor: "rgba(36,56,78,0.1)",
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 999,
     marginBottom: 22,
     borderWidth: 1,
-    borderColor: "rgba(47,115,216,0.18)",
+    borderColor: "rgba(36,56,78,0.18)",
   },
   statusText: {
-    color: "#18324f",
+    color: "#1c2b3a",
     fontSize: 13,
     fontWeight: "600",
   },
@@ -371,7 +374,7 @@ const styles = StyleSheet.create({
   primaryGradient: {
     paddingVertical: 14,
     alignItems: "center",
-    backgroundColor: "#2f73d8",
+    backgroundColor: "#24384e",
     borderRadius: 16,
   },
   primaryText: {
@@ -383,14 +386,14 @@ const styles = StyleSheet.create({
     width: "100%",
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: "rgba(47,115,216,0.24)",
+    borderColor: "rgba(36,56,78,0.24)",
     paddingVertical: 14,
     alignItems: "center",
     marginBottom: 12,
     backgroundColor: "rgba(255,255,255,0.65)",
   },
   secondaryText: {
-    color: "#18324f",
+    color: "#1c2b3a",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -398,27 +401,27 @@ const styles = StyleSheet.create({
     width: "100%",
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: "rgba(216, 74, 74, 0.35)",
+    borderColor: "rgba(168, 84, 76, 0.35)",
     paddingVertical: 14,
     alignItems: "center",
     marginBottom: 10,
     backgroundColor: "rgba(255, 237, 237, 0.8)",
   },
   logoutText: {
-    color: "#c43c3c",
+    color: "#a8544c",
     fontSize: 15,
     fontWeight: "600",
   },
   infoBox: {
-    backgroundColor: "rgba(47,115,216,0.08)",
+    backgroundColor: "rgba(36,56,78,0.08)",
     borderRadius: 14,
     padding: 12,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: "rgba(117,154,194,0.18)",
+    borderColor: "rgba(32,47,62,0.18)",
   },
   infoText: {
-    color: "#18324f",
+    color: "#1c2b3a",
     fontSize: 13,
     textAlign: "center",
   },
@@ -427,7 +430,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   refreshText: {
-    color: "#58718e",
+    color: "#5b6a7a",
     fontSize: 13,
     fontWeight: "500",
     textDecorationLine: "underline",
@@ -441,21 +444,21 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     paddingHorizontal: 20,
     alignItems: "center",
-    backgroundColor: "rgba(241,247,255,0.98)",
+    backgroundColor: "rgba(246,247,248,0.98)",
     borderWidth: 1,
-    borderColor: "rgba(117,154,194,0.18)",
+    borderColor: "rgba(32,47,62,0.18)",
   },
   loadingTitle: {
     marginTop: 14,
     fontSize: 16,
     fontWeight: "700",
-    color: "#18324f",
+    color: "#1c2b3a",
     textAlign: "center",
   },
   loadingSubtitle: {
     marginTop: 6,
     fontSize: 13,
-    color: "#58718e",
+    color: "#5b6a7a",
     textAlign: "center",
   },
 });

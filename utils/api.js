@@ -31,7 +31,10 @@ export function buildWebSocketUrl(path, token) {
 }
 
 async function request(path, { method = 'GET', body, token, timeoutMs = 15000 } = {}) {
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = {};
+  // Fastify respinge cererile cu Content-Type: application/json și body gol (400),
+  // deci trimitem header-ul doar când există body.
+  if (body !== undefined && body !== null) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);

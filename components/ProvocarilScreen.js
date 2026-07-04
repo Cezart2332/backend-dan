@@ -7,6 +7,7 @@ import {
   ScrollView,
   Dimensions,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -49,7 +50,7 @@ export default function ProvocarilScreen({ navigation }) {
         goal: l.goal,
         description: l.goal,
         iconName: l.id === 1 ? 'leaf-outline' : l.id === 2 ? 'flash-outline' : 'flame-outline',
-        iconColor: l.id === 1 ? '#3f9f64' : l.id === 2 ? '#f0a500' : '#c94b4b',
+        iconColor: l.id === 1 ? '#3d7d5f' : l.id === 2 ? '#b3924f' : '#a8544c',
         color: l.color,
         gradientColors: l.gradientColors,
         difficulty: l.difficulty,
@@ -83,22 +84,22 @@ export default function ProvocarilScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={['#dfeeff', '#f4f9ff', '#edf8f4']}
+        colors={['#f6f7f8', '#f3f4f6', '#eef0f2']}
         style={styles.background}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backButton}
+              onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))}
+              style={styles.backButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Ionicons name="chevron-back" size={22} color="#2f73d8" />
+              <Ionicons name="chevron-back" size={22} color="#24384e" />
             </TouchableOpacity>
 
             <View style={styles.headerContent}>
               <View style={styles.headerIcon}>
-                <Ionicons name="trophy-outline" size={34} color="#2f73d8" />
+                <Ionicons name="trophy-outline" size={34} color="#24384e" />
               </View>
               <Text style={styles.title}>Provocări</Text>
               <Text style={styles.subtitle}>Alege-ți nivelul de provocare</Text>
@@ -106,7 +107,7 @@ export default function ProvocarilScreen({ navigation }) {
 
             <View style={styles.historyWrap}>
               <TouchableOpacity onPress={() => navigation.navigate('ChallengeHistory')} style={styles.historyButton}>
-                <Ionicons name="time-outline" size={16} color="#2f73d8" style={{ marginRight: 5 }} />
+                <Ionicons name="time-outline" size={16} color="#24384e" style={{ marginRight: 5 }} />
                 <Text style={styles.historyButtonText}>Istoric</Text>
               </TouchableOpacity>
             </View>
@@ -126,7 +127,7 @@ export default function ProvocarilScreen({ navigation }) {
                   onPress={() => handleLevelPress(level)}
                 >
                   <View style={styles.levelHeaderInner}>
-                      <View style={[styles.levelIconContainer, { backgroundColor: locked ? 'rgba(117,154,194,0.14)' : level.iconColor + '18' }]}>
+                      <View style={[styles.levelIconContainer, { backgroundColor: locked ? 'rgba(32,47,62,0.14)' : level.iconColor + '18' }]}>
                         <Ionicons name={locked ? 'lock-closed-outline' : level.iconName} size={26} color={locked ? '#bbb' : level.iconColor} />
                       </View>
                       
@@ -146,7 +147,7 @@ export default function ProvocarilScreen({ navigation }) {
                       <Ionicons
                         name={selectedLevel === level.id ? 'chevron-up' : 'chevron-down'}
                         size={18}
-                        color={locked ? '#ccc' : '#2f73d8'}
+                        color={locked ? '#ccc' : '#24384e'}
                       />
                   </View>
                 </TouchableOpacity>
@@ -158,11 +159,11 @@ export default function ProvocarilScreen({ navigation }) {
                     
                     <View style={styles.levelDetails}>
                       <View style={styles.detailItem}>
-                        <Ionicons name="time-outline" size={15} color="#58718e" style={{ marginRight: 5 }} />
+                        <Ionicons name="time-outline" size={15} color="#5b6a7a" style={{ marginRight: 5 }} />
                         <Text style={styles.detailText}>Durată: {level.duration}</Text>
                       </View>
                       <View style={styles.detailItem}>
-                        <Ionicons name="list-outline" size={15} color="#58718e" style={{ marginRight: 5 }} />
+                        <Ionicons name="list-outline" size={15} color="#5b6a7a" style={{ marginRight: 5 }} />
                         <Text style={styles.detailText}>{level.exercises} exerciții</Text>
                       </View>
                     </View>
@@ -186,7 +187,7 @@ export default function ProvocarilScreen({ navigation }) {
           {/* Tips Section */}
           <View style={styles.tipsSection}>
             <View style={styles.tipsTitleRow}>
-              <Ionicons name="bulb-outline" size={18} color="#2f73d8" style={{ marginRight: 7 }} />
+              <Ionicons name="bulb-outline" size={18} color="#24384e" style={{ marginRight: 7 }} />
               <Text style={styles.tipsTitle}>Sfaturi pentru succes</Text>
             </View>
             <View style={styles.tipsList}>
@@ -205,7 +206,7 @@ export default function ProvocarilScreen({ navigation }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#dfeeff',
+    backgroundColor: '#f6f7f8',
   },
   background: {
     flex: 1,
@@ -225,15 +226,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     top: 10,
+    zIndex: 10,
     width: 38,
     height: 38,
     borderRadius: 19,
     backgroundColor: 'rgba(255,255,255,0.88)',
     borderWidth: 1,
-    borderColor: 'rgba(117,154,194,0.18)',
+    borderColor: 'rgba(32,47,62,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#2f73d8',
+    shadowColor: '#24384e',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
@@ -248,9 +250,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: 'rgba(117,154,194,0.18)',
+    borderColor: 'rgba(32,47,62,0.18)',
   },
-  historyButtonText: { color: '#2f73d8', fontWeight: '700', fontSize: 13 },
+  historyButtonText: { color: '#24384e', fontWeight: '700', fontSize: 13 },
   headerContent: {
     alignItems: 'center',
   },
@@ -260,26 +262,28 @@ const styles = StyleSheet.create({
     borderRadius: 35,
     backgroundColor: 'rgba(255,255,255,0.88)',
     borderWidth: 1,
-    borderColor: 'rgba(117,154,194,0.18)',
+    borderColor: 'rgba(32,47,62,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 15,
-    shadowColor: '#2f73d8',
+    shadowColor: '#24384e',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
     elevation: 6,
   },
   title: {
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    letterSpacing: 0.2,
     fontSize: 28,
     fontWeight: '700',
-    color: '#18324f',
+    color: '#1c2b3a',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#58718e',
+    color: '#5b6a7a',
     textAlign: 'center',
     fontWeight: '400',
   },
@@ -289,7 +293,7 @@ const styles = StyleSheet.create({
   levelCard: {
     marginBottom: 14,
     borderRadius: 18,
-    shadowColor: '#2f73d8',
+    shadowColor: '#24384e',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -306,7 +310,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: 'rgba(255,255,255,0.86)',
     borderWidth: 1,
-    borderColor: 'rgba(117,154,194,0.18)',
+    borderColor: 'rgba(32,47,62,0.18)',
   },
   levelHeaderExpanded: {
     borderBottomLeftRadius: 0,
@@ -339,7 +343,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.0,
-    color: '#7d93aa',
+    color: '#8a97a5',
     marginRight: 10,
     textTransform: 'uppercase',
   },
@@ -356,26 +360,26 @@ const styles = StyleSheet.create({
   levelTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#18324f',
+    color: '#1c2b3a',
     marginBottom: 3,
   },
   levelSubtitle: {
     fontSize: 13,
-    color: '#58718e',
+    color: '#5b6a7a',
     fontWeight: '400',
   },
   expandedContent: {
-    backgroundColor: 'rgba(245,250,255,0.95)',
+    backgroundColor: 'rgba(246,247,248,0.95)',
     padding: 18,
     borderWidth: 1,
     borderTopWidth: 0,
-    borderColor: 'rgba(117,154,194,0.18)',
+    borderColor: 'rgba(32,47,62,0.18)',
     borderBottomLeftRadius: 18,
     borderBottomRightRadius: 18,
   },
   levelGoal: {
     fontSize: 14,
-    color: '#18324f',
+    color: '#1c2b3a',
     lineHeight: 20,
     marginBottom: 14,
     fontWeight: '500',
@@ -391,7 +395,7 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 13,
-    color: '#58718e',
+    color: '#5b6a7a',
     fontWeight: '500',
   },
   startButton: {
@@ -404,7 +408,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 14,
     paddingHorizontal: 20,
-    backgroundColor: '#2f73d8',
+    backgroundColor: '#24384e',
     borderRadius: 14,
   },
   startButtonText: {
@@ -416,13 +420,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.86)',
     borderRadius: 18,
     padding: 20,
-    shadowColor: '#2f73d8',
+    shadowColor: '#24384e',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 4,
     borderWidth: 1,
-    borderColor: 'rgba(117,154,194,0.18)',
+    borderColor: 'rgba(32,47,62,0.18)',
     marginBottom: 20,
   },
   tipsTitleRow: {
@@ -433,14 +437,14 @@ const styles = StyleSheet.create({
   tipsTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#18324f',
+    color: '#1c2b3a',
   },
   tipsList: {
     paddingLeft: 5,
   },
   tipItem: {
     fontSize: 14,
-    color: '#58718e',
+    color: '#5b6a7a',
     lineHeight: 24,
   },
 });

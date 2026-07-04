@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, gradients, radius, shadows, spacing, type } from "./theme";
+import { colors, fonts, gradients, radius, shadows, spacing, type } from "./theme";
 
 export function AppScreen({ children, scroll = true, keyboard = false, contentStyle }) {
   const body = scroll ? (
@@ -46,11 +46,16 @@ export function AppScreen({ children, scroll = true, keyboard = false, contentSt
   );
 }
 
-export function AppHeader({ title, subtitle, icon, onBack, rightAction }) {
+export function AppHeader({ title, subtitle, overline, icon, onBack, rightAction }) {
   return (
     <View style={styles.header}>
       {onBack ? (
-        <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.78}>
+        <TouchableOpacity
+          onPress={onBack}
+          style={styles.backButton}
+          activeOpacity={0.78}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
           <Ionicons name="chevron-back" size={22} color={colors.primary} />
         </TouchableOpacity>
       ) : null}
@@ -60,6 +65,7 @@ export function AppHeader({ title, subtitle, icon, onBack, rightAction }) {
             <Ionicons name={icon} size={24} color={colors.primary} />
           </View>
         ) : null}
+        {overline ? <Text style={styles.overline}>{overline}</Text> : null}
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>
@@ -176,13 +182,14 @@ const styles = StyleSheet.create({
   backButton: {
     width: 42,
     height: 42,
-    borderRadius: radius.sm,
+    borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceStrong,
     borderWidth: 1,
     borderColor: colors.border,
     marginRight: spacing.md,
+    zIndex: 10,
     ...shadows.card,
   },
   headerText: { flex: 1 },
@@ -195,6 +202,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primarySoft,
     marginBottom: spacing.sm,
   },
+  overline: { ...type.overline, marginBottom: 4 },
   title: type.title,
   subtitle: { ...type.subtitle, marginTop: 3 },
   rightAction: { marginLeft: spacing.md },

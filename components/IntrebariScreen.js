@@ -120,11 +120,11 @@ export default function IntrebariScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#dfeeff', '#f4f9ff', '#edf8f4']} style={styles.gradient}>
+      <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.gradient}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" onScrollBeginDrag={Keyboard.dismiss}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.75}>
-              <Ionicons name="chevron-back" size={22} color="#2f73d8" />
+            <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
+              <Ionicons name="chevron-back" size={22} color="#24384e" />
             </TouchableOpacity>
             <View style={styles.headerText}>
               <Text style={styles.title}>Trimite-mi o întrebare</Text>
@@ -136,7 +136,7 @@ export default function IntrebariScreen({ navigation }) {
             {isLoggedIn ? (
               <View style={{ marginBottom: 8 }}>
                 <Text style={styles.inputLabel}>
-                  Se trimite ca: <Text style={{ color: '#18324f', fontWeight: '600' }}>{name || 'Utilizator'}</Text>{email ? ` (${email})` : ''}
+                  Se trimite ca: <Text style={{ color: '#1c2b3a', fontWeight: '600' }}>{name || 'Utilizator'}</Text>{email ? ` (${email})` : ''}
                 </Text>
               </View>
             ) : (
@@ -149,7 +149,7 @@ export default function IntrebariScreen({ navigation }) {
                       value={name}
                       onChangeText={setName}
                       placeholder="Numele tău"
-                      placeholderTextColor="#7d93aa"
+                      placeholderTextColor="#8a97a5"
                       style={styles.input}
                     />
                   </View>
@@ -159,7 +159,7 @@ export default function IntrebariScreen({ navigation }) {
                       value={email}
                       onChangeText={setEmail}
                       placeholder="email@exemplu.com"
-                      placeholderTextColor="#7d93aa"
+                      placeholderTextColor="#8a97a5"
                       style={styles.input}
                       keyboardType="email-address"
                       autoCapitalize="none"
@@ -174,7 +174,7 @@ export default function IntrebariScreen({ navigation }) {
               value={question}
               onChangeText={setQuestion}
               placeholder="Ex: Cum pot gestiona mai bine anxietatea socială?"
-              placeholderTextColor="#7d93aa"
+              placeholderTextColor="#8a97a5"
               style={styles.textarea}
               multiline
             />
@@ -185,7 +185,7 @@ export default function IntrebariScreen({ navigation }) {
               <Switch value={consent} onValueChange={setConsent} />
             </View>
             <TouchableOpacity style={[styles.primaryBtn, loading && { opacity: 0.7 }]} onPress={sendQuestion} disabled={loading}>
-              <LinearGradient colors={["#2f73d8", "#2158ad"]} style={styles.btnInner}>
+              <LinearGradient colors={["#24384e", "#16222f"]} style={styles.btnInner}>
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Trimite</Text>}
               </LinearGradient>
             </TouchableOpacity>
@@ -202,7 +202,7 @@ export default function IntrebariScreen({ navigation }) {
 
               {loadingQuestions ? (
                 <View style={{ paddingVertical: 16 }}>
-                  <ActivityIndicator color="#2f73d8" />
+                  <ActivityIndicator color="#24384e" />
                 </View>
               ) : myQuestions.length === 0 ? (
                 <Text style={styles.historyEmpty}>Nu ai întrebări trimise încă.</Text>
@@ -258,7 +258,7 @@ function fmtDate(value) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#dfeeff' },
+  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
   gradient: { flex: 1 },
   content: { padding: 20 },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, marginTop: 4 },
@@ -266,63 +266,63 @@ const styles = StyleSheet.create({
     width: 38, height: 38, borderRadius: 19,
     backgroundColor: 'rgba(255,255,255,0.88)',
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)',
-    shadowColor: '#2f73d8', shadowOffset: { width: 0, height: 2 },
+    borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
+    shadowColor: '#24384e', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12, shadowRadius: 6, elevation: 3, marginRight: 14,
   },
   headerText: { flex: 1 },
-  title: { fontSize: 20, fontWeight: '700', color: '#18324f' },
-  subtitle: { fontSize: 13, color: '#58718e', marginTop: 2 },
+  title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 20, fontWeight: '700', color: '#1c2b3a' },
+  subtitle: { fontSize: 13, color: '#5b6a7a', marginTop: 2 },
   card: {
     backgroundColor: 'rgba(255,255,255,0.86)', borderRadius: 18, padding: 16, marginBottom: 14,
-    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)',
-    shadowColor: '#2f73d8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
+    borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
+    shadowColor: '#24384e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#18324f', marginBottom: 6 },
-  inputLabel: { fontSize: 12, color: '#7d93aa', marginBottom: 4 },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: '#1c2b3a', marginBottom: 6 },
+  inputLabel: { fontSize: 12, color: '#8a97a5', marginBottom: 4 },
   input: {
-    borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 10,
-    backgroundColor: 'rgba(255,255,255,0.94)', color: '#18324f',
+    borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 10,
+    backgroundColor: 'rgba(255,255,255,0.94)', color: '#1c2b3a',
   },
   textarea: {
-    minHeight: 120, borderWidth: 1, borderColor: 'rgba(117,154,194,0.18)', borderRadius: 12, padding: 10,
-    textAlignVertical: 'top', backgroundColor: 'rgba(255,255,255,0.94)', color: '#18324f',
+    minHeight: 120, borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)', borderRadius: 12, padding: 10,
+    textAlignVertical: 'top', backgroundColor: 'rgba(255,255,255,0.94)', color: '#1c2b3a',
   },
   primaryBtn: { marginTop: 12, borderRadius: 12, overflow: 'hidden' },
   btnInner: { paddingVertical: 12, alignItems: 'center' },
   primaryText: { color: '#fff', fontWeight: '700' },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
-  consentText: { fontSize: 12, color: '#58718e' },
+  consentText: { fontSize: 12, color: '#5b6a7a' },
   historyHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-  historyRefresh: { color: '#2f73d8', fontWeight: '600', fontSize: 13 },
-  historyEmpty: { fontSize: 13, color: '#58718e', marginTop: 4 },
+  historyRefresh: { color: '#24384e', fontWeight: '600', fontSize: 13 },
+  historyEmpty: { fontSize: 13, color: '#5b6a7a', marginTop: 4 },
   historyItem: {
     marginTop: 10,
     borderWidth: 1,
-    borderColor: 'rgba(117,154,194,0.22)',
+    borderColor: 'rgba(32,47,62,0.22)',
     borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.92)',
     padding: 12,
   },
   historyTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  historyDate: { fontSize: 11, color: '#7d93aa' },
+  historyDate: { fontSize: 11, color: '#8a97a5' },
   statusBadge: { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 },
-  statusBadge_new: { backgroundColor: 'rgba(47,115,216,0.14)' },
-  statusBadge_read: { backgroundColor: 'rgba(111,103,255,0.16)' },
-  statusBadge_answered: { backgroundColor: 'rgba(20,184,110,0.16)' },
-  statusBadge_archived: { backgroundColor: 'rgba(108,128,150,0.16)' },
-  statusBadgeText: { fontSize: 11, color: '#18324f', fontWeight: '600' },
-  historyQuestion: { marginTop: 8, fontSize: 14, color: '#18324f', lineHeight: 21 },
+  statusBadge_new: { backgroundColor: 'rgba(36,56,78,0.14)' },
+  statusBadge_read: { backgroundColor: 'rgba(92,90,128,0.16)' },
+  statusBadge_answered: { backgroundColor: 'rgba(61,125,95,0.16)' },
+  statusBadge_archived: { backgroundColor: 'rgba(107,118,131,0.16)' },
+  statusBadgeText: { fontSize: 11, color: '#1c2b3a', fontWeight: '600' },
+  historyQuestion: { marginTop: 8, fontSize: 14, color: '#1c2b3a', lineHeight: 21 },
   answerBox: {
     marginTop: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(20,184,110,0.28)',
-    backgroundColor: 'rgba(20,184,110,0.08)',
+    borderColor: 'rgba(61,125,95,0.28)',
+    backgroundColor: 'rgba(61,125,95,0.08)',
     padding: 10,
   },
   answerTitle: { fontSize: 12, color: '#0f8f56', fontWeight: '700', marginBottom: 4 },
-  answerText: { fontSize: 13, color: '#18324f', lineHeight: 20 },
-  answerDate: { marginTop: 6, fontSize: 11, color: '#58718e' },
-  pendingAnswer: { marginTop: 10, fontSize: 12, color: '#58718e' },
+  answerText: { fontSize: 13, color: '#1c2b3a', lineHeight: 20 },
+  answerDate: { marginTop: 6, fontSize: 11, color: '#5b6a7a' },
+  pendingAnswer: { marginTop: 10, fontSize: 12, color: '#5b6a7a' },
 });

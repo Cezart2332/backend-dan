@@ -10,16 +10,16 @@
     ],
     "version": "2.1.0",
     "orientation": "portrait",
-    "icon": "./assets/ios/Icon-Store-1024.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/logo.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "image": "./assets/splash-brand.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#f6f7f8"
     },
     "ios": {
-      "icon": "./assets/ios/Icon-Store-1024.png",
+      "icon": "./assets/icon.png",
       "bundleIdentifier": "com.cartealuidan.danfostanxios",
       "supportsTablet": false,
       "usesAppleSignIn": true,
@@ -35,10 +35,10 @@
       }
     },
     "android": {
-      "icon": "./assets/android/mipmap-xxxhdpi/ic_launcher.png",
+      "icon": "./assets/icon.png",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/android/mipmap-xxxhdpi/ic_launcher_foreground.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#f7f7f7"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.cartealuidan.danfostanxios",
@@ -57,10 +57,16 @@
       ]
     },
     "web": {
-      "favicon": "./assets/logo.png"
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#1b2733"
+        }
+      ],
       [
         "expo-video",
         {

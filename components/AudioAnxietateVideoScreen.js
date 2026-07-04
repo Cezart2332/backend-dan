@@ -21,7 +21,7 @@ export default function AudioAnxietateVideoScreen({ route, navigation }) {
       nowPlayingTitle={nowPlayingTitle || title || "Audio despre anxietate"}
       nowPlayingArtist={nowPlayingArtist || "Dan fost anxios · Audio anxietate"}
       nowPlayingArtwork={nowPlayingArtwork}
-      nowPlayingAccent={nowPlayingAccent || "#8e44ad"}
+      nowPlayingAccent={nowPlayingAccent || "#5c5a80"}
     />
   );
 }

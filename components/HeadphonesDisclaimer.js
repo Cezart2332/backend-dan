@@ -54,7 +54,7 @@ export default function HeadphonesDisclaimer({ visibleInitially = true, onDismis
           accessibilityRole="checkbox"
           accessibilityState={{ checked: dontShow }}
         >
-          <Ionicons name={dontShow ? 'checkbox-outline' : 'square-outline'} size={20} color="#2f73d8" style={{ marginRight: 8 }} />
+          <Ionicons name={dontShow ? 'checkbox-outline' : 'square-outline'} size={20} color="#24384e" style={{ marginRight: 8 }} />
           <Text style={styles.rowText}>Nu mai afișa din nou</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -68,7 +68,7 @@ export default function HeadphonesDisclaimer({ visibleInitially = true, onDismis
           }}
           accessibilityRole="button"
         >
-          <LinearGradient colors={["#2f73d8", "#2158ad"]} style={styles.btnGrad}>
+          <LinearGradient colors={["#24384e", "#16222f"]} style={styles.btnGrad}>
             <Text style={styles.btnText}>Am înțeles</Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -86,17 +86,17 @@ const styles = StyleSheet.create({
   },
   box: {
     width: '100%', maxWidth: 420,
-    backgroundColor: 'rgba(245,250,255,0.97)', borderRadius: 26,
+    backgroundColor: 'rgba(246,247,248,0.97)', borderRadius: 26,
     paddingHorizontal: 22, paddingTop: 20, paddingBottom: 18,
-    shadowColor: '#2f73d8', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 20,
+    shadowColor: '#24384e', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 20,
     elevation: 10,
-    borderWidth: 1, borderColor: 'rgba(117,154,194,0.22)'
+    borderWidth: 1, borderColor: 'rgba(32,47,62,0.22)'
   },
-  title: { fontSize: 18, fontWeight: '700', color: '#18324f', marginBottom: 10, textAlign: 'center' },
-  msg: { fontSize: 14, lineHeight: 20, color: '#58718e', textAlign: 'center' },
+  title: { fontSize: 18, fontWeight: '700', color: '#1c2b3a', marginBottom: 10, textAlign: 'center' },
+  msg: { fontSize: 14, lineHeight: 20, color: '#5b6a7a', textAlign: 'center' },
   btn: { marginTop: 18, borderRadius: 16, overflow: 'hidden' },
   btnGrad: { paddingVertical: 14, alignItems: 'center' },
   btnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   row: { flexDirection: 'row', alignItems: 'center', marginTop: 14, justifyContent: 'center' },
-  rowText: { fontSize: 14, color: '#18324f' },
+  rowText: { fontSize: 14, color: '#1c2b3a' },
 });

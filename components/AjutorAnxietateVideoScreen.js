@@ -21,7 +21,7 @@ export default function AjutorAnxietateVideoScreen({ route, navigation }) {
       nowPlayingTitle={nowPlayingTitle || title || "Ajutor - anxietate"}
       nowPlayingArtist={nowPlayingArtist || "Dan fost anxios · Ajutor anxietate"}
       nowPlayingArtwork={nowPlayingArtwork}
-      nowPlayingAccent={nowPlayingAccent || "#2f73d8"}
+      nowPlayingAccent={nowPlayingAccent || "#24384e"}
     />
   );
 }

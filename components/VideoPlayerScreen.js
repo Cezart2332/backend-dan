@@ -7,7 +7,8 @@ import {
   ScrollView,
   useWindowDimensions,
   ActivityIndicator,
-} from "react-native";
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -303,7 +304,7 @@ export default function VideoPlayerScreen({
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={["#dfeeff", "#f4f9ff", "#edf8f4"]}
+        colors={["#f6f7f8", "#f3f4f6", "#eef0f2"]}
         style={styles.gradient}
       >
         <ScrollView
@@ -316,12 +317,13 @@ export default function VideoPlayerScreen({
                 player.pause();
                 player.staysActiveInBackground = false;
                 player.showNowPlayingNotification = false;
-                navigation.goBack();
+                if (navigation.canGoBack()) navigation.goBack();
+                else navigation.navigate("Dashboard");
               }}
-              style={styles.backBtn}
+              style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               activeOpacity={0.75}
             >
-              <Ionicons name="chevron-back" size={22} color="#2f73d8" />
+              <Ionicons name="chevron-back" size={22} color="#24384e" />
             </TouchableOpacity>
             <View style={styles.headerTextWrap}>
               <Text style={styles.title}>{title}</Text>
@@ -338,7 +340,7 @@ export default function VideoPlayerScreen({
                     { width: videoWidth, height: videoHeight },
                   ]}
                 >
-                  <ActivityIndicator size="large" color="#2f73d8" />
+                  <ActivityIndicator size="large" color="#24384e" />
                   <Text style={styles.loadingText}>Se încarcă...</Text>
                 </View>
               )}
@@ -369,7 +371,7 @@ export default function VideoPlayerScreen({
             <View style={styles.audioWrap}>
               {isLoading && (
                 <View style={styles.audioLoadingWrap}>
-                  <ActivityIndicator size="large" color="#2f73d8" />
+                  <ActivityIndicator size="large" color="#24384e" />
                   <Text style={styles.loadingText}>Se încarcă audio...</Text>
                 </View>
               )}
@@ -387,7 +389,7 @@ export default function VideoPlayerScreen({
                     <Ionicons
                       name={videoIsPlaying ? "musical-notes-outline" : "headset-outline"}
                       size={36}
-                      color="#2f73d8"
+                      color="#24384e"
                     />
                   </View>
                   <Text style={styles.audioLabel}>Mod audio - ecranul poate fi blocat</Text>
@@ -403,9 +405,9 @@ export default function VideoPlayerScreen({
                     onSlidingStart={handleSeekStart}
                     onValueChange={handleSeekChange}
                     onSlidingComplete={handleSeekComplete}
-                    minimumTrackTintColor="#2f73d8"
-                    maximumTrackTintColor="#d7e9f9"
-                    thumbTintColor="#2f73d8"
+                    minimumTrackTintColor="#24384e"
+                    maximumTrackTintColor="#e3e7eb"
+                    thumbTintColor="#24384e"
                     disabled={isLoading || !!error || durationSeconds <= 0}
                   />
                   <View style={styles.audioTimesRow}>
@@ -422,7 +424,7 @@ export default function VideoPlayerScreen({
                       <Ionicons
                         name="play-back"
                         size={16}
-                        color="#2f73d8"
+                        color="#24384e"
                         style={{ marginRight: 6 }}
                       />
                       <Text style={styles.skipBtnText}>-15s</Text>
@@ -436,7 +438,7 @@ export default function VideoPlayerScreen({
                       <Ionicons
                         name="play-forward"
                         size={16}
-                        color="#2f73d8"
+                        color="#24384e"
                         style={{ marginRight: 6 }}
                       />
                       <Text style={styles.skipBtnText}>+15s</Text>
@@ -453,7 +455,7 @@ export default function VideoPlayerScreen({
             onPress={handlePlayPause}
           >
             <LinearGradient
-              colors={["#2f73d8", "#2158ad"]}
+              colors={["#24384e", "#16222f"]}
               style={styles.btnInner}
             >
               <Text style={styles.primaryText}>
@@ -491,13 +493,13 @@ export default function VideoPlayerScreen({
             onPress={toggleAudioOnly}
           >
             <LinearGradient
-              colors={audioOnly ? ["#2f73d8", "#2158ad"] : ["rgba(255,255,255,0.94)", "rgba(240,248,255,0.9)"]}
+              colors={audioOnly ? ["#24384e", "#16222f"] : ["rgba(255,255,255,0.94)", "rgba(246,247,248,0.9)"]}
               style={styles.audioToggleInner}
             >
               <Ionicons
                 name={audioOnly ? "musical-notes-outline" : "headset-outline"}
                 size={18}
-                color={audioOnly ? "#fff" : "#2f73d8"}
+                color={audioOnly ? "#fff" : "#24384e"}
                 style={{ marginRight: 8 }}
               />
               <Text
@@ -519,7 +521,7 @@ export default function VideoPlayerScreen({
 
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#dfeeff" },
+  safeArea: { flex: 1, backgroundColor: "#f6f7f8" },
   gradient: { flex: 1 },
   scrollContainer: {
     padding: 20,
@@ -542,8 +544,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(117,154,194,0.18)",
-    shadowColor: "#2f73d8",
+    borderColor: "rgba(32,47,62,0.18)",
+    shadowColor: "#24384e",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
@@ -551,13 +553,15 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   title: {
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    letterSpacing: 0.2,
     fontSize: 20,
     fontWeight: "700",
-    color: "#18324f",
+    color: "#1c2b3a",
   },
   subtitle: {
     fontSize: 14,
-    color: "#58718e",
+    color: "#5b6a7a",
     marginTop: 2, // Reduced margin
   },
   playerWrap: {
@@ -579,7 +583,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   loadingText: {
-    color: "#2f73d8",
+    color: "#24384e",
     marginTop: 8,
     fontSize: 14,
   },
@@ -604,7 +608,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   retryBtn: {
-    backgroundColor: "#2f73d8",
+    backgroundColor: "#24384e",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -619,8 +623,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "rgba(117,154,194,0.18)",
-    shadowColor: "#2f73d8",
+    borderColor: "rgba(32,47,62,0.18)",
+    shadowColor: "#24384e",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -639,20 +643,20 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: "#f4f9ff",
+    backgroundColor: "#f3f4f6",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
   },
   audioLabel: {
     fontSize: 14,
-    color: "#58718e",
+    color: "#5b6a7a",
     textAlign: "center",
     marginBottom: 8,
   },
   audioTime: {
     fontSize: 13,
-    color: "#18324f",
+    color: "#1c2b3a",
     fontWeight: "600",
     marginBottom: 4,
   },
@@ -669,7 +673,7 @@ const styles = StyleSheet.create({
   },
   audioTimeSmall: {
     fontSize: 12,
-    color: "#58718e",
+    color: "#5b6a7a",
   },
   skipControlsRow: {
     width: "100%",
@@ -681,8 +685,8 @@ const styles = StyleSheet.create({
     width: "48%",
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#d7e9f9",
-    backgroundColor: "#f3f9ff",
+    borderColor: "#e3e7eb",
+    backgroundColor: "#f5f6f8",
     paddingVertical: 10,
     alignItems: "center",
     justifyContent: "center",
@@ -691,7 +695,7 @@ const styles = StyleSheet.create({
   skipBtnText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#2158ad",
+    color: "#16222f",
   },
   primaryBtn: { borderRadius: 12, overflow: "hidden" },
   btnDisabled: { opacity: 0.6 },
@@ -702,7 +706,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginTop: 10,
     borderWidth: 1,
-    borderColor: "rgba(117,154,194,0.18)",
+    borderColor: "rgba(32,47,62,0.18)",
   },
   audioToggleInner: {
     flexDirection: "row",
@@ -711,7 +715,7 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     paddingHorizontal: 16,
   },
-  audioToggleText: { fontSize: 14, fontWeight: "600", color: "#18324f" },
+  audioToggleText: { fontSize: 14, fontWeight: "600", color: "#1c2b3a" },
   audioToggleTextActive: { color: "#fff" },
   speedRow: {
     flexDirection: "row",
@@ -725,7 +729,7 @@ const styles = StyleSheet.create({
   speedLabel: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#58718e",
+    color: "#5b6a7a",
     marginRight: 4,
   },
   speedBtn: {
@@ -733,17 +737,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#d7e9f9",
-    backgroundColor: "#f3f9ff",
+    borderColor: "#e3e7eb",
+    backgroundColor: "#f5f6f8",
   },
   speedBtnActive: {
-    borderColor: "#2f73d8",
-    backgroundColor: "#2f73d8",
+    borderColor: "#24384e",
+    backgroundColor: "#24384e",
   },
   speedBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#2158ad",
+    color: "#16222f",
   },
   speedBtnTextActive: {
     color: "#fff",

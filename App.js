@@ -163,6 +163,11 @@ export default function App() {
 
       if (type === 'meeting_updated') {
         navigationRef.current?.navigate?.('Direct');
+        return;
+      }
+
+      if (type === 'chat_unread') {
+        navigationRef.current?.navigate?.('CommunityChat');
       }
     };
 
@@ -195,7 +200,7 @@ export default function App() {
         onReady={handleNavUpdate}
         onStateChange={handleNavUpdate}
       >
-          <StatusBar style="light" backgroundColor="#2f73d8" />
+          <StatusBar style="dark" backgroundColor="#f6f7f8" />
           <Stack.Navigator
             initialRouteName={isAuthed ? "Dashboard" : "Login"}
             screenOptions={{
