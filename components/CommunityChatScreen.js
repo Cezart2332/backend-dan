@@ -15,10 +15,9 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
-import { useSubscription } from '../contexts/SubscriptionContext';
 import { PressableScale } from './ui';
 import { api, buildWebSocketUrl, toAbsoluteApiUrl } from '../utils/api';
 import { getToken } from '../utils/authStorage';
@@ -27,10 +26,6 @@ import { getUser } from '../utils/userStorage';
 const MAX_MESSAGE_LENGTH = 500;
 const RECONNECT_DELAY_MS = 2500;
 const PING_INTERVAL_MS = 25000;
-
-function isPaidSubscriptionType(type) {
-  return ['basic', 'premium', 'vip', 'pro'].includes(String(type || '').toLowerCase());
-}
 
 function toIsoDate(value) {
   const parsed = new Date(value);
@@ -120,10 +115,6 @@ function avatarInitial(displayName) {
 export default function CommunityChatScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
-  const { subscription, hasProEntitlement } = useSubscription();
-
-  const normalizedSubType = String(subscription?.type || '').toLowerCase();
-  const hasChatAccess = hasProEntitlement || isPaidSubscriptionType(normalizedSubType);
 
   const [currentUserId, setCurrentUserId] = useState('');
   const [messages, setMessages] = useState([]);
@@ -266,7 +257,7 @@ export default function CommunityChatScreen({ navigation }) {
         pingIntervalRef.current = null;
       }
 
-      if (!shouldReconnectRef.current || !isFocused || !hasChatAccess) return;
+      if (!shouldReconnectRef.current || !isFocused) return;
 
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = setTimeout(() => {
@@ -275,7 +266,7 @@ export default function CommunityChatScreen({ navigation }) {
         });
       }, RECONNECT_DELAY_MS);
     };
-  }, [hasChatAccess, isFocused]);
+  }, [isFocused]);
 
   const loadHistory = useCallback(async ({ before = null, appendOlder = false } = {}) => {
     const authToken = await getToken();
@@ -334,7 +325,7 @@ export default function CommunityChatScreen({ navigation }) {
   }, [isFocused]);
 
   useEffect(() => {
-    if (!isFocused || !hasChatAccess) {
+    if (!isFocused) {
       setLoading(false);
       return;
     }
@@ -343,12 +334,12 @@ export default function CommunityChatScreen({ navigation }) {
       .catch(() => {
         setLoading(false);
       });
-  }, [hasChatAccess, isFocused, loadHistory]);
+  }, [isFocused, loadHistory]);
 
   useEffect(() => {
-    shouldReconnectRef.current = isFocused && hasChatAccess;
+    shouldReconnectRef.current = isFocused;
 
-    if (!isFocused || !hasChatAccess) {
+    if (!isFocused) {
       clearSocketRuntime();
       setSocketStatus('disconnected');
       return;
@@ -362,7 +353,7 @@ export default function CommunityChatScreen({ navigation }) {
       shouldReconnectRef.current = false;
       clearSocketRuntime();
     };
-  }, [hasChatAccess, isFocused, connectWebSocket, clearSocketRuntime]);
+  }, [isFocused, connectWebSocket, clearSocketRuntime]);
 
   useEffect(() => {
     const grew = messages.length > previousLengthRef.current;
@@ -523,35 +514,17 @@ export default function CommunityChatScreen({ navigation }) {
               <Text style={styles.statusText}>{connectionLabel}</Text>
             </View>
           </View>
-          {hasChatAccess ? (
-            <PressableScale
-              onPress={() => loadHistory({ before: null, appendOlder: false })}
-              style={styles.headerAction}
-              scaleTo={0.9}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Feather name="refresh-cw" size={17} color="#24384e" />
-            </PressableScale>
-          ) : null}
+          <PressableScale
+            onPress={() => loadHistory({ before: null, appendOlder: false })}
+            style={styles.headerAction}
+            scaleTo={0.9}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Feather name="refresh-cw" size={17} color="#24384e" />
+          </PressableScale>
         </View>
 
-        {!hasChatAccess ? (
-          <View style={styles.blockedWrap}>
-            <View style={styles.blockedRing}>
-              <Feather name="lock" size={24} color="#24384e" />
-            </View>
-            <Text style={styles.blockedTitle}>Un loc doar al comunității</Text>
-            <Text style={styles.blockedText}>
-              Chat-ul este disponibil pentru abonamentele active Basic, Premium sau VIP.
-            </Text>
-            <PressableScale
-              style={styles.blockedCta}
-              onPress={() => navigation.navigate('Subscriptions')}
-            >
-              <Text style={styles.blockedCtaText}>Vezi abonamente</Text>
-            </PressableScale>
-          </View>
-        ) : loading ? (
+        {loading ? (
           <View style={styles.loaderWrap}>
             <ActivityIndicator size="large" color="#24384e" />
             <Text style={styles.loaderText}>Se încarcă mesajele...</Text>
@@ -723,54 +696,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.55)',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(32,47,62,0.28)',
-  },
-
-  // Gate
-  blockedWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-    paddingBottom: 60,
-  },
-  blockedRing: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.55)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(32,47,62,0.28)',
-    marginBottom: 18,
-  },
-  blockedTitle: {
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1c2b3a',
-    textAlign: 'center',
-  },
-  blockedText: {
-    marginTop: 8,
-    textAlign: 'center',
-    color: '#5b6a7a',
-    fontSize: 13.5,
-    lineHeight: 20,
-  },
-  blockedCta: {
-    marginTop: 20,
-    borderRadius: 999,
-    paddingVertical: 13,
-    paddingHorizontal: 28,
-    backgroundColor: 'rgba(28,43,58,0.92)',
-  },
-  blockedCtaText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 12.5,
-    letterSpacing: 1.6,
-    textTransform: 'uppercase',
   },
 
   loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },

@@ -36,6 +36,8 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
     showPaywall,
     restorePermissions,
     startFreeTrial,
+    paywallRequested,
+    dismissPaywall,
   } = useSubscription();
   const [pendingAction, setPendingAction] = useState(null);
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -46,12 +48,15 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
     return initializing || !subscriptionResolved;
   }, [isAuthed, initializing, subscriptionResolved, pendingAction]);
 
+  // Paywall-ul nu se mai afiseaza automat pentru utilizatorii fara abonament.
+  // Apare doar la cerere (paywallRequested), cand utilizatorul apasa pe o sectiune blocata.
   const shouldShow = useMemo(() => {
     const isTrialSubscription = String(subscription?.type || "").toLowerCase() === "trial";
     const trialEndsAtMs = subscription?.ends_at ? Date.parse(subscription.ends_at) : NaN;
     const hasActiveTrialAccess =
       isTrialSubscription && (!Number.isFinite(trialEndsAtMs) || trialEndsAtMs > Date.now());
 
+    if (!paywallRequested) return false;
     if (!isAuthed) return false;
     if (!hasToken) return false;
     if (initializing) return false;
@@ -59,7 +64,14 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
     if (hasProEntitlement) return false;
     if (currentRoute && EXCLUDED_ROUTES.has(currentRoute)) return false;
     return true;
-  }, [isAuthed, hasToken, initializing, subscription, hasProEntitlement, currentRoute]);
+  }, [paywallRequested, isAuthed, hasToken, initializing, subscription, hasProEntitlement, currentRoute]);
+
+  // Dupa o achizitie reusita nu mai are sens sa ramana cererea de paywall activa.
+  useEffect(() => {
+    if (paywallRequested && hasProEntitlement) {
+      dismissPaywall();
+    }
+  }, [paywallRequested, hasProEntitlement, dismissPaywall]);
 
   useEffect(() => {
     if (shouldShow) {
@@ -78,7 +90,12 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
     }
   }, [shouldShow, scaleAnim]);
 
+  const handleClose = () => {
+    dismissPaywall();
+  };
+
   const handleSeePlans = () => {
+    dismissPaywall();
     if (!navigationRef?.current) return;
     const currentName = navigationRef.current.getCurrentRoute?.()?.name;
     if (currentName !== "Subscriptions") {
@@ -115,6 +132,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
     try {
       setPendingAction("trial");
       await startFreeTrial();
+      dismissPaywall();
       Alert.alert("Trial activat", "Ai 3 zile de trial gratuit.");
     } catch (err) {
       Alert.alert("Eroare", err?.message || "Nu am putut porni trial-ul gratuit.");
@@ -145,6 +163,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
       ]);
     } finally {
       setPendingAction(null);
+      dismissPaywall();
       if (typeof onLogout === "function") onLogout();
       if (navigationRef?.current?.reset) {
         navigationRef.current.reset({ index: 0, routes: [{ name: "Login" }] });
@@ -186,7 +205,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
       visible={shouldShow}
       transparent
       animationType="fade"
-      onRequestClose={handleSeePlans}
+      onRequestClose={handleClose}
     >
       <View style={styles.backdrop} pointerEvents="auto">
         <Animated.View
@@ -199,12 +218,19 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
           ]}
         >
           <View style={styles.gradient}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={handleClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Feather name="x" size={20} color="#5b6a7a" />
+            </TouchableOpacity>
             <View style={styles.headerIcon}>
               <Feather name="star" size={32} color="#24384e" />
             </View>
-            <Text style={styles.title}>Abonament sau trial gratuit</Text>
+            <Text style={styles.title}>Conținut cu abonament</Text>
             <Text style={styles.subtitle}>
-              Activează un abonament pentru a continua accesul complet în aplicație.
+              Secțiunea aleasă face parte din conținutul premium. Activează un abonament sau trialul gratuit pentru acces complet.
             </Text>
 
             <View style={styles.statusPill}>
@@ -325,6 +351,18 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(246,247,248,0.9)",
     borderWidth: 1,
     borderColor: "rgba(32,47,62,0.18)",
+  },
+  closeButton: {
+    position: "absolute",
+    top: 14,
+    right: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(36,56,78,0.08)",
+    zIndex: 10,
   },
   headerIcon: {
     width: 72,

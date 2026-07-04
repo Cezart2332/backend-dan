@@ -76,6 +76,9 @@ export function SubscriptionProvider({ children, isAuthed }) {
   const [initializing, setInitializing] = useState(true);
   const [subscriptionResolved, setSubscriptionResolved] = useState(false);
   const [hasToken, setHasToken] = useState(false);
+  // Paywall-ul global se afiseaza doar la cerere (tap pe o sectiune blocata),
+  // nu automat pentru utilizatorii fara abonament.
+  const [paywallRequested, setPaywallRequested] = useState(false);
   const refreshPromiseRef = useRef(null);
   const listenerRef = useRef(null);
   const appStateRef = useRef(AppState.currentState);
@@ -576,6 +579,9 @@ export function SubscriptionProvider({ children, isAuthed }) {
     return info;
   }, [applyCustomerInfo, hasProEntitlement, subscription]);
 
+  const requestPaywall = useCallback(() => setPaywallRequested(true), []);
+  const dismissPaywall = useCallback(() => setPaywallRequested(false), []);
+
   const value = useMemo(
     () => ({
       user,
@@ -591,6 +597,9 @@ export function SubscriptionProvider({ children, isAuthed }) {
       initializing,
       subscriptionResolved,
       hasToken,
+      paywallRequested,
+      requestPaywall,
+      dismissPaywall,
       refresh,
       purchaseByOfferingId,
       restorePurchases,
@@ -620,6 +629,9 @@ export function SubscriptionProvider({ children, isAuthed }) {
       initializing,
       subscriptionResolved,
       hasToken,
+      paywallRequested,
+      requestPaywall,
+      dismissPaywall,
       refresh,
       purchaseByOfferingId,
       restorePurchases,

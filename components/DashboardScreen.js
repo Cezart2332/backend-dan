@@ -143,12 +143,24 @@ function greetingForNow() {
   return "Bună seara";
 }
 
+// Slug-urile CMS legate de secțiunile existente din aplicație.
+// Conținutul lor apare direct în ecranele respective, nu la "Conținut nou".
+const BUILTIN_CMS_SLUGS = new Set([
+  "tehnica-hai",
+  "tehnica-hai-psihologice",
+  "tehnica-hai-fizice",
+  "audio-anxietate",
+  "ajutor-anxietate",
+  "ajutor-atac-panica",
+  "din-experienta-mea",
+]);
+
 export default function DashboardScreen({ navigation, onLogout }) {
-  const { subscription, hasProEntitlement } = useSubscription();
+  const { subscription, hasProEntitlement, requestPaywall } = useSubscription();
   const subType = subscription?.type || null;
   const normalizedSubType = String(subType || "").toLowerCase();
   const hasWebinarAccess = ["premium", "vip", "pro"].includes(normalizedSubType);
-  const hasChatAccess = hasProEntitlement || ["basic", "premium", "vip", "pro"].includes(normalizedSubType);
+  const hasPaidSub = hasProEntitlement || ["basic", "premium", "vip", "pro"].includes(normalizedSubType);
   const [profileName, setProfileName] = useState("");
   const [profileAvatarUrl, setProfileAvatarUrl] = useState(null);
   const [cmsSections, setCmsSections] = useState([]);
@@ -197,7 +209,12 @@ export default function DashboardScreen({ navigation, onLogout }) {
 
   useEffect(() => {
     api.getCmsVideoSections()
-      .then((data) => setCmsSections(data.items || []))
+      .then((data) => {
+        const items = Array.isArray(data.items) ? data.items : [];
+        // Secțiunile atașate ecranelor existente apar în interiorul acelor
+        // ecrane, nu ca dubluri la "Conținut nou".
+        setCmsSections(items.filter((s) => !BUILTIN_CMS_SLUGS.has(String(s.slug || "").toLowerCase())));
+      })
       .catch((err) => console.warn("[CMS] dashboard:", err));
   }, []);
 
@@ -219,57 +236,45 @@ export default function DashboardScreen({ navigation, onLogout }) {
     }
   }, [navigation, onLogout]);
 
-  // Items locked during trial gratuit (only available with paid subscription)
-  const trialLockedIds = new Set([4, 5, 6, 7, 10]);
-  const isTrial = subType === "trial";
+  // Secțiuni disponibile doar cu abonament plătit (trial și fără abonament → blocate).
+  const paidOnlyIds = new Set([4, 5, 6, 7, 10]);
+  // Deschise oricui, chiar și fără niciun abonament: chatul comunității și abonamentele.
+  const freeForAllIds = new Set([9, 12]);
+  const trialEndsAtMs = subscription?.ends_at ? Date.parse(subscription.ends_at) : NaN;
+  const hasActiveTrial =
+    normalizedSubType === "trial" && (!Number.isFinite(trialEndsAtMs) || trialEndsAtMs > Date.now());
+  const hasNoPlan = !hasPaidSub && !hasActiveTrial;
 
   const lockStateFor = (id) => {
     const webinarLocked = id === 11 && !hasWebinarAccess;
-    const chatLocked = id === 12 && !hasChatAccess;
-    const trialLocked = isTrial && trialLockedIds.has(id);
-    const locked = webinarLocked || chatLocked || trialLocked;
-    const lockLabel = webinarLocked
-      ? "Disponibil cu Premium/VIP"
-      : chatLocked
-        ? "Disponibil cu abonament activ"
-        : "Disponibil cu abonament";
+    const contentLocked = paidOnlyIds.has(id) && !hasPaidSub;
+    const noPlanLocked = hasNoPlan && !freeForAllIds.has(id);
+    const locked = webinarLocked || contentLocked || noPlanLocked;
+    const lockLabel =
+      webinarLocked && !noPlanLocked ? "Disponibil cu Premium/VIP" : "Disponibil cu abonament";
     return { locked, lockLabel };
   };
 
+  // Utilizatorii cu trial activ primesc un mesaj clasic; cei fără niciun
+  // abonament văd ecranul de paywall (doar la tap pe o secțiune blocată).
+  const showLockedPrompt = (message) => {
+    if (hasNoPlan) {
+      requestPaywall();
+      return;
+    }
+    Alert.alert("Funcție restricționată", message, [
+      { text: "Vezi abonamente", onPress: () => navigation.navigate("Subscriptions") },
+      { text: "OK", style: "cancel" },
+    ]);
+  };
+
   const handleMenuPress = (item) => {
-    if (item.id === 11 && !hasWebinarAccess) {
-      Alert.alert(
-        "Funcție restricționată",
-        "Accesul la webinarii necesita Premium sau VIP",
-        [
-          { text: "Vezi abonamente", onPress: () => navigation.navigate("Subscriptions") },
-          { text: "OK", style: "cancel" },
-        ]
-      );
-      return;
-    }
-
-    if (item.id === 12 && !hasChatAccess) {
-      Alert.alert(
-        "Funcție restricționată",
-        "Chat-ul comunității este disponibil doar cu abonament activ.",
-        [
-          { text: "Vezi abonamente", onPress: () => navigation.navigate("Subscriptions") },
-          { text: "OK", style: "cancel" },
-        ]
-      );
-      return;
-    }
-
-    // Block locked items during trial
-    if (isTrial && trialLockedIds.has(item.id)) {
-      Alert.alert(
-        "Funcție restricționată",
-        "Această funcție este disponibilă doar cu un abonament activ. Alege un plan pentru acces complet.",
-        [
-          { text: "Vezi abonamente", onPress: () => navigation.navigate("Subscriptions") },
-          { text: "OK", style: "cancel" },
-        ]
+    const { locked } = lockStateFor(item.id);
+    if (locked) {
+      showLockedPrompt(
+        item.id === 11
+          ? "Accesul la webinarii necesită Premium sau VIP."
+          : "Această funcție este disponibilă doar cu un abonament activ. Alege un plan pentru acces complet."
       );
       return;
     }
@@ -501,21 +506,14 @@ export default function DashboardScreen({ navigation, onLogout }) {
               </EnterFade>
               <EnterFade index={animIndex++} style={styles.groupCard}>
                 {cmsSections.map((section, i) => {
-                  const locked = !hasChatAccess;
+                  const locked = !hasPaidSub;
                   return (
                     <View key={`cms-section-${section.id}`}>
                       {i > 0 ? <View style={styles.rowDivider} /> : null}
                       <PressableScale
                         onPress={() => {
                           if (locked) {
-                            Alert.alert(
-                              "Funcție restricționată",
-                              "Acest conținut este disponibil doar cu abonament activ.",
-                              [
-                                { text: "Vezi abonamente", onPress: () => navigation.navigate("Subscriptions") },
-                                { text: "OK", style: "cancel" },
-                              ]
-                            );
+                            showLockedPrompt("Acest conținut este disponibil doar cu abonament activ.");
                             return;
                           }
                           navigation.navigate("CmsSection", { slug: section.slug, title: section.title });
