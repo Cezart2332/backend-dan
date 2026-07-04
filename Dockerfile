@@ -23,6 +23,7 @@ RUN apk add --no-cache ffmpeg cpulimit curl
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/src ./src
+COPY --from=build /app/assets ./assets
 ## No SQLite file needed; using MySQL
 
 # Entrypoint wrapper to optionally run the encoder before starting the API

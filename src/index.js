@@ -128,6 +128,24 @@ await app.register(fastifyMultipart, {
 
 await app.register(websocket);
 
+// Static email assets (logo-ul din emailuri e incarcat de clientii de mail de la acest URL)
+{
+  const { createReadStream, existsSync } = await import("node:fs");
+  const { resolve, dirname } = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const assetsDir = resolve(dirname(fileURLToPath(import.meta.url)), "../assets");
+
+  app.get("/assets/email-logo.png", async (_request, reply) => {
+    const filePath = resolve(assetsDir, "email-logo.png");
+    if (!existsSync(filePath)) {
+      return reply.code(404).send({ error: "Not found" });
+    }
+    reply.header("Content-Type", "image/png");
+    reply.header("Cache-Control", "public, max-age=86400");
+    return reply.send(createReadStream(filePath));
+  });
+}
+
 // Health check
 app.get("/health", async () => ({ ok: true, shuttingDown: isShuttingDown }));
 
