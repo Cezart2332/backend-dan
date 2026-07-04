@@ -19,12 +19,18 @@ import { colors, fonts, gradients, radius, shadows, spacing, type } from "./them
 /**
  * Pressable cu animație de apăsare (scale + fade) — folosit de toate
  * elementele interactive pentru un feel viu, nu static.
+ *
+ * `style` se aplică pe view-ul interior (cel care se scalează la apăsare).
+ * `containerStyle` se aplică pe Pressable-ul exterior — necesar pentru
+ * proprietăți de layout flex (flex, flexShrink, maxWidth) atunci când
+ * elementul stă într-un rând, altfel nu au efect.
  */
 export function PressableScale({
   children,
   onPress,
   disabled = false,
   style,
+  containerStyle,
   scaleTo = 0.97,
   ...rest
 }) {
@@ -45,6 +51,7 @@ export function PressableScale({
       disabled={disabled}
       onPressIn={() => animateTo(scaleTo)}
       onPressOut={() => animateTo(1)}
+      style={containerStyle}
       {...rest}
     >
       <Animated.View style={[style, { transform: [{ scale }] }]}>

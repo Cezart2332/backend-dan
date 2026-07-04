@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Animated,
+  Easing,
   View,
   Text,
   TouchableOpacity,
@@ -51,12 +52,87 @@ function EnterFade({ index = 0, children, style }) {
                 outputRange: [14, 0],
               }),
             },
+            {
+              scale: anim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.98, 1],
+              }),
+            },
           ],
         },
       ]}
     >
       {children}
     </Animated.View>
+  );
+}
+
+/**
+ * Inelul iconiței SOS „respiră" încet (4s inspiră / expiră), iar un halou
+ * se extinde și se estompează — un memento subtil de calm, pe tema aplicației.
+ */
+function BreathingIcon({ children }) {
+  const breath = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(breath, {
+          toValue: 1,
+          duration: 2400,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(breath, {
+          toValue: 0,
+          duration: 2400,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [breath]);
+
+  return (
+    <View style={styles.sosIconWrap}>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.sosHalo,
+          {
+            opacity: breath.interpolate({ inputRange: [0, 1], outputRange: [0, 0.45] }),
+            transform: [
+              { scale: breath.interpolate({ inputRange: [0, 1], outputRange: [1, 1.32] }) },
+            ],
+          },
+        ]}
+      />
+      <Animated.View
+        style={[
+          styles.sosIconRing,
+          {
+            transform: [
+              { scale: breath.interpolate({ inputRange: [0, 1], outputRange: [1, 1.07] }) },
+            ],
+          },
+        ]}
+      >
+        {children}
+      </Animated.View>
+    </View>
+  );
+}
+
+/** Etichetă de secțiune centrată, cu hairline-uri ornamentale pe laturi. */
+function SectionLabel({ children }) {
+  return (
+    <View style={styles.labelRow}>
+      <View style={styles.labelLine} />
+      <Text style={styles.sectionLabel}>{children}</Text>
+      <View style={styles.labelLine} />
+    </View>
   );
 }
 
@@ -329,9 +405,9 @@ export default function DashboardScreen({ navigation, onLogout }) {
                 end={{ x: 1, y: 1 }}
                 style={styles.sosCard}
               >
-                <View style={styles.sosIconRing}>
+                <BreathingIcon>
                   <Feather name="wind" size={22} color="#f6f7f8" />
-                </View>
+                </BreathingIcon>
                 <View style={styles.sosTextWrap}>
                   <Text style={styles.sosTitle}>Am nevoie de ajutor acum</Text>
                   <Text style={styles.sosSubtitle}>
@@ -345,18 +421,28 @@ export default function DashboardScreen({ navigation, onLogout }) {
 
           {/* ── Pentru azi ── */}
           <EnterFade index={animIndex++}>
-            <Text style={styles.sectionLabel}>Pentru azi</Text>
+            <SectionLabel>Pentru azi</SectionLabel>
             <View style={styles.tilesRow}>
               {todayTiles.map((tile) => (
                 <PressableScale
                   key={tile.id}
                   onPress={() => handleMenuPress(tile)}
+                  containerStyle={styles.tileContainer}
                   style={styles.tile}
+                  scaleTo={0.95}
                 >
                   <View style={styles.tileIconRing}>
                     <Feather name={tile.iconName} size={19} color="#24384e" />
                   </View>
-                  <Text style={styles.tileLabel}>{tile.label}</Text>
+                  <View style={styles.tileLabelWrap}>
+                    <Text
+                      style={styles.tileLabel}
+                      numberOfLines={2}
+                      maxFontSizeMultiplier={1.2}
+                    >
+                      {tile.label}
+                    </Text>
+                  </View>
                 </PressableScale>
               ))}
             </View>
@@ -366,7 +452,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
           {sections.map((section) => (
             <View key={section.key} style={styles.section}>
               <EnterFade index={animIndex++}>
-                <Text style={styles.sectionLabel}>{section.title}</Text>
+                <SectionLabel>{section.title}</SectionLabel>
               </EnterFade>
               <EnterFade index={animIndex++} style={styles.groupCard}>
                 {section.items.map((item, i) => {
@@ -411,7 +497,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
           {cmsSections.length > 0 && (
             <View style={styles.section}>
               <EnterFade index={animIndex++}>
-                <Text style={styles.sectionLabel}>Conținut nou</Text>
+                <SectionLabel>Conținut nou</SectionLabel>
               </EnterFade>
               <EnterFade index={animIndex++} style={styles.groupCard}>
                 {cmsSections.map((section, i) => {
@@ -482,18 +568,34 @@ export default function DashboardScreen({ navigation, onLogout }) {
           {/* ── Comunitate externă ── */}
           <EnterFade index={animIndex++} style={styles.externalRow}>
             <PressableScale
+              containerStyle={styles.externalBtnContainer}
               style={styles.externalBtn}
+              scaleTo={0.95}
               onPress={() => Linking.openURL("https://www.facebook.com/groups/820094195023604/")}
             >
               <Feather name="users" size={15} color="#24384e" />
-              <Text style={styles.externalText}>Grup Facebook</Text>
+              <Text
+                style={styles.externalText}
+                numberOfLines={1}
+                maxFontSizeMultiplier={1.15}
+              >
+                Grup Facebook
+              </Text>
             </PressableScale>
             <PressableScale
+              containerStyle={styles.externalBtnContainer}
               style={styles.externalBtn}
+              scaleTo={0.95}
               onPress={() => Linking.openURL("https://danfostanxios.ro/testimoniale-2/")}
             >
               <Feather name="heart" size={15} color="#24384e" />
-              <Text style={styles.externalText}>Testimoniale</Text>
+              <Text
+                style={styles.externalText}
+                numberOfLines={1}
+                maxFontSizeMultiplier={1.15}
+              >
+                Testimoniale
+              </Text>
             </PressableScale>
           </EnterFade>
 
@@ -620,6 +722,13 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     elevation: 5,
   },
+  sosIconWrap: {
+    width: 44,
+    height: 44,
+    marginRight: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   sosIconRing: {
     width: 44,
     height: 44,
@@ -628,7 +737,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "rgba(246,247,248,0.35)",
-    marginRight: 14,
+  },
+  sosHalo: {
+    position: "absolute",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: "rgba(246,247,248,0.55)",
   },
   sosTextWrap: { flex: 1, paddingRight: 10 },
   sosTitle: {
@@ -643,15 +759,26 @@ const styles = StyleSheet.create({
     color: "rgba(246,247,248,0.72)",
   },
 
-  // Etichete de secțiune
+  // Etichete de secțiune — centrate, cu hairline-uri ornamentale
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    marginBottom: 12,
+  },
+  labelLine: {
+    width: 28,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "rgba(32,47,62,0.3)",
+  },
   sectionLabel: {
     fontSize: 11,
     fontWeight: "600",
     letterSpacing: 2.6,
     textTransform: "uppercase",
     color: "#8a97a5",
-    marginBottom: 10,
-    marginLeft: 2,
+    textAlign: "center",
   },
   section: { marginBottom: 24 },
 
@@ -661,15 +788,22 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 26,
   },
+  tileContainer: { flex: 1 },
   tile: {
-    flex: 1,
     alignItems: "center",
-    paddingVertical: 16,
+    justifyContent: "center",
+    minHeight: 108,
+    paddingVertical: 14,
     paddingHorizontal: 6,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.5)",
+    backgroundColor: "rgba(255,255,255,0.62)",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(32,47,62,0.28)",
+    borderColor: "rgba(32,47,62,0.24)",
+    shadowColor: "#16222f",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
   tileIconRing: {
     width: 40,
@@ -680,8 +814,15 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(36,56,78,0.06)",
     marginBottom: 9,
   },
+  // Spațiu rezervat pentru 2 rânduri: iconițele rămân aliniate între tiles,
+  // chiar dacă o etichetă se rupe pe două rânduri.
+  tileLabelWrap: {
+    minHeight: 32,
+    justifyContent: "center",
+  },
   tileLabel: {
     fontSize: 12,
+    lineHeight: 16,
     fontWeight: "600",
     color: "#1c2b3a",
     textAlign: "center",
@@ -690,10 +831,15 @@ const styles = StyleSheet.create({
   // Grupuri de rânduri
   groupCard: {
     borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.5)",
+    backgroundColor: "rgba(255,255,255,0.62)",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(32,47,62,0.28)",
-    overflow: "hidden",
+    borderColor: "rgba(32,47,62,0.24)",
+    // fără overflow: "hidden" — pe iOS ar tăia umbra; rândurile sunt oricum transparente
+    shadowColor: "#16222f",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
   },
   row: {
     flexDirection: "row",
@@ -738,10 +884,15 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingVertical: 13,
     paddingHorizontal: 18,
-    backgroundColor: "rgba(255,255,255,0.5)",
+    backgroundColor: "rgba(255,255,255,0.62)",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(179,146,79,0.45)",
     marginBottom: 14,
+    shadowColor: "#8a6d3b",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 2,
   },
   planText: {
     flex: 1,
@@ -755,25 +906,36 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
 
-  // Linkuri externe
+  // Linkuri externe — centrate, dimensionate după conținut
   externalRow: {
     flexDirection: "row",
+    justifyContent: "center",
     gap: 10,
     marginBottom: 10,
   },
+  externalBtnContainer: {
+    flexShrink: 1,
+    maxWidth: "48%",
+  },
   externalBtn: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 7,
     paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.5)",
+    backgroundColor: "rgba(255,255,255,0.62)",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(32,47,62,0.28)",
+    borderColor: "rgba(32,47,62,0.24)",
+    shadowColor: "#16222f",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   externalText: {
+    flexShrink: 1,
     fontSize: 12.5,
     fontWeight: "600",
     color: "#1c2b3a",

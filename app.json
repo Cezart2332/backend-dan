@@ -91,7 +91,14 @@
           "advertiserIDCollectionEnabled": true,
           "autoLogAppEventsEnabled": true,
           "isAutoInitEnabled": true,
-          "scheme": "fb768698326078162"
+          "scheme": "fb768698326078162",
+          "iosUserTrackingPermission": "Folosim acest identificator pentru a măsura eficiența reclamelor și a-ți arăta conținut relevant."
+        }
+      ],
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "Folosim acest identificator pentru a măsura eficiența reclamelor și a-ți arăta conținut relevant."
         }
       ],
       "expo-web-browser"

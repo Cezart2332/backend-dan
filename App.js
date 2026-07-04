@@ -80,7 +80,18 @@ export default function App() {
     const startedAt = Date.now();
     let bootTimer = null;
 
-    metaEvents.setAdvertiserTrackingEnabled(true);
+    // iOS: cere App Tracking Transparency înainte de a activa tracking-ul
+    // publicitar Meta. Pe Android permisiunea e acordată implicit.
+    (async () => {
+      try {
+        const { requestTrackingPermissionsAsync } = require("expo-tracking-transparency");
+        const { status } = await requestTrackingPermissionsAsync();
+        metaEvents.setAdvertiserTrackingEnabled(status === "granted");
+      } catch {
+        // Modulul lipsește (ex. Expo Go vechi) — păstrează comportamentul anterior.
+        metaEvents.setAdvertiserTrackingEnabled(true);
+      }
+    })();
 
     (async () => {
       try {

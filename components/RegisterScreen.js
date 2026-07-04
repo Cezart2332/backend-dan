@@ -19,6 +19,7 @@ import { saveToken } from '../utils/authStorage';
 import { saveUser } from '../utils/userStorage';
 import { saveSubscription } from '../utils/subscriptionStorage';
 import { useGoogleAuth, handleGoogleResponse, signInWithApple } from '../utils/oauth';
+import metaEvents from '../utils/metaEvents';
 
 const { width, height } = Dimensions.get('window');
 
@@ -49,6 +50,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
       setLoading(true);
       setError('');
       await handleGoogleResponse(response);
+      metaEvents.logEvent(metaEvents.STANDARD_EVENTS.COMPLETED_REGISTRATION, { registration_method: 'google' });
       if (typeof onAuthenticated === 'function') onAuthenticated();
       navigation.navigate('Dashboard');
     } catch (e) {
@@ -63,6 +65,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
       setLoading(true);
       setError('');
       await signInWithApple();
+      metaEvents.logEvent(metaEvents.STANDARD_EVENTS.COMPLETED_REGISTRATION, { registration_method: 'apple' });
       if (typeof onAuthenticated === 'function') onAuthenticated();
       navigation.navigate('Dashboard');
     } catch (e) {
@@ -106,6 +109,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
       } catch (err) {
         // Subscription fetch failed silently - not critical for registration
       }
+      metaEvents.logEvent(metaEvents.STANDARD_EVENTS.COMPLETED_REGISTRATION, { registration_method: 'email' });
       if (typeof onAuthenticated === 'function') onAuthenticated();
       // Show disclaimer modal before onboarding
       setShowDisclaimer(true);

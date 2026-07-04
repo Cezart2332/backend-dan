@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
-  Keyboard,
   Platform,
   ScrollView,
   ActivityIndicator,
@@ -27,6 +26,13 @@ export default function ForgotPasswordScreen({ navigation }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [done, setDone] = useState(false);
+
+  const scrollRef = useRef(null);
+
+  // Derulează formularul deasupra tastaturii; delay ca să apuce tastatura să apară.
+  const scrollFieldIntoView = () => {
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 250);
+  };
 
   const handleSendEmail = async () => {
     setError('');
@@ -83,11 +89,13 @@ export default function ForgotPasswordScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.gradient}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardAvoid}
-        >
-          <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled" onScrollBeginDrag={Keyboard.dismiss}>
+        <KeyboardAvoidingView behavior="padding" style={styles.keyboardAvoid}>
+          <ScrollView
+            ref={scrollRef}
+            contentContainerStyle={styles.scrollContainer}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
             <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Login'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
               <Feather name="chevron-left" size={22} color="#24384e" />
             </TouchableOpacity>
@@ -147,6 +155,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                       onChangeText={setNewPassword}
                       secureTextEntry={!showPassword}
                       editable={!loading}
+                      onFocus={scrollFieldIntoView}
                     />
                   </View>
 
@@ -160,6 +169,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                       onChangeText={setConfirmPassword}
                       secureTextEntry={!showPassword}
                       editable={!loading}
+                      onFocus={scrollFieldIntoView}
                     />
                     <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
                       <Ionicons
@@ -245,7 +255,7 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
   gradient: { flex: 1 },
   keyboardAvoid: { flex: 1 },
-  scrollContainer: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 20 },
+  scrollContainer: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 48 },
   backBtn: {
     width: 38,
     height: 38,
