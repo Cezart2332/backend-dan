@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { getRuns, replaceAllRuns } from '../utils/challengeStorage';
@@ -44,7 +44,7 @@ export default function ChallengeHistoryScreen({ navigation }) {
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Ionicons name="chevron-back" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color="#24384e" />
             </TouchableOpacity>
             <Text style={styles.title}>Istoric provocări</Text>
             <Text style={styles.subtitle}>Ultimele tale încercări</Text>
@@ -52,7 +52,7 @@ export default function ChallengeHistoryScreen({ navigation }) {
 
           {items.length === 0 && (
             <View style={styles.emptyCard}>
-              <Ionicons name="trophy-outline" size={36} color="#9aa5b1" style={{ marginBottom: 10 }} />
+              <Feather name="award" size={36} color="#9aa5b1" style={{ marginBottom: 10 }} />
               <Text style={styles.emptyText}>Nicio provocare completată încă.</Text>
             </View>
           )}
@@ -65,13 +65,13 @@ export default function ChallengeHistoryScreen({ navigation }) {
               <TouchableOpacity key={String(it.id)} style={styles.card} onPress={() => navigation.navigate('ChallengeDetail', { id: it.id })}>
                 <View style={styles.cardInner}>
                   <View style={styles.cardIconWrap}>
-                    <Ionicons name="flag-outline" size={20} color="#24384e" />
+                    <Feather name="flag" size={20} color="#24384e" />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.cardTitle}>{title}</Text>
                     <Text style={styles.cardMeta}>{new Date(date).toLocaleString()} · Dificultate: {it.difficulty ?? '-'}</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color="#9aa5b1" />
+                  <Feather name="chevron-right" size={18} color="#9aa5b1" />
                 </View>
               </TouchableOpacity>
             );
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     position: 'absolute', left: 0, top: 0, zIndex: 10,
     width: 38, height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
@@ -100,13 +100,13 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, color: '#5b6a7a', textAlign: 'center', marginTop: 6 },
   emptyCard: {
     alignItems: 'center', padding: 32,
-    backgroundColor: 'rgba(255,255,255,0.86)', borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.58)', borderRadius: 18,
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)', marginTop: 20,
   },
   emptyText: { fontSize: 14, color: '#5b6a7a' },
   card: {
     marginTop: 12, borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.86)',
+    backgroundColor: 'rgba(255,255,255,0.58)',
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
   },

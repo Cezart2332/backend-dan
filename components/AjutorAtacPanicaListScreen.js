@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import HeadphonesDisclaimer from "./HeadphonesDisclaimer";
 import { api } from "../utils/api";
 import { useSubscription } from "../contexts/SubscriptionContext";
@@ -78,7 +78,7 @@ export default function AjutorAtacPanicaListScreen({ navigation }) {
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
-              <Ionicons name="chevron-back" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color="#24384e" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Atac de panică</Text>
           </View>
@@ -107,7 +107,7 @@ export default function AjutorAtacPanicaListScreen({ navigation }) {
                     <Ionicons name={item.iconName} size={20} color={item.iconColor} />
                   </View>
                   <Text style={styles.rowTitle}>{item.title}</Text>
-                  <Ionicons name="chevron-forward" size={18} color="#9aa5b1" />
+                  <Feather name="chevron-right" size={18} color="#9aa5b1" />
                 </TouchableOpacity>
               </React.Fragment>
             ))}
@@ -138,7 +138,7 @@ export default function AjutorAtacPanicaListScreen({ navigation }) {
                           <Ionicons name={sub.icon_name || "play-outline"} size={20} color={sub.icon_color || "#3d7d5f"} />
                         </View>
                         <Text style={styles.rowTitle}>{item.title}</Text>
-                        <Ionicons name="chevron-forward" size={18} color="#9aa5b1" />
+                        <Feather name="chevron-right" size={18} color="#9aa5b1" />
                       </TouchableOpacity>
                     </React.Fragment>
                   ))}
@@ -148,7 +148,7 @@ export default function AjutorAtacPanicaListScreen({ navigation }) {
           ) : (
             cmsSubsections.length > 0 && (
               <View style={styles.lockCard}>
-                <Ionicons name="lock-closed-outline" size={28} color="#b3924f" />
+                <Feather name="lock" size={28} color="#b3924f" />
                 <Text style={styles.lockTitle}>Conținut extra disponibil</Text>
                 <Text style={styles.lockDesc}>Acest conținut este disponibil doar cu un abonament activ.</Text>
                 <TouchableOpacity
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", marginBottom: 28, marginTop: 4 },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.88)",
+    backgroundColor: "rgba(255,255,255,0.55)",
     alignItems: "center", justifyContent: "center",
     borderWidth: 1, borderColor: "rgba(32,47,62,0.18)",
     shadowColor: "#24384e", shadowOffset: { width: 0, height: 2 },
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: 11, fontWeight: "700", color: "#8a97a5", letterSpacing: 1.2, marginBottom: 6, marginLeft: 4 },
   intro: { fontSize: 14, color: "#5b6a7a", marginBottom: 16, marginLeft: 4, lineHeight: 20 },
   group: {
-    backgroundColor: "rgba(255,255,255,0.86)", borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.58)", borderRadius: 18,
     borderWidth: 1, borderColor: "rgba(32,47,62,0.18)", overflow: "hidden",
     shadowColor: "#24384e", shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   rowTitle: { flex: 1, fontSize: 15, fontWeight: "600", color: "#1c2b3a" },
   lockCard: {
     marginTop: 28, borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.86)", borderWidth: 1, borderColor: "rgba(32,47,62,0.18)",
+    backgroundColor: "rgba(255,255,255,0.58)", borderWidth: 1, borderColor: "rgba(32,47,62,0.18)",
     padding: 20, alignItems: "center",
     shadowColor: "#24384e", shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,

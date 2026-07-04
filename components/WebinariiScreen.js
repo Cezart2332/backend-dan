@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
@@ -195,7 +195,7 @@ export default function WebinariiScreen({ navigation, route }) {
       <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.gradient}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
-            <Ionicons name="chevron-back" size={22} color="#24384e" />
+            <Feather name="chevron-left" size={22} color="#24384e" />
           </TouchableOpacity>
           <View style={styles.headerTextWrap}>
             <Text style={styles.title}>Webinarii</Text>
@@ -205,7 +205,7 @@ export default function WebinariiScreen({ navigation, route }) {
 
         {!hasWebinarAccess ? (
           <View style={styles.blockedCard}>
-            <Ionicons name="lock-closed" size={24} color="#5c5a80" />
+            <Feather name="lock" size={24} color="#5c5a80" />
             <Text style={styles.blockedTitle}>Acces Premium/VIP</Text>
             <Text style={styles.blockedText}>
               Accesul la webinarii necesita Premium sau VIP
@@ -229,7 +229,7 @@ export default function WebinariiScreen({ navigation, route }) {
           >
             {pushReady ? (
               <View style={styles.pushInfoCard}>
-                <Ionicons name="notifications" size={16} color="#16222f" />
+                <Feather name="bell" size={16} color="#16222f" />
                 <Text style={styles.pushInfoText}>Notificarile pentru webinarii sunt active pe acest dispozitiv.</Text>
               </View>
             ) : null}
@@ -254,7 +254,7 @@ export default function WebinariiScreen({ navigation, route }) {
 
             {!items.length && !error ? (
               <View style={styles.emptyCard}>
-                <Ionicons name="calendar-outline" size={22} color="#8aa6c8" />
+                <Feather name="calendar" size={22} color="#8aa6c8" />
                 <Text style={styles.emptyText}>Momentan nu exista webinarii publicate.</Text>
               </View>
             ) : null}
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
   },
   pushInfoText: { marginLeft: 8, color: '#16222f', fontSize: 12, flex: 1 },
   webinarCard: {
-    backgroundColor: 'rgba(255,255,255,0.86)',
+    backgroundColor: 'rgba(255,255,255,0.58)',
     borderRadius: 16,
     padding: 14,
     marginBottom: 10,
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(138,166,200,0.3)',
-    backgroundColor: 'rgba(255,255,255,0.84)',
+    backgroundColor: 'rgba(255,255,255,0.58)',
     padding: 18,
   },
   emptyText: { marginTop: 8, color: '#5b6a7a' },

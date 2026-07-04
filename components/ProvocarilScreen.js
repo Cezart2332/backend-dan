@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { levels as levelDefs } from '../challenges';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { api } from '../utils/api';
@@ -94,12 +94,12 @@ export default function ProvocarilScreen({ navigation }) {
               onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))}
               style={styles.backButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Ionicons name="chevron-back" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color="#24384e" />
             </TouchableOpacity>
 
             <View style={styles.headerContent}>
               <View style={styles.headerIcon}>
-                <Ionicons name="trophy-outline" size={34} color="#24384e" />
+                <Feather name="award" size={34} color="#24384e" />
               </View>
               <Text style={styles.title}>Provocări</Text>
               <Text style={styles.subtitle}>Alege-ți nivelul de provocare</Text>
@@ -107,7 +107,7 @@ export default function ProvocarilScreen({ navigation }) {
 
             <View style={styles.historyWrap}>
               <TouchableOpacity onPress={() => navigation.navigate('ChallengeHistory')} style={styles.historyButton}>
-                <Ionicons name="time-outline" size={16} color="#24384e" style={{ marginRight: 5 }} />
+                <Feather name="clock" size={16} color="#24384e" style={{ marginRight: 5 }} />
                 <Text style={styles.historyButtonText}>Istoric</Text>
               </TouchableOpacity>
             </View>
@@ -159,11 +159,11 @@ export default function ProvocarilScreen({ navigation }) {
                     
                     <View style={styles.levelDetails}>
                       <View style={styles.detailItem}>
-                        <Ionicons name="time-outline" size={15} color="#5b6a7a" style={{ marginRight: 5 }} />
+                        <Feather name="clock" size={15} color="#5b6a7a" style={{ marginRight: 5 }} />
                         <Text style={styles.detailText}>Durată: {level.duration}</Text>
                       </View>
                       <View style={styles.detailItem}>
-                        <Ionicons name="list-outline" size={15} color="#5b6a7a" style={{ marginRight: 5 }} />
+                        <Feather name="list" size={15} color="#5b6a7a" style={{ marginRight: 5 }} />
                         <Text style={styles.detailText}>{level.exercises} exerciții</Text>
                       </View>
                     </View>
@@ -174,7 +174,7 @@ export default function ProvocarilScreen({ navigation }) {
                     >
                       <View style={styles.startButtonInner}>
                         <Text style={styles.startButtonText}>Începe Provocarea</Text>
-                        <Ionicons name="arrow-forward-outline" size={18} color="#fff" style={{ marginLeft: 8 }} />
+                        <Feather name="arrow-right" size={18} color="#fff" style={{ marginLeft: 8 }} />
                       </View>
                     </TouchableOpacity>
                   </View>
@@ -187,7 +187,7 @@ export default function ProvocarilScreen({ navigation }) {
           {/* Tips Section */}
           <View style={styles.tipsSection}>
             <View style={styles.tipsTitleRow}>
-              <Ionicons name="bulb-outline" size={18} color="#24384e" style={{ marginRight: 7 }} />
+              <Feather name="zap" size={18} color="#24384e" style={{ marginRight: 7 }} />
               <Text style={styles.tipsTitle}>Sfaturi pentru succes</Text>
             </View>
             <View style={styles.tipsList}>
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     borderWidth: 1,
     borderColor: 'rgba(32,47,62,0.18)',
     justifyContent: 'center',
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   historyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     borderRadius: 18,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     borderWidth: 1,
     borderColor: 'rgba(32,47,62,0.18)',
     justifyContent: 'center',
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
   levelHeader: {
     borderRadius: 18,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.86)',
+    backgroundColor: 'rgba(255,255,255,0.58)',
     borderWidth: 1,
     borderColor: 'rgba(32,47,62,0.18)',
   },
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tipsSection: {
-    backgroundColor: 'rgba(255,255,255,0.86)',
+    backgroundColor: 'rgba(255,255,255,0.58)',
     borderRadius: 18,
     padding: 20,
     shadowColor: '#24384e',

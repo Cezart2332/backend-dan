@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSubscription } from "../contexts/SubscriptionContext";
 import {
@@ -239,7 +239,7 @@ export default function SubscriptionsScreen({ navigation }) {
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.headerRow}>
             <TouchableOpacity style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))}>
-              <Ionicons name="chevron-back" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color="#24384e" />
             </TouchableOpacity>
             <Text style={styles.title}>RevenueCat Subscriptions</Text>
             <TouchableOpacity
@@ -257,7 +257,7 @@ export default function SubscriptionsScreen({ navigation }) {
               {processing === "refresh" ? (
                 <ActivityIndicator size="small" color="#24384e" />
               ) : (
-                <Ionicons name="refresh-outline" size={20} color="#24384e" />
+                <Feather name="refresh-cw" size={20} color="#24384e" />
               )}
             </TouchableOpacity>
           </View>
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.88)",
+    backgroundColor: "rgba(255,255,255,0.55)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.88)",
+    backgroundColor: "rgba(255,255,255,0.55)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   statusBox: {
-    backgroundColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "rgba(255,255,255,0.52)",
     borderWidth: 1,
     borderColor: "rgba(36,56,78,0.18)",
     borderRadius: 16,
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
   entitlementText: { fontSize: 13, color: "#1c2b3a", marginTop: 6 },
   smallText: { fontSize: 12, color: "#5b6a7a", marginTop: 4 },
   card: {
-    backgroundColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "rgba(255,255,255,0.52)",
     borderWidth: 1,
     borderColor: "rgba(36,56,78,0.18)",
     borderRadius: 16,
@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 13,
-    backgroundColor: "rgba(255,255,255,0.86)",
+    backgroundColor: "rgba(255,255,255,0.58)",
   },
   secondaryBtnText: { color: "#1c2b3a", fontSize: 14, fontWeight: "600" },
   disabledBtn: { opacity: 0.6 },
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.86)",
+    backgroundColor: "rgba(255,255,255,0.58)",
   },
   legalLinkText: {
     color: "#2f67c4",
@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "rgba(36,56,78,0.18)",
-    backgroundColor: "rgba(255,255,255,0.86)",
+    backgroundColor: "rgba(255,255,255,0.58)",
     padding: 12,
   },
   legalNoticeText: {
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
   },
   customerInfoBox: {
     marginTop: 16,
-    backgroundColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "rgba(255,255,255,0.52)",
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "rgba(36,56,78,0.18)",

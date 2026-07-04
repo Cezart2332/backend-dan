@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
+  Animated,
   View,
   Text,
   TextInput,
@@ -15,7 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
 import { saveToken } from '../utils/authStorage';
 import { saveUser } from '../utils/userStorage';
@@ -30,6 +31,16 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [focusedField, setFocusedField] = useState(null);
+  const enterAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(enterAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+  }, [enterAnim]);
 
   // Google OAuth hook
   const { request: googleRequest, response: googleResponse, promptAsync: googlePromptAsync } = useGoogleAuth();
@@ -117,7 +128,15 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
         >
           <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled" onScrollBeginDrag={Keyboard.dismiss}>
             {/* Header */}
-            <View style={styles.header}>
+            <Animated.View
+              style={[
+                styles.header,
+                {
+                  opacity: enterAnim,
+                  transform: [{ translateY: enterAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
+                },
+              ]}
+            >
               <Image
                 source={require('../assets/brandmark.png')}
                 style={styles.brandmark}
@@ -125,12 +144,12 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
               />
               <Text style={styles.title}>Bine ai revenit</Text>
               <Text style={styles.subtitle}>Intră în spațiul tău de liniște</Text>
-            </View>
+            </Animated.View>
 
             {/* Form */}
             <View style={styles.formContainer}>
-              <View style={styles.inputContainer}>
-                <Ionicons name="mail-outline" size={20} color="#24384e" style={styles.inputIcon} />
+              <View style={[styles.inputContainer, focusedField === 'email' && styles.inputContainerFocused]}>
+                <Feather name="mail" size={18} color={focusedField === 'email' ? '#24384e' : '#8a97a5'} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Email"
@@ -139,11 +158,13 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  onFocus={() => setFocusedField('email')}
+                  onBlur={() => setFocusedField(null)}
                 />
               </View>
 
-              <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed-outline" size={20} color="#24384e" style={styles.inputIcon} />
+              <View style={[styles.inputContainer, focusedField === 'password' && styles.inputContainerFocused]}>
+                <Feather name="lock" size={18} color={focusedField === 'password' ? '#24384e' : '#8a97a5'} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Parolă"
@@ -151,15 +172,17 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
                   style={styles.eyeIcon}
                 >
-                  <Ionicons
-                    name={showPassword ? "eye-outline" : "eye-off-outline"}
-                    size={20}
-                    color="#24384e"
+                  <Feather
+                    name={showPassword ? "eye" : "eye-off"}
+                    size={18}
+                    color="#8a97a5"
                   />
                 </TouchableOpacity>
               </View>
@@ -178,7 +201,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
                 disabled={loading}
               >
                 <LinearGradient
-                  colors={['#24384e', '#16222f']}
+                  colors={['rgba(28,43,58,0.94)', 'rgba(22,34,47,0.96)']}
                   style={styles.buttonGradient}
                 >
                   <Text style={styles.loginButtonText}>{loading ? 'Se conectează...' : 'Conectare'}</Text>
@@ -276,13 +299,15 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.94)',
-    borderRadius: 16, marginBottom: 16,
+    backgroundColor: 'rgba(255,255,255,0.45)',
+    borderRadius: 18, marginBottom: 16,
     paddingHorizontal: 16, paddingVertical: 4,
-    shadowColor: '#24384e',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08, shadowRadius: 8, elevation: 4,
-    borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(32,47,62,0.28)',
+  },
+  inputContainerFocused: {
+    borderWidth: 1,
+    borderColor: '#24384e',
+    backgroundColor: 'rgba(255,255,255,0.75)',
   },
   inputIcon: {
     marginRight: 12,
@@ -314,16 +339,16 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   loginButton: {
-    borderRadius: 16,
+    borderRadius: 999,
     overflow: 'hidden',
-    shadowColor: '#24384e',
+    shadowColor: '#16222f',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    elevation: 4,
   },
   buttonGradient: {
     paddingVertical: 18,
@@ -331,8 +356,10 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
   },
   errorText: {
     color: '#a8544c',
@@ -363,20 +390,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    borderRadius: 999,
     paddingVertical: 14,
     marginHorizontal: 4,
-    shadowColor: '#24384e',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(32,47,62,0.28)',
   },
   socialButtonText: {
     marginLeft: 8,

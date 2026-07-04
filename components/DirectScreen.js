@@ -15,7 +15,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { api } from '../utils/api';
@@ -137,7 +137,7 @@ export default function DirectScreen({ navigation }) {
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
-              <Ionicons name="chevron-back" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color="#24384e" />
             </TouchableOpacity>
             <View style={styles.headerText}>
               <Text style={styles.title}>Intră în direct cu Dan</Text>
@@ -149,7 +149,7 @@ export default function DirectScreen({ navigation }) {
             <Text style={styles.cardTitle}>Programează-te</Text>
             <Text style={styles.cardText}>Deschide calendarul intern și rezervă direct un interval cu Dan.</Text>
             <TouchableOpacity style={styles.primaryBtn} onPress={openBookingModal}>
-              <LinearGradient colors={["#24384e", "#16222f"]} style={styles.btnInner}>
+              <LinearGradient colors={["rgba(28,43,58,0.94)", "rgba(22,34,47,0.96)"]} style={styles.btnInner}>
                 <Text style={styles.primaryText}>Programează-te</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -172,7 +172,7 @@ export default function DirectScreen({ navigation }) {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Programează o întâlnire cu Dan</Text>
                 <TouchableOpacity onPress={closeBookingModal} disabled={submitting}>
-                  <Ionicons name="close" size={22} color="#64748b" />
+                  <Feather name="x" size={22} color="#64748b" />
                 </TouchableOpacity>
               </View>
 
@@ -183,7 +183,7 @@ export default function DirectScreen({ navigation }) {
                   onPress={() => setSelectedDayOffset((v) => Math.max(0, v - 1))}
                   disabled={selectedDayOffset <= 0 || submitting}
                 >
-                  <Ionicons name="chevron-back" size={18} color="#24384e" />
+                  <Feather name="chevron-left" size={18} color="#24384e" />
                 </TouchableOpacity>
                 <Text style={styles.selectedDayText}>{formatDayLabel(selectedDate)}</Text>
                 <TouchableOpacity
@@ -191,7 +191,7 @@ export default function DirectScreen({ navigation }) {
                   onPress={() => setSelectedDayOffset((v) => Math.min(20, v + 1))}
                   disabled={selectedDayOffset >= 20 || submitting}
                 >
-                  <Ionicons name="chevron-forward" size={18} color="#24384e" />
+                  <Feather name="chevron-right" size={18} color="#24384e" />
                 </TouchableOpacity>
               </View>
 
@@ -235,7 +235,7 @@ export default function DirectScreen({ navigation }) {
               />
 
               <TouchableOpacity style={[styles.primaryBtn, submitting && { opacity: 0.7 }]} onPress={createMeeting} disabled={submitting}>
-                <LinearGradient colors={["#24384e", "#16222f"]} style={styles.btnInner}>
+                <LinearGradient colors={["rgba(28,43,58,0.94)", "rgba(22,34,47,0.96)"]} style={styles.btnInner}>
                   {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Confirmă programarea</Text>}
                 </LinearGradient>
               </TouchableOpacity>
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 24, marginTop: 4 },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 2 },
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 20, fontWeight: '700', color: '#1c2b3a' },
   subtitle: { fontSize: 13, color: '#5b6a7a', marginTop: 2 },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.86)', borderRadius: 18, padding: 18, marginBottom: 14,
+    backgroundColor: 'rgba(255,255,255,0.58)', borderRadius: 18, padding: 18, marginBottom: 14,
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
   },
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   choiceChip: {
     borderWidth: 1,
     borderColor: 'rgba(154,165,177,0.65)',
-    backgroundColor: 'rgba(255,255,255,0.94)',
+    backgroundColor: 'rgba(255,255,255,0.68)',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(154,165,177,0.65)',
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.94)',
+    backgroundColor: 'rgba(255,255,255,0.68)',
     color: '#1c2b3a',
     padding: 10,
     textAlignVertical: 'top',

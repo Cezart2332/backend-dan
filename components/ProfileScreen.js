@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { api, toAbsoluteApiUrl } from '../utils/api';
 import { getToken } from '../utils/authStorage';
@@ -206,7 +206,7 @@ export default function ProfileScreen({ navigation }) {
       <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.gradient}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
-            <Ionicons name="chevron-back" size={22} color="#24384e" />
+            <Feather name="chevron-left" size={22} color="#24384e" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Profilul meu</Text>
           <View style={styles.headerSpacer} />
@@ -229,18 +229,18 @@ export default function ProfileScreen({ navigation }) {
                   <Image source={{ uri: displayedAvatarUri }} style={styles.avatarImage} />
                 ) : (
                   <View style={styles.avatarPlaceholder}>
-                    <Ionicons name="person" size={38} color="#24384e" />
+                    <Feather name="user" size={38} color="#24384e" />
                   </View>
                 )}
                 <View style={styles.avatarBadge}>
-                  <Ionicons name="camera" size={12} color="#fff" />
+                  <Feather name="camera" size={12} color="#fff" />
                 </View>
               </TouchableOpacity>
               <Text style={styles.avatarHint}>Apasa pe avatar pentru a schimba poză</Text>
 
               {displayedAvatarUri ? (
                 <TouchableOpacity style={styles.removeAvatarBtn} onPress={handleRemoveAvatar}>
-                  <Ionicons name="trash-outline" size={14} color="#a8544c" />
+                  <Feather name="trash-2" size={14} color="#a8544c" />
                   <Text style={styles.removeAvatarText}>Sterge poză</Text>
                 </TouchableOpacity>
               ) : null}
@@ -270,7 +270,7 @@ export default function ProfileScreen({ navigation }) {
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <>
-                  <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
+                  <Feather name="check-circle" size={18} color="#fff" />
                   <Text style={styles.saveBtnText}>Salveaza profilul</Text>
                 </>
               )}
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: 'rgba(36,56,78,0.2)',
-    backgroundColor: 'rgba(255,255,255,0.82)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
   },
   avatarBadge: {
     position: 'absolute',
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.85)',
+    borderColor: 'rgba(255,255,255,0.58)',
   },
   avatarHint: {
     marginTop: 8,
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: 10,
     paddingHorizontal: 12,
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: 'rgba(255,255,255,0.7)',
     borderWidth: 1,
     borderColor: 'rgba(195,202,210,0.8)',
     color: '#1c2b3a',

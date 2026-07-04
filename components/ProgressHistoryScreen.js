@@ -4,7 +4,7 @@ import { View, Text, TouchableOpacity, StyleSheet, FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { getEntries, replaceAllWithServerEntries, isBackendReady } from '../utils/progressStorage';
 import { getToken } from '../utils/authStorage';
 import { api } from '../utils/api';
@@ -47,7 +47,7 @@ export default function ProgressHistoryScreen({ navigation }) {
       <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('ProgressDetail', { id: item.id })}>
         <View style={styles.cardRow}>
           <View style={styles.cardIconWrap}>
-            <Ionicons name="bar-chart-outline" size={18} color="#24384e" />
+            <Feather name="bar-chart-2" size={18} color="#24384e" />
           </View>
           <View style={{ flex: 1 }}>
             <View style={styles.row}>
@@ -56,7 +56,7 @@ export default function ProgressHistoryScreen({ navigation }) {
             </View>
             <Text style={styles.desc} numberOfLines={2}>{item.description || 'Fără descriere'}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={16} color="#9aa5b1" style={{ marginLeft: 8 }} />
+          <Feather name="chevron-right" size={16} color="#9aa5b1" style={{ marginLeft: 8 }} />
         </View>
       </TouchableOpacity>
     );
@@ -67,7 +67,7 @@ export default function ProgressHistoryScreen({ navigation }) {
       <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.background}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Ionicons name="chevron-back" size={22} color="#24384e" />
+            <Feather name="chevron-left" size={22} color="#24384e" />
           </TouchableOpacity>
           <Text style={styles.title}>Istoric Progres</Text>
         </View>
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 38, height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 22, fontWeight: '700', color: '#1c2b3a' },
   list: { padding: 16 },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.86)', borderRadius: 18, padding: 14, marginBottom: 12,
+    backgroundColor: 'rgba(255,255,255,0.58)', borderRadius: 18, padding: 14, marginBottom: 12,
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     shadowColor: '#24384e', shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
     shadowOffset: { width: 0, height: 4 },

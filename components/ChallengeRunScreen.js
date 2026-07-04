@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Keyboa
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { saveChallengeRun } from '../utils/challengeStorage';
@@ -47,7 +47,7 @@ export default function ChallengeRunScreen({ route, navigation }) {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" onScrollBeginDrag={Keyboard.dismiss}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="chevron-back" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color="#24384e" />
             </TouchableOpacity>
             <View style={styles.headerText}>
               <Text style={styles.title}>{challenge?.title || 'Provocare'}</Text>
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 38, height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 20, fontWeight: '700', color: '#1c2b3a', textAlign: 'center' },
   subtitle: { fontSize: 13, color: '#5b6a7a', textAlign: 'center', marginTop: 3 },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.86)', borderRadius: 18, padding: 18, marginBottom: 14,
+    backgroundColor: 'rgba(255,255,255,0.58)', borderRadius: 18, padding: 18, marginBottom: 14,
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
   },
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     width: 38, height: 38, borderRadius: 19,
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     alignItems: 'center', justifyContent: 'center', marginRight: 8,
-    backgroundColor: 'rgba(255,255,255,0.86)',
+    backgroundColor: 'rgba(255,255,255,0.58)',
   },
   scaleBtnActive: { borderColor: '#24384e', backgroundColor: '#f3f4f6' },
   scaleText: { color: '#1c2b3a', fontWeight: '600' },
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 12,
     textAlignVertical: 'top',
-    backgroundColor: 'rgba(255,255,255,0.94)',
+    backgroundColor: 'rgba(255,255,255,0.68)',
     color: '#1c2b3a',
     fontSize: 14,
   },

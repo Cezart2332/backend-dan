@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
 import { saveToken } from '../utils/authStorage';
 import { saveUser } from '../utils/userStorage';
@@ -133,12 +133,12 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                 onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Login'))}
                 style={styles.backButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               >
-                <Ionicons name="chevron-back" size={24} color="#24384e" />
+                <Feather name="chevron-left" size={24} color="#24384e" />
               </TouchableOpacity>
 
               <View style={styles.logoContainer}>
                 <View style={styles.logoCircle}>
-                  <Ionicons name="leaf" size={40} color="#24384e" />
+                  <Feather name="feather" size={40} color="#24384e" />
                 </View>
               </View>
               <Text style={styles.title}>Creează cont</Text>
@@ -148,7 +148,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
             {/* Form */}
             <View style={styles.formContainer}>
               <View style={styles.inputContainer}>
-                <Ionicons name="person-outline" size={20} color="#24384e" style={styles.inputIcon} />
+                <Feather name="user" size={20} color="#24384e" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Nume complet"
@@ -160,7 +160,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
               </View>
 
               <View style={styles.inputContainer}>
-                <Ionicons name="mail-outline" size={20} color="#24384e" style={styles.inputIcon} />
+                <Feather name="mail" size={20} color="#24384e" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Email"
@@ -173,7 +173,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
               </View>
 
               <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed-outline" size={20} color="#24384e" style={styles.inputIcon} />
+                <Feather name="lock" size={20} color="#24384e" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Parolă"
@@ -195,7 +195,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
               </View>
 
               <View style={[styles.inputContainer, { marginBottom: 0 }]}>
-                <Ionicons name="lock-closed-outline" size={20} color="#24384e" style={styles.inputIcon} />
+                <Feather name="lock" size={20} color="#24384e" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Confirmă parola"
@@ -223,7 +223,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
               >
                 <View style={styles.checkboxRow}>
                   <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
-                    {agreedToTerms && <Ionicons name="checkmark" size={14} color="#fff" />}
+                    {agreedToTerms && <Feather name="check" size={14} color="#fff" />}
                   </View>
                   <Text style={styles.agreementText}>
                     Sunt de acord cu{' '}
@@ -246,7 +246,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                 disabled={loading}
               >
                 <LinearGradient
-                  colors={['#24384e', '#16222f']}
+                  colors={['rgba(28,43,58,0.94)', 'rgba(22,34,47,0.96)']}
                   style={styles.buttonGradient}
                 >
                   <Text style={styles.registerButtonText}>{loading ? 'Se creează...' : 'Creează cont'}</Text>
@@ -318,7 +318,7 @@ Sunt coach și autor de cărți despre anxietate și am trecut personal prin ace
                 navigation.navigate('Onboarding');
               }}
             >
-              <LinearGradient colors={['#24384e', '#16222f']} style={styles.disclaimerButtonGrad}>
+              <LinearGradient colors={['rgba(28,43,58,0.94)', 'rgba(22,34,47,0.96)']} style={styles.disclaimerButtonGrad}>
                 <Text style={styles.disclaimerButtonText}>Am înțeles</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
   backButton: {
     position: 'absolute', left: 0, top: 0, zIndex: 10,
     padding: 8, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1, shadowRadius: 4, elevation: 4,
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
   },
   logoCircle: {
     width: 80, height: 80, borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     justifyContent: 'center', alignItems: 'center',
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 4 },
@@ -397,16 +397,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 16,
     paddingVertical: 4,
-    shadowColor: '#24384e',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(32,47,62,0.28)',
   },
   inputIcon: {
     marginRight: 12,
@@ -456,16 +447,16 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   registerButton: {
-    borderRadius: 16,
+    borderRadius: 999,
     overflow: 'hidden',
-    shadowColor: '#24384e',
+    shadowColor: '#16222f',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    elevation: 4,
   },
   buttonGradient: {
     paddingVertical: 18,
@@ -473,8 +464,10 @@ const styles = StyleSheet.create({
   },
   registerButtonText: {
     color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
   },
   errorText: {
     color: '#a8544c',

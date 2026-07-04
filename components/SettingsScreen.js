@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { api } from "../utils/api";
 import { getToken, clearToken } from "../utils/authStorage";
 import { clearUser } from "../utils/userStorage";
@@ -136,7 +136,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
               style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               activeOpacity={0.75}
             >
-              <Ionicons name="chevron-back" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color="#24384e" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Setări</Text>
           </View>
@@ -150,13 +150,13 @@ export default function SettingsScreen({ navigation, onLogout }) {
               activeOpacity={0.7}
             >
               <View style={[styles.iconWrap, { backgroundColor: "#eef5ff" }]}>
-                <Ionicons name="medkit-outline" size={20} color="#16222f" />
+                <Feather name="activity" size={20} color="#16222f" />
               </View>
               <View style={styles.rowTextWrap}>
                 <Text style={styles.rowTitle}>Informații medicale și surse</Text>
                 <Text style={styles.rowSubtitle}>Conținut informativ. Vezi sursele rapid.</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#9aa5b1" />
+              <Feather name="chevron-right" size={18} color="#9aa5b1" />
             </TouchableOpacity>
           </View>
 
@@ -175,7 +175,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
                 <Text style={styles.rowTitle}>Raportează un bug</Text>
                 <Text style={styles.rowSubtitle}>Ajută-ne să îmbunătățim aplicația</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#9aa5b1" />
+              <Feather name="chevron-right" size={18} color="#9aa5b1" />
             </TouchableOpacity>
           </View>
 
@@ -188,13 +188,13 @@ export default function SettingsScreen({ navigation, onLogout }) {
               activeOpacity={0.7}
             >
               <View style={[styles.iconWrap, { backgroundColor: "#f6ecea" }]}>
-                <Ionicons name="trash-outline" size={20} color="#a8544c" />
+                <Feather name="trash-2" size={20} color="#a8544c" />
               </View>
               <View style={styles.rowTextWrap}>
                 <Text style={[styles.rowTitle, { color: "#a8544c" }]}>Șterge contul</Text>
                 <Text style={styles.rowSubtitle}>Această acțiune este permanentă</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#e8c8c8" />
+              <Feather name="chevron-right" size={18} color="#e8c8c8" />
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -211,7 +211,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
           <View style={styles.sheet}>
             <View style={styles.sheetIconRow}>
               <View style={[styles.sheetIconWrap, { backgroundColor: "#f6ecea" }]}>
-                <Ionicons name="trash-outline" size={26} color="#a8544c" />
+                <Feather name="trash-2" size={26} color="#a8544c" />
               </View>
             </View>
             <Text style={styles.sheetTitle}>Șterge contul</Text>
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.88)",
+    backgroundColor: "rgba(255,255,255,0.55)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
 
   // Grouped rows
   group: {
-    backgroundColor: "rgba(255,255,255,0.86)",
+    backgroundColor: "rgba(255,255,255,0.58)",
     borderRadius: 18,
     borderWidth: 1,
     borderColor: "rgba(32,47,62,0.18)",
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
 
   // Input
   input: {
-    backgroundColor: "rgba(255,255,255,0.94)",
+    backgroundColor: "rgba(255,255,255,0.68)",
     borderRadius: 13,
     paddingHorizontal: 16,
     paddingVertical: 13,

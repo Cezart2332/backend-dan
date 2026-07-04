@@ -11,7 +11,7 @@ import {
   View,
   Platform,
 } from 'react-native';
-import { Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { useSubscription } from "../contexts/SubscriptionContext";
 import { clearToken } from "../utils/authStorage";
 import { clearUser } from "../utils/userStorage";
@@ -200,7 +200,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
         >
           <View style={styles.gradient}>
             <View style={styles.headerIcon}>
-              <Ionicons name="star-outline" size={32} color="#24384e" />
+              <Feather name="star" size={32} color="#24384e" />
             </View>
             <Text style={styles.title}>Abonament sau trial gratuit</Text>
             <Text style={styles.subtitle}>
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   gradient: {
     padding: 24,
     alignItems: "center",
-    backgroundColor: "rgba(246,247,248,0.97)",
+    backgroundColor: "rgba(246,247,248,0.9)",
     borderWidth: 1,
     borderColor: "rgba(32,47,62,0.18)",
   },
@@ -367,25 +367,27 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     width: "100%",
-    borderRadius: 16,
+    borderRadius: 999,
     overflow: "hidden",
     marginBottom: 14,
   },
   primaryGradient: {
     paddingVertical: 14,
     alignItems: "center",
-    backgroundColor: "#24384e",
-    borderRadius: 16,
+    backgroundColor: "rgba(28,43,58,0.92)",
+    borderRadius: 999,
   },
   primaryText: {
     color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 1.6,
+    textTransform: "uppercase",
   },
   secondaryButton: {
     width: "100%",
-    borderRadius: 16,
-    borderWidth: 1.5,
+    borderRadius: 999,
+    borderWidth: 1,
     borderColor: "rgba(36,56,78,0.24)",
     paddingVertical: 14,
     alignItems: "center",
@@ -399,8 +401,8 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     width: "100%",
-    borderRadius: 16,
-    borderWidth: 1.5,
+    borderRadius: 999,
+    borderWidth: 1,
     borderColor: "rgba(168, 84, 76, 0.35)",
     paddingVertical: 14,
     alignItems: "center",

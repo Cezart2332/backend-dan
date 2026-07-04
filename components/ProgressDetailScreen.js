@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { getEntryById, isBackendReady } from '../utils/progressStorage';
 import { getToken } from '../utils/authStorage';
 import { api } from '../utils/api';
@@ -41,7 +41,7 @@ export default function ProgressDetailScreen({ route, navigation }) {
         <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.background}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Ionicons name="chevron-back" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color="#24384e" />
             </TouchableOpacity>
             <Text style={styles.title}>Detaliu Progres</Text>
           </View>
@@ -59,7 +59,7 @@ export default function ProgressDetailScreen({ route, navigation }) {
       <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.background}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Ionicons name="chevron-back" size={22} color="#24384e" />
+            <Feather name="chevron-left" size={22} color="#24384e" />
           </TouchableOpacity>
           <Text style={styles.title}>Detaliu Progres</Text>
         </View>
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 38, height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   content: { padding: 16 },
   card: {
     marginBottom: 12,
-    backgroundColor: 'rgba(255,255,255,0.86)', borderRadius: 18, padding: 16,
+    backgroundColor: 'rgba(255,255,255,0.58)', borderRadius: 18, padding: 16,
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
   },

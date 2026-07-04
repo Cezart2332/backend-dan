@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform, Switch,
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { api } from '../utils/api';
@@ -203,7 +203,7 @@ export default function QuoteOfTheDayScreen({ navigation }) {
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Ionicons name="chevron-back" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color="#24384e" />
             </TouchableOpacity>
             <Text style={styles.title}>Gândul de azi de la Dan</Text>
             <Text style={styles.subtitle}>Un gând pentru liniște și acceptare</Text>
@@ -211,7 +211,7 @@ export default function QuoteOfTheDayScreen({ navigation }) {
 
           {/* Quote Card */}
           <View style={styles.card}>
-            <Ionicons name="chatbubble-ellipses-outline" size={30} color="#24384e" style={{ marginBottom: 14, alignSelf: 'center' }} />
+            <Feather name="message-circle" size={30} color="#24384e" style={{ marginBottom: 14, alignSelf: 'center' }} />
             <Text style={styles.quoteText}>{quote}</Text>
             <TouchableOpacity style={styles.refreshBtn} onPress={refreshQuote}>
               <Text style={styles.refreshText}>Alt gând</Text>
@@ -235,7 +235,7 @@ export default function QuoteOfTheDayScreen({ navigation }) {
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Ionicons name="leaf-outline" size={14} color="#5b6a7a" style={{ marginRight: 5 }} />
+            <Feather name="feather" size={14} color="#5b6a7a" style={{ marginRight: 5 }} />
             <Text style={styles.footerText}>Ești în siguranță. Respirația ta e ancora ta.</Text>
           </View>
         </ScrollView>
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   backButton: {
     position: 'absolute', left: 0, top: 0, zIndex: 10,
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
@@ -260,20 +260,20 @@ const styles = StyleSheet.create({
   title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 22, fontWeight: '700', color: '#1c2b3a', marginTop: 10, textAlign: 'center' },
   subtitle: { fontSize: 14, color: '#5b6a7a', marginTop: 6, marginBottom: 8, textAlign: 'center' },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.86)', borderRadius: 18, padding: 22, marginVertical: 12,
+    backgroundColor: 'rgba(255,255,255,0.58)', borderRadius: 18, padding: 22, marginVertical: 12,
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 5,
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)', alignItems: 'center',
   },
   quoteText: { fontSize: 17, color: '#1c2b3a', textAlign: 'center', lineHeight: 26 },
   refreshBtn: {
     marginTop: 16, borderRadius: 12, alignSelf: 'center',
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     borderWidth: 1, borderColor: 'rgba(36,56,78,0.18)',
     paddingVertical: 10, paddingHorizontal: 20,
   },
   refreshText: { color: '#24384e', fontWeight: '600', fontSize: 14 },
   notifyCard: {
-    backgroundColor: 'rgba(255,255,255,0.86)', borderRadius: 18, padding: 18, marginTop: 8,
+    backgroundColor: 'rgba(255,255,255,0.58)', borderRadius: 18, padding: 18, marginTop: 8,
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
   },

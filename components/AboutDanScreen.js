@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 
 export default function AboutDanScreen({ navigation }) {
   const items = [
@@ -29,7 +29,7 @@ export default function AboutDanScreen({ navigation }) {
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
-              <Ionicons name="chevron-back" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color="#24384e" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Eu sunt Dan</Text>
           </View>
@@ -47,7 +47,7 @@ export default function AboutDanScreen({ navigation }) {
                     <Text style={styles.rowTitle}>{it.title}</Text>
                     <Text style={styles.rowSubtitle}>{it.subtitle}</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color="#9aa5b1" />
+                  <Feather name="chevron-right" size={18} color="#9aa5b1" />
                 </TouchableOpacity>
               </React.Fragment>
             ))}
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", marginBottom: 28, marginTop: 4 },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.88)",
+    backgroundColor: "rgba(255,255,255,0.55)",
     alignItems: "center", justifyContent: "center",
     borderWidth: 1, borderColor: "rgba(32,47,62,0.18)",
     shadowColor: "#24384e", shadowOffset: { width: 0, height: 2 },
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 22, fontWeight: "700", color: "#1c2b3a", letterSpacing: -0.3 },
   sectionLabel: { fontSize: 11, fontWeight: "700", color: "#8a97a5", letterSpacing: 1.2, marginBottom: 8, marginLeft: 4 },
   group: {
-    backgroundColor: "rgba(255,255,255,0.86)", borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.58)", borderRadius: 18,
     borderWidth: 1, borderColor: "rgba(32,47,62,0.18)", overflow: "hidden",
     shadowColor: "#24384e", shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { addEntry, getUnsyncedEntries, markEntrySynced, setBackendReady } from '../utils/progressStorage';
 import { getToken } from '../utils/authStorage';
 import { api } from '../utils/api';
@@ -104,12 +104,12 @@ export default function ProgressScreen({ navigation }) {
               onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))}
               style={styles.backButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Ionicons name="chevron-back" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color="#24384e" />
             </TouchableOpacity>
 
             <View style={styles.headerContent}>
               <View style={styles.headerIcon}>
-                <Ionicons name="bar-chart-outline" size={36} color="#24384e" />
+                <Feather name="bar-chart-2" size={36} color="#24384e" />
               </View>
               <Text style={styles.title}>Progresul Meu</Text>
               <Text style={styles.subtitle}>Urmărește-ți evoluția zilnică</Text>
@@ -117,7 +117,7 @@ export default function ProgressScreen({ navigation }) {
 
             <TouchableOpacity style={styles.headerAction} onPress={() => navigation.navigate('ProgressHistory')}>
               <View style={styles.headerActionInner}>
-                <Ionicons name="time-outline" size={16} color="#24384e" style={{ marginRight: 6 }} />
+                <Feather name="clock" size={16} color="#24384e" style={{ marginRight: 6 }} />
                 <Text style={styles.headerActionText}>Vezi istoric</Text>
               </View>
             </TouchableOpacity>
@@ -223,7 +223,7 @@ export default function ProgressScreen({ navigation }) {
           {/* Progress Insights */}
           <View style={styles.insightsSection}>
             <View style={styles.insightsCard}>
-              <Ionicons name="bulb-outline" size={28} color="#b07e3e" style={{ marginBottom: 8 }} />
+              <Feather name="zap" size={28} color="#b07e3e" style={{ marginBottom: 8 }} />
               <Text style={styles.insightsTitle}>Sfat pentru astăzi</Text>
               <Text style={styles.insightsText}>
                 {anxietyLevel <= 3 
@@ -242,10 +242,10 @@ export default function ProgressScreen({ navigation }) {
             onPress={handleSendJournal}
           >
             <LinearGradient
-              colors={['#24384e', '#16222f']}
+              colors={['rgba(28,43,58,0.94)', 'rgba(22,34,47,0.96)']}
               style={styles.sendButtonGradient}
             >
-              <Ionicons name="pencil-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+              <Feather name="edit-2" size={20} color="#fff" style={{ marginRight: 8 }} />
               <Text style={styles.sendButtonText}>Trimite jurnal către Dan</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     borderWidth: 1,
     borderColor: 'rgba(32,47,62,0.18)',
     justifyContent: 'center',
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: 'rgba(32,47,62,0.18)',
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
   },
   headerActionText: {
     color: '#24384e',
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
     width: (width - 80) / 5 - 4,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.86)',
+    backgroundColor: 'rgba(255,255,255,0.58)',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#24384e',
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   inputContainer: {
-    backgroundColor: 'rgba(255,255,255,0.86)',
+    backgroundColor: 'rgba(255,255,255,0.58)',
     borderRadius: 18,
     padding: 16,
     shadowColor: '#24384e',
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(32,47,62,0.18)',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.86)',
+    backgroundColor: 'rgba(255,255,255,0.58)',
   },
   insightsIcon: {
     fontSize: 30,

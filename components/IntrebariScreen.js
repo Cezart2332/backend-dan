@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert,
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { api } from '../utils/api';
@@ -124,7 +124,7 @@ export default function IntrebariScreen({ navigation }) {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" onScrollBeginDrag={Keyboard.dismiss}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
-              <Ionicons name="chevron-back" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color="#24384e" />
             </TouchableOpacity>
             <View style={styles.headerText}>
               <Text style={styles.title}>Trimite-mi o întrebare</Text>
@@ -185,7 +185,7 @@ export default function IntrebariScreen({ navigation }) {
               <Switch value={consent} onValueChange={setConsent} />
             </View>
             <TouchableOpacity style={[styles.primaryBtn, loading && { opacity: 0.7 }]} onPress={sendQuestion} disabled={loading}>
-              <LinearGradient colors={["#24384e", "#16222f"]} style={styles.btnInner}>
+              <LinearGradient colors={["rgba(28,43,58,0.94)", "rgba(22,34,47,0.96)"]} style={styles.btnInner}>
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Trimite</Text>}
               </LinearGradient>
             </TouchableOpacity>
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, marginTop: 4 },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 2 },
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 20, fontWeight: '700', color: '#1c2b3a' },
   subtitle: { fontSize: 13, color: '#5b6a7a', marginTop: 2 },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.86)', borderRadius: 18, padding: 16, marginBottom: 14,
+    backgroundColor: 'rgba(255,255,255,0.58)', borderRadius: 18, padding: 16, marginBottom: 14,
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
   },
@@ -282,11 +282,11 @@ const styles = StyleSheet.create({
   inputLabel: { fontSize: 12, color: '#8a97a5', marginBottom: 4 },
   input: {
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 10,
-    backgroundColor: 'rgba(255,255,255,0.94)', color: '#1c2b3a',
+    backgroundColor: 'rgba(255,255,255,0.68)', color: '#1c2b3a',
   },
   textarea: {
     minHeight: 120, borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)', borderRadius: 12, padding: 10,
-    textAlignVertical: 'top', backgroundColor: 'rgba(255,255,255,0.94)', color: '#1c2b3a',
+    textAlignVertical: 'top', backgroundColor: 'rgba(255,255,255,0.68)', color: '#1c2b3a',
   },
   primaryBtn: { marginTop: 12, borderRadius: 12, overflow: 'hidden' },
   btnInner: { paddingVertical: 12, alignItems: 'center' },
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(32,47,62,0.22)',
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    backgroundColor: 'rgba(255,255,255,0.65)',
     padding: 12,
   },
   historyTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

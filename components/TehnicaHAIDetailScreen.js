@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import HeadphonesDisclaimer from "./HeadphonesDisclaimer";
 
 export default function TehnicaHAIDetailScreen({ navigation, route }) {
@@ -42,7 +42,7 @@ export default function TehnicaHAIDetailScreen({ navigation, route }) {
             style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))}
           >
-            <Ionicons name="chevron-back" size={20} color="#24384e" />
+            <Feather name="chevron-left" size={20} color="#24384e" />
             <Text style={styles.backText}>Înapoi</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignSelf: "center",
     marginTop: 20,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,

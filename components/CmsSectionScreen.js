@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import HeadphonesDisclaimer from "./HeadphonesDisclaimer";
 import { api } from "../utils/api";
 import { useSubscription } from "../contexts/SubscriptionContext";
@@ -44,12 +44,12 @@ export default function CmsSectionScreen({ route, navigation }) {
           <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
             <View style={styles.header}>
               <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
-                <Ionicons name="chevron-back" size={22} color="#24384e" />
+                <Feather name="chevron-left" size={22} color="#24384e" />
               </TouchableOpacity>
               <Text style={styles.headerTitle}>{sectionTitle}</Text>
             </View>
             <View style={styles.lockCard}>
-              <Ionicons name="lock-closed-outline" size={36} color="#b3924f" />
+              <Feather name="lock" size={36} color="#b3924f" />
               <Text style={styles.lockTitle}>Conținut disponibil cu abonament</Text>
               <Text style={styles.lockDesc}>Acest conținut este disponibil doar cu un abonament activ.</Text>
               <TouchableOpacity
@@ -73,7 +73,7 @@ export default function CmsSectionScreen({ route, navigation }) {
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
-              <Ionicons name="chevron-back" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color="#24384e" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>{sectionTitle}</Text>
           </View>
@@ -112,7 +112,7 @@ export default function CmsSectionScreen({ route, navigation }) {
                         <Text style={styles.rowTitle}>{item.title}</Text>
                         {item.description ? <Text style={styles.rowSubtitle} numberOfLines={2}>{item.description}</Text> : null}
                       </View>
-                      <Ionicons name="chevron-forward" size={18} color="#9aa5b1" />
+                      <Feather name="chevron-right" size={18} color="#9aa5b1" />
                     </TouchableOpacity>
                   </React.Fragment>
                 ))}
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", marginBottom: 28, marginTop: 4 },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.88)",
+    backgroundColor: "rgba(255,255,255,0.55)",
     alignItems: "center", justifyContent: "center",
     borderWidth: 1, borderColor: "rgba(32,47,62,0.18)",
     shadowColor: "#24384e", shadowOffset: { width: 0, height: 2 },
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: 11, fontWeight: "700", color: "#8a97a5", letterSpacing: 1.2, marginBottom: 6, marginLeft: 4, marginTop: 28 },
   intro: { fontSize: 14, color: "#5b6a7a", marginBottom: 16, marginLeft: 4, lineHeight: 20 },
   group: {
-    backgroundColor: "rgba(255,255,255,0.86)", borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.58)", borderRadius: 18,
     borderWidth: 1, borderColor: "rgba(32,47,62,0.18)", overflow: "hidden",
     shadowColor: "#24384e", shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: "center", color: "#8a97a5", marginTop: 20, fontWeight: "600" },
   lockCard: {
     marginTop: 40, borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.86)", borderWidth: 1, borderColor: "rgba(32,47,62,0.18)",
+    backgroundColor: "rgba(255,255,255,0.58)", borderWidth: 1, borderColor: "rgba(32,47,62,0.18)",
     padding: 28, alignItems: "center",
     shadowColor: "#24384e", shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
+  Animated,
   View,
   Text,
   TouchableOpacity,
@@ -13,7 +14,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
+import { PressableScale } from "./ui";
 import { clearSubscription } from "../utils/subscriptionStorage";
 import { clearToken, getToken } from "../utils/authStorage";
 import { clearUser, getUser, saveUser } from "../utils/userStorage";
@@ -24,6 +26,40 @@ import { useSubscription } from "../contexts/SubscriptionContext";
 import { api, toAbsoluteApiUrl } from "../utils/api";
 
 const { width } = Dimensions.get("window");
+
+function EnterFade({ index = 0, children, style }) {
+  const anim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: 420,
+      delay: Math.min(index, 10) * 55,
+      useNativeDriver: true,
+    }).start();
+  }, [anim, index]);
+
+  return (
+    <Animated.View
+      style={[
+        style,
+        {
+          opacity: anim,
+          transform: [
+            {
+              translateY: anim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [14, 0],
+              }),
+            },
+          ],
+        },
+      ]}
+    >
+      {children}
+    </Animated.View>
+  );
+}
 
 export default function DashboardScreen({ navigation, onLogout }) {
   const { subscription, hasProEntitlement } = useSubscription();
@@ -107,7 +143,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
       id: 7,
       title: "Ajutor",
       subtitle: "Am nevoie acum",
-      iconName: "alert-circle-outline",
+      iconName: "alert-circle",
       color: "#3d7d5f",
     },
     // 2) Tehnici second
@@ -115,7 +151,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
       id: 6,
       title: "Tehnica HAI – metoda care elimină anxietatea",
       subtitle: "Descoperă pașii și aplicațiile",
-      iconName: "leaf-outline",
+      iconName: "feather",
       color: "#3e7e76",
     },
     // 3) About Dan
@@ -123,7 +159,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
       id: 8,
       title: "Eu sunt Dan fost anxios",
       subtitle: "Cunoaște-mă",
-      iconName: "person-circle-outline",
+      iconName: "user",
       color: "#6d6b8f",
     },
     // Rest of items
@@ -131,21 +167,21 @@ export default function DashboardScreen({ navigation, onLogout }) {
       id: 1,
       title: "Progresul meu",
       subtitle: "Urmărește-ți evoluția",
-      iconName: "bar-chart-outline",
+      iconName: "bar-chart-2",
       color: "#24384e",
     },
     {
       id: 2,
       title: "Gândul de azi de la Dan",
       subtitle: "Înțelepciune zilnică",
-      iconName: "chatbubble-ellipses-outline",
+      iconName: "message-circle",
       color: "#3d7d5f",
     },
     {
       id: 3,
       title: "Provocări",
       subtitle: "Depășește-ți limitele",
-      iconName: "trophy-outline",
+      iconName: "award",
       color: "#b07e3e",
     },
     {
@@ -153,42 +189,42 @@ export default function DashboardScreen({ navigation, onLogout }) {
       title:
         "Intră în direct cu Dan sau trimite-i jurnalul lui Dan pentru analiza",
       subtitle: "Conectează-te direct",
-      iconName: "videocam-outline",
+      iconName: "video",
       color: "#a8544c",
     },
     {
       id: 5,
       title: "Trimite-mi o întrebare",
       subtitle: "Pune-ți întrebările",
-      iconName: "help-circle-outline",
-      color: "#5bc0de",
+      iconName: "help-circle",
+      color: "#4a7a96",
     },
     {
       id: 11,
       title: "Webinarii",
       subtitle: "Acces live + înregistrări",
-      iconName: "videocam-outline",
+      iconName: "video",
       color: "#5c5a80",
     },
     {
       id: 12,
       title: "Comunitate chat",
       subtitle: "Discuții în timp real cu comunitatea",
-      iconName: "chatbubbles-outline",
+      iconName: "message-square",
       color: "#16222f",
     },
     {
       id: 9,
       title: "Abonamente & Acces",
       subtitle: "Planuri Basic / Premium / VIP",
-      iconName: "diamond-outline",
-      color: "#ff8c42",
+      iconName: "star",
+      color: "#b3924f",
     },
     {
       id: 10,
       title: "Înțelege anxietatea",
       subtitle: "Audio-uri și video explicative",
-      iconName: "headset-outline",
+      iconName: "headphones",
       color: "#5c5a80",
     },
   ];
@@ -277,6 +313,12 @@ export default function DashboardScreen({ navigation, onLogout }) {
         colors={["#f6f7f8", "#f3f4f6", "#eef0f2"]}
         style={styles.gradient}
       >
+        <Image
+          source={require("../assets/crescent.png")}
+          style={styles.watermark}
+          resizeMode="contain"
+          pointerEvents="none"
+        />
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {/* Header */}
           <View style={styles.header}>
@@ -301,7 +343,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
                 {profileAvatarUrl ? (
                   <Image source={{ uri: profileAvatarUrl }} style={styles.logoAvatar} />
                 ) : (
-                  <Ionicons name="person" size={24} color="#24384e" />
+                  <Feather name="user" size={24} color="#24384e" />
                 )}
               </View>
             </TouchableOpacity>
@@ -310,7 +352,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
           <View style={styles.medicalCard}>
             <View style={styles.medicalHeaderRow}>
               <View style={styles.medicalIconWrap}>
-                <Ionicons name="medkit-outline" size={18} color="#16222f" />
+                <Feather name="activity" size={18} color="#16222f" />
               </View>
               <Text style={styles.medicalTitle}>Informații medicale</Text>
             </View>
@@ -320,7 +362,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
               onPress={() => navigation.navigate("MedicalInfo")}
             >
               <Text style={styles.medicalActionText}>Vezi detalii și surse</Text>
-              <Ionicons name="chevron-forward" size={16} color="#16222f" />
+              <Feather name="chevron-right" size={16} color="#16222f" />
             </TouchableOpacity>
           </View>
 
@@ -339,26 +381,31 @@ export default function DashboardScreen({ navigation, onLogout }) {
                   ? ' Disponibil cu abonament activ'
                   : ' Disponibil cu abonament';
               return (
-              <TouchableOpacity
+              <EnterFade
                 key={item.id}
+                index={index}
                 style={[
                   styles.menuItem,
                   index === menuItems.length - 1 && styles.lastMenuItem,
                   locked && styles.lockedMenuItem,
                 ]}
-                onPress={() => handleMenuPress(item)}
               >
+              <PressableScale onPress={() => handleMenuPress(item)}>
                 <View style={styles.menuItemCard}>
                   <View style={styles.menuItemContent}>
                     <View
                       style={[
                         styles.iconContainer,
-                        { backgroundColor: locked ? '#e8e8e8' : item.color + "18" },
+                        {
+                          backgroundColor: 'rgba(255,255,255,0.5)',
+                          borderWidth: 1,
+                          borderColor: locked ? 'rgba(0,0,0,0.08)' : item.color + '4d',
+                        },
                       ]}
                     >
-                      <Ionicons
+                      <Feather
                         name={item.iconName}
-                        size={26}
+                        size={22}
                         color={locked ? '#aaa' : item.color}
                       />
                     </View>
@@ -367,7 +414,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
                       <Text style={[styles.menuItemTitle, locked && styles.lockedText]}>{item.title}</Text>
                       {locked ? (
                         <View style={styles.lockedRow}>
-                          <Ionicons name="lock-closed" size={11} color="#bbb" />
+                          <Feather name="lock" size={11} color="#bbb" />
                           <Text style={[styles.menuItemSubtitle, styles.lockedText]}>{lockLabel}</Text>
                         </View>
                       ) : (
@@ -376,15 +423,16 @@ export default function DashboardScreen({ navigation, onLogout }) {
                     </View>
 
                     <View style={styles.arrowContainer}>
-                      <Ionicons
-                        name={locked ? "lock-closed" : "chevron-forward"}
+                      <Feather
+                        name={locked ? "lock" : "chevron-right"}
                         size={18}
-                        color={locked ? '#ccc' : '#b6bfc9'}
+                        color={locked ? '#ccc' : '#8a97a5'}
                       />
                     </View>
                   </View>
                 </View>
-              </TouchableOpacity>
+              </PressableScale>
+              </EnterFade>
               );
             })}
           </View>
@@ -423,12 +471,16 @@ export default function DashboardScreen({ navigation, onLogout }) {
                           <View
                             style={[
                               styles.iconContainer,
-                              { backgroundColor: locked ? '#e8e8e8' : '#24384e' + '18' },
+                              {
+                                backgroundColor: 'rgba(255,255,255,0.5)',
+                                borderWidth: 1,
+                                borderColor: locked ? 'rgba(0,0,0,0.08)' : 'rgba(36,56,78,0.3)',
+                              },
                             ]}
                           >
-                            <Ionicons
-                              name={locked ? 'lock-closed-outline' : 'layers-outline'}
-                              size={26}
+                            <Feather
+                              name={locked ? 'lock' : 'layers'}
+                              size={22}
                               color={locked ? '#aaa' : '#24384e'}
                             />
                           </View>
@@ -437,7 +489,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
                             <Text style={[styles.menuItemTitle, locked && styles.lockedText]}>{section.title}</Text>
                             {locked ? (
                               <View style={styles.lockedRow}>
-                                <Ionicons name="lock-closed" size={11} color="#bbb" />
+                                <Feather name="lock" size={11} color="#bbb" />
                                 <Text style={[styles.menuItemSubtitle, styles.lockedText]}> Disponibil cu abonament</Text>
                               </View>
                             ) : (
@@ -446,10 +498,10 @@ export default function DashboardScreen({ navigation, onLogout }) {
                           </View>
 
                           <View style={styles.arrowContainer}>
-                            <Ionicons
-                              name={locked ? 'lock-closed' : 'chevron-forward'}
+                            <Feather
+                              name={locked ? 'lock' : 'chevron-right'}
                               size={18}
-                              color={locked ? '#ccc' : '#b6bfc9'}
+                              color={locked ? '#ccc' : '#8a97a5'}
                             />
                           </View>
                         </View>
@@ -467,9 +519,9 @@ export default function DashboardScreen({ navigation, onLogout }) {
               onPress={() => Linking.openURL('https://www.facebook.com/groups/820094195023604/')}
             >
               <LinearGradient colors={['#1877F2', '#145dbf']} style={styles.externalLinkGradient}>
-                <Ionicons name="people" size={20} color="#fff" style={styles.externalLinkIcon} />
+                <Feather name="users" size={20} color="#fff" style={styles.externalLinkIcon} />
                 <Text style={styles.externalLinkText}>Comunitate</Text>
-                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.88)" />
+                <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.9)" />
               </LinearGradient>
             </TouchableOpacity>
 
@@ -478,9 +530,9 @@ export default function DashboardScreen({ navigation, onLogout }) {
               onPress={() => Linking.openURL('https://danfostanxios.ro/testimoniale-2/')}
             >
               <LinearGradient colors={['#3d7d5f', '#2f6349']} style={styles.externalLinkGradient}>
-                <Ionicons name="star" size={20} color="#fff" style={styles.externalLinkIcon} />
+                <Feather name="star" size={20} color="#fff" style={styles.externalLinkIcon} />
                 <Text style={styles.externalLinkText}>Testimoniale Dan</Text>
-                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.88)" />
+                <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.9)" />
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -491,7 +543,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
               style={styles.termsButton}
               onPress={() => navigation.navigate("Terms")}
             >
-              <Ionicons name="document-text-outline" size={18} color="#5b6a7a" style={{ marginRight: 6 }} />
+              <Feather name="file-text" size={18} color="#5b6a7a" style={{ marginRight: 6 }} />
               <Text style={styles.termsText}>Termeni</Text>
             </TouchableOpacity>
 
@@ -499,7 +551,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
               style={styles.settingsButton}
               onPress={() => navigation.navigate("Settings")}
             >
-              <Ionicons name="settings-outline" size={18} color="#5b6a7a" style={{ marginRight: 6 }} />
+              <Feather name="settings" size={18} color="#5b6a7a" style={{ marginRight: 6 }} />
               <Text style={styles.settingsText}>Setări</Text>
             </TouchableOpacity>
 
@@ -507,7 +559,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
               style={styles.logoutButton}
               onPress={handleLogout}
             >
-              <Ionicons name="log-out-outline" size={18} color="#a8544c" style={{ marginRight: 6 }} />
+              <Feather name="log-out" size={18} color="#a8544c" style={{ marginRight: 6 }} />
               <Text style={styles.logoutText}>Ieșire</Text>
             </TouchableOpacity>
           </View>
@@ -524,6 +576,15 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 20,
     paddingVertical: 10,
+  },
+  watermark: {
+    position: "absolute",
+    top: -30,
+    right: -60,
+    width: 260,
+    height: 312,
+    opacity: 0.05,
+    transform: [{ rotate: "8deg" }],
   },
   header: {
     flexDirection: "row",
@@ -572,7 +633,7 @@ const styles = StyleSheet.create({
   },
   logoCircle: {
     width: 50, height: 50, borderRadius: 25,
-    backgroundColor: "rgba(255,255,255,0.88)",
+    backgroundColor: "rgba(255,255,255,0.55)",
     justifyContent: "center", alignItems: "center",
     borderWidth: 1, borderColor: "rgba(32,47,62,0.18)",
     shadowColor: "#24384e",
@@ -585,7 +646,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   medicalCard: {
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor: "rgba(255,255,255,0.62)",
     borderRadius: 18,
     borderWidth: 1,
     borderColor: "rgba(32,47,62,0.18)",
@@ -700,12 +761,12 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   menuItemCard: {
-    backgroundColor: "rgba(255,255,255,0.86)",
-    shadowColor: "#24384e",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
-    borderWidth: 1, borderColor: "rgba(32,47,62,0.18)",
-    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.55)",
+    shadowColor: "#16222f",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05, shadowRadius: 10, elevation: 2,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(32,47,62,0.28)",
+    borderRadius: 20,
   },
   menuItemContent: {
     flexDirection: "row",
@@ -788,7 +849,7 @@ const styles = StyleSheet.create({
   settingsButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.86)",
+    backgroundColor: "rgba(255,255,255,0.58)",
     paddingHorizontal: 20, paddingVertical: 12,
     borderRadius: 20,
     shadowColor: "#24384e",
@@ -802,7 +863,7 @@ const styles = StyleSheet.create({
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.86)",
+    backgroundColor: "rgba(255,255,255,0.58)",
     paddingHorizontal: 20, paddingVertical: 12,
     borderRadius: 20,
     shadowColor: "#24384e",
@@ -816,7 +877,7 @@ const styles = StyleSheet.create({
   termsButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.86)",
+    backgroundColor: "rgba(255,255,255,0.58)",
     paddingHorizontal: 16, paddingVertical: 12,
     borderRadius: 20,
     shadowColor: "#24384e",

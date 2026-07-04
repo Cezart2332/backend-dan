@@ -4,7 +4,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 
 export default function OnboardingQuestionsScreen({ navigation }) {
   const questions = useMemo(() => ([
@@ -129,7 +129,7 @@ export default function OnboardingQuestionsScreen({ navigation }) {
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Ionicons name="chevron-back" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color="#24384e" />
             </TouchableOpacity>
             <Text style={styles.title}>Întrebări inițiale</Text>
             <Text style={styles.subtitle}>Răspunde pentru a-ți personaliza experiența</Text>
@@ -171,7 +171,7 @@ export default function OnboardingQuestionsScreen({ navigation }) {
           >
             <View style={styles.continueInner}>
               <Text style={styles.continueText}>Continuă</Text>
-              <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
+              <Feather name="arrow-right" size={18} color="#fff" style={{ marginLeft: 8 }} />
             </View>
           </TouchableOpacity>
         </ScrollView>
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   backButton: {
     position: 'absolute', left: 0, top: 0, zIndex: 10,
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 22, fontWeight: '700', color: '#1c2b3a', marginTop: 10, textAlign: 'center' },
   subtitle: { fontSize: 14, color: '#5b6a7a', marginTop: 6, marginBottom: 8, textAlign: 'center' },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.86)', borderRadius: 18, padding: 18, marginVertical: 10,
+    backgroundColor: 'rgba(255,255,255,0.58)', borderRadius: 18, padding: 18, marginVertical: 10,
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
   },
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   optionsCol: { marginTop: 6 },
   choice: {
     flexDirection: 'row', alignItems: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.84)', borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.58)', borderRadius: 12,
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     paddingVertical: 10, paddingHorizontal: 12, marginVertical: 5,
   },

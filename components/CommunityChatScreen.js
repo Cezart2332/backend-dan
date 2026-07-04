@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
 import { useSubscription } from '../contexts/SubscriptionContext';
@@ -490,7 +490,7 @@ export default function CommunityChatScreen({ navigation }) {
       <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.gradient}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
-            <Ionicons name="chevron-back" size={22} color="#24384e" />
+            <Feather name="chevron-left" size={22} color="#24384e" />
           </TouchableOpacity>
           <View style={styles.headerTextWrap}>
             <Text style={styles.title}>Comunitate chat</Text>
@@ -500,7 +500,7 @@ export default function CommunityChatScreen({ navigation }) {
 
         {!hasChatAccess ? (
           <View style={styles.blockedCard}>
-            <Ionicons name="lock-closed" size={24} color="#5c5a80" />
+            <Feather name="lock" size={24} color="#5c5a80" />
             <Text style={styles.blockedTitle}>Acces cu abonament activ</Text>
             <Text style={styles.blockedText}>
               Chat-ul comunitatii este disponibil doar pentru abonamente active Basic, Premium sau VIP.
@@ -531,7 +531,7 @@ export default function CommunityChatScreen({ navigation }) {
                 onPress={() => loadHistory({ before: null, appendOlder: false })}
                 activeOpacity={0.75}
               >
-                <Ionicons name="refresh" size={16} color="#16222f" />
+                <Feather name="refresh-cw" size={16} color="#16222f" />
                 <Text style={styles.refreshBtnText}>Actualizeaza</Text>
               </TouchableOpacity>
             </View>
@@ -600,7 +600,7 @@ export default function CommunityChatScreen({ navigation }) {
                 }}
                 activeOpacity={0.75}
               >
-                <Ionicons name="chevron-down" size={18} color="#fff" />
+                <Feather name="chevron-down" size={18} color="#fff" />
               </TouchableOpacity>
             ) : null}
 
@@ -631,7 +631,7 @@ export default function CommunityChatScreen({ navigation }) {
                 <Text style={styles.counterText}>{Math.max(0, remainingChars)}</Text>
               </View>
               <TouchableOpacity style={styles.sendBtn} onPress={handleSend} activeOpacity={0.8}>
-                <Ionicons name="send" size={18} color="#fff" />
+                <Feather name="send" size={18} color="#fff" />
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -729,7 +729,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(36,56,78,0.25)',
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
   },
   refreshBtnText: { marginLeft: 6, color: '#16222f', fontSize: 12, fontWeight: '600' },
 
@@ -757,7 +757,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: 'rgba(36,56,78,0.2)',
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 8,
@@ -823,7 +823,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(36,56,78,0.6)',
   },
   messageBubbleOther: {
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: 'rgba(255,255,255,0.58)',
     borderColor: 'rgba(32,47,62,0.22)',
   },
   messageText: { fontSize: 14, lineHeight: 19 },
@@ -841,11 +841,11 @@ const styles = StyleSheet.create({
   },
   inputWrap: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(195,202,210,0.65)',
-    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255,255,255,0.45)',
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(32,47,62,0.3)',
+    paddingHorizontal: 14,
     paddingTop: 8,
     paddingBottom: 6,
   },
@@ -867,10 +867,10 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#24384e',
+    backgroundColor: 'rgba(28,43,58,0.92)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#24384e',
+    shadowColor: '#16222f',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.18,
     shadowRadius: 8,

@@ -68,7 +68,7 @@ export default function HeadphonesDisclaimer({ visibleInitially = true, onDismis
           }}
           accessibilityRole="button"
         >
-          <LinearGradient colors={["#24384e", "#16222f"]} style={styles.btnGrad}>
+          <LinearGradient colors={["rgba(28,43,58,0.94)", "rgba(22,34,47,0.96)"]} style={styles.btnGrad}>
             <Text style={styles.btnText}>Am înțeles</Text>
           </LinearGradient>
         </TouchableOpacity>

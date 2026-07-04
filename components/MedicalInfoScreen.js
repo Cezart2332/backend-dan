@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 
 const DISCLAIMER_TEXT = `Informații medicale:
 Această aplicație oferă conținut general de informare și sprijin pentru stare de bine. Nu înlocuiește sfatul, diagnosticul sau tratamentul medical. Cere întotdeauna părerea unui specialist calificat înainte de decizii medicale.`;
@@ -48,7 +48,7 @@ export default function MedicalInfoScreen({ navigation }) {
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
-              <Ionicons name="chevron-back" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color="#24384e" />
             </TouchableOpacity>
             <View style={styles.headerTextWrap}>
               <Text style={styles.title}>Informații medicale</Text>
@@ -59,7 +59,7 @@ export default function MedicalInfoScreen({ navigation }) {
           <View style={styles.disclaimerCard}>
             <View style={styles.cardHeaderRow}>
               <View style={styles.iconWrap}>
-                <Ionicons name="shield-checkmark-outline" size={18} color="#16222f" />
+                <Feather name="shield" size={18} color="#16222f" />
               </View>
               <Text style={styles.cardTitle}>Informații medicale</Text>
             </View>
@@ -69,7 +69,7 @@ export default function MedicalInfoScreen({ navigation }) {
           <View style={styles.referencesCard}>
             <View style={styles.cardHeaderRow}>
               <View style={[styles.iconWrap, styles.referencesIconWrap]}>
-                <Ionicons name="library-outline" size={18} color="#2b7f5d" />
+                <Feather name="book-open" size={18} color="#2b7f5d" />
               </View>
               <Text style={styles.cardTitle}>Surse medicale</Text>
             </View>
@@ -87,7 +87,7 @@ export default function MedicalInfoScreen({ navigation }) {
                 </View>
                 <View style={styles.sourceActionWrap}>
                   <Text style={styles.sourceActionText}>Vezi sursa</Text>
-                  <Ionicons name="open-outline" size={15} color="#16222f" />
+                  <Feather name="external-link" size={15} color="#16222f" />
                 </View>
               </TouchableOpacity>
             ))}
@@ -98,7 +98,7 @@ export default function MedicalInfoScreen({ navigation }) {
             onPress={() => navigation.navigate("Terms")}
             activeOpacity={0.8}
           >
-            <Ionicons name="document-text-outline" size={18} color="#16222f" style={{ marginRight: 8 }} />
+            <Feather name="file-text" size={18} color="#16222f" style={{ marginRight: 8 }} />
             <Text style={styles.learnMoreText}>Vezi mai multe în Termeni</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.88)",
+    backgroundColor: "rgba(255,255,255,0.55)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   disclaimerCard: {
-    backgroundColor: "rgba(255,255,255,0.82)",
+    backgroundColor: "rgba(255,255,255,0.55)",
     borderRadius: 18,
     borderWidth: 1,
     borderColor: "rgba(36,56,78,0.18)",
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   referencesCard: {
-    backgroundColor: "rgba(255,255,255,0.82)",
+    backgroundColor: "rgba(255,255,255,0.55)",
     borderRadius: 18,
     borderWidth: 1,
     borderColor: "rgba(61,125,95,0.25)",
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(32,47,62,0.22)",
     borderRadius: 12,
     padding: 12,
-    backgroundColor: "rgba(255,255,255,0.92)",
+    backgroundColor: "rgba(255,255,255,0.65)",
     marginTop: 10,
   },
   sourceTextWrap: {

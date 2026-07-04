@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { levels } from '../challenges';
 
 export default function LevelChallengesScreen({ route, navigation }) {
@@ -24,7 +24,7 @@ export default function LevelChallengesScreen({ route, navigation }) {
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Ionicons name="chevron-back" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color="#24384e" />
             </TouchableOpacity>
             <Text style={styles.title}>{level?.title || 'Provocări'}</Text>
             <Text style={styles.subtitle}>{level?.goal || 'Alege o provocare din listă'}</Text>
@@ -34,13 +34,13 @@ export default function LevelChallengesScreen({ route, navigation }) {
             <TouchableOpacity key={ch.id} style={styles.card} onPress={() => navigation.navigate('ChallengeRun', { level, challenge: ch })}>
               <View style={styles.cardInner}>
                 <View style={styles.cardIconWrap}>
-                  <Ionicons name="flash-outline" size={22} color="#24384e" />
+                  <Feather name="zap" size={22} color="#24384e" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.cardTitle}>{ch.title}</Text>
                   <Text style={styles.cardMeta}>Durată estimată: {ch.est}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color="#9aa5b1" />
+                <Feather name="chevron-right" size={18} color="#9aa5b1" />
               </View>
             </TouchableOpacity>
           ))}
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     position: 'absolute', left: 0, top: 0, zIndex: 10,
     width: 38, height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, color: '#5b6a7a', textAlign: 'center', marginTop: 6 },
   card: {
     marginTop: 12, borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.86)',
+    backgroundColor: 'rgba(255,255,255,0.58)',
     borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
   },

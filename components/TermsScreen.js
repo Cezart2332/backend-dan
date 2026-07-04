@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 
 export default function TermsScreen({ navigation }) {
   return (
@@ -23,7 +23,7 @@ export default function TermsScreen({ navigation }) {
             style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             activeOpacity={0.75}
           >
-            <Ionicons name="chevron-back" size={22} color="#24384e" />
+            <Feather name="chevron-left" size={22} color="#24384e" />
           </TouchableOpacity>
           <Text style={styles.title}>Termeni și Condiții</Text>
         </View>
@@ -34,7 +34,7 @@ export default function TermsScreen({ navigation }) {
         >
           <View style={styles.warningBox}>
             <View style={styles.warningTitleRow}>
-              <Ionicons name="warning-outline" size={18} color="#a8544c" style={{ marginRight: 6 }} />
+              <Feather name="alert-triangle" size={18} color="#a8544c" style={{ marginRight: 6 }} />
               <Text style={styles.warningTitle}>ATENȚIE!</Text>
             </View>
             <Text style={styles.warningText}>
@@ -197,7 +197,7 @@ export default function TermsScreen({ navigation }) {
 
           <View style={styles.contactBox}>
             <View style={styles.contactTitleRow}>
-              <Ionicons name="call-outline" size={16} color="#1c2b3a" style={{ marginRight: 6 }} />
+              <Feather name="phone" size={16} color="#1c2b3a" style={{ marginRight: 6 }} />
               <Text style={styles.contactTitle}>Contact</Text>
             </View>
             <Text style={styles.contactText}>
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.88)",
+    backgroundColor: "rgba(255,255,255,0.55)",
     alignItems: "center", justifyContent: "center",
     borderWidth: 1, borderColor: "rgba(32,47,62,0.18)",
     shadowColor: "#24384e", shadowOffset: { width: 0, height: 2 },
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   paragraph: { fontSize: 14, color: "#4a5568", lineHeight: 22, textAlign: "justify" },
   bold: { fontWeight: "700", color: "#1c2b3a" },
   contactBox: {
-    backgroundColor: "rgba(255,255,255,0.86)", borderRadius: 18, padding: 16, marginTop: 24,
+    backgroundColor: "rgba(255,255,255,0.58)", borderRadius: 18, padding: 16, marginTop: 24,
     borderWidth: 1, borderColor: "rgba(32,47,62,0.18)",
     shadowColor: "#24384e", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
   },

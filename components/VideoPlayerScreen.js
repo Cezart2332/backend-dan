@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEvent } from "expo";
 import Constants from "expo-constants";
@@ -323,7 +323,7 @@ export default function VideoPlayerScreen({
               style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               activeOpacity={0.75}
             >
-              <Ionicons name="chevron-back" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color="#24384e" />
             </TouchableOpacity>
             <View style={styles.headerTextWrap}>
               <Text style={styles.title}>{title}</Text>
@@ -455,7 +455,7 @@ export default function VideoPlayerScreen({
             onPress={handlePlayPause}
           >
             <LinearGradient
-              colors={["#24384e", "#16222f"]}
+              colors={["rgba(28,43,58,0.94)", "rgba(22,34,47,0.96)"]}
               style={styles.btnInner}
             >
               <Text style={styles.primaryText}>
@@ -493,7 +493,7 @@ export default function VideoPlayerScreen({
             onPress={toggleAudioOnly}
           >
             <LinearGradient
-              colors={audioOnly ? ["#24384e", "#16222f"] : ["rgba(255,255,255,0.94)", "rgba(246,247,248,0.9)"]}
+              colors={audioOnly ? ["#24384e", "#16222f"] : ["rgba(255,255,255,0.68)", "rgba(246,247,248,0.9)"]}
               style={styles.audioToggleInner}
             >
               <Ionicons
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.88)",
+    backgroundColor: "rgba(255,255,255,0.55)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
@@ -617,7 +617,7 @@ const styles = StyleSheet.create({
   audioWrap: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.86)",
+    backgroundColor: "rgba(255,255,255,0.58)",
     borderRadius: 18,
     padding: 24,
     marginTop: 8,
