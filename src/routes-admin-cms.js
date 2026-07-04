@@ -4,7 +4,14 @@ import { mysqlPool } from './mysql.js';
 import { encodeVideoToHls, saveOriginalFile } from './video-encoder.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || process.env.CORE_ADMIN_TOKEN || null;
+
+function loadAdminToken() {
+  const raw = process.env.ADMIN_TOKEN || process.env.CORE_ADMIN_TOKEN || '';
+  const trimmed = String(raw).trim();
+  return trimmed.length ? trimmed : null;
+}
+
+const ADMIN_TOKEN = loadAdminToken();
 
 function safeCompare(a, b) {
   const hashA = createHash('sha256').update(String(a)).digest();
@@ -13,7 +20,7 @@ function safeCompare(a, b) {
 }
 
 async function adminAuth(request) {
-  const staticToken = request.headers['x-admin-token'];
+  const staticToken = String(request.headers['x-admin-token'] || '').trim();
   if (ADMIN_TOKEN && staticToken && safeCompare(staticToken, ADMIN_TOKEN)) return { admin: true, method: 'token' };
 
   const auth = request.headers['authorization'] || request.headers['Authorization'];

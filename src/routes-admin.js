@@ -5,7 +5,14 @@ import { isExpoPushToken, sendPushToExpoTokens } from './push.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
 if (!JWT_SECRET) throw new Error('CRITICAL: JWT_SECRET is required');
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || process.env.CORE_ADMIN_TOKEN || null;
+
+function loadAdminToken() {
+  const raw = process.env.ADMIN_TOKEN || process.env.CORE_ADMIN_TOKEN || '';
+  const trimmed = String(raw).trim();
+  return trimmed.length ? trimmed : null;
+}
+
+const ADMIN_TOKEN = loadAdminToken();
 const ADMIN_STATS_CACHE_TTL_MS = Math.max(1000, Number(process.env.ADMIN_STATS_CACHE_TTL_MS || 15000));
 const MEETING_STATUSES = ['scheduled', 'completed', 'cancelled'];
 const WEBINAR_STATUSES = ['scheduled', 'live', 'held', 'cancelled'];
@@ -226,7 +233,7 @@ function safeCompare(a, b) {
  */
 async function adminAuth(request) {
   // 1) Static token approach
-  const staticToken = request.headers['x-admin-token'];
+  const staticToken = String(request.headers['x-admin-token'] || '').trim();
   if (ADMIN_TOKEN && staticToken && safeCompare(staticToken, ADMIN_TOKEN)) return { admin: true, method: 'token' };
 
   // 2) JWT approach – check is_admin flag on user
@@ -248,6 +255,14 @@ async function adminAuth(request) {
 }
 
 export async function registerAdminRoutes(app) {
+
+  // Diagnostic: verifica daca ADMIN_TOKEN e setat pe server (fara a dezvălui tokenul).
+  app.get('/api/admin/ping', async (_request, reply) => {
+    return reply.send({
+      ok: true,
+      adminTokenConfigured: Boolean(ADMIN_TOKEN),
+    });
+  });
 
   // ─── Admin Login (returns success if token is valid) ───
   app.post('/api/admin/login', async (request, reply) => {
