@@ -251,9 +251,14 @@ export async function registerAdminRoutes(app) {
 
   // ─── Admin Login (returns success if token is valid) ───
   app.post('/api/admin/login', async (request, reply) => {
-    const { token } = request.body || {};
+    const token = String(request.body?.token || '').trim();
     if (!token) return reply.code(400).send({ error: 'Token necesar' });
-    if (ADMIN_TOKEN && safeCompare(token, ADMIN_TOKEN)) {
+    if (!ADMIN_TOKEN) {
+      return reply.code(503).send({
+        error: 'ADMIN_TOKEN nu este configurat pe server. Adauga variabila ADMIN_TOKEN in mediul backend-ului.',
+      });
+    }
+    if (safeCompare(token, ADMIN_TOKEN)) {
       return reply.send({ ok: true, method: 'token' });
     }
     return reply.code(403).send({ error: 'Token invalid' });
