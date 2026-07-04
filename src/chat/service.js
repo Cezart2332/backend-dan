@@ -409,12 +409,6 @@ export async function getUsersWithUnreadMessages({ minHoursSinceNotify = 6 } = {
          WHERE cm_unread.user_id <> u.id
            AND cm_unread.id > COALESCE(cur.last_read_message_id, 0)
        )
-       AND EXISTS (
-         SELECT 1 FROM subscriptions s
-         WHERE s.user_id = u.id
-           AND s.type IN ('basic','premium','vip','pro')
-           AND (s.ends_at IS NULL OR s.ends_at > NOW())
-       )
      ORDER BY u.id`,
     [maxId, minHoursSinceNotify]
   );

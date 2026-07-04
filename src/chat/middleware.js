@@ -71,18 +71,19 @@ async function getActiveSubscription(userId) {
 }
 
 /**
- * Fastify auth hook that allows access only to authenticated users
- * with an active paid subscription.
+ * Fastify auth hook for chat: allows access to any authenticated user.
+ * Chat-ul comunității este deschis tuturor utilizatorilor logați,
+ * indiferent de abonament.
  *
- * The hook also attaches `request.chatUser` and `request.subscription`
- * for downstream handlers.
+ * The hook attaches `request.chatUser` (and `request.subscription`
+ * when one exists) for downstream handlers.
  *
  * @param {import('fastify').FastifyRequest} request
  * @param {import('fastify').FastifyReply} reply
  * @param {{ allowQueryToken?: boolean }} [options]
  * @returns {Promise<void>}
  */
-export async function requireActiveSubscription(request, reply, options = {}) {
+export async function requireChatUser(request, reply, options = {}) {
   const token = extractAuthToken(request, options);
   if (!token) {
     reply.code(401).send({ error: 'Neautorizat' });
@@ -109,15 +110,6 @@ export async function requireActiveSubscription(request, reply, options = {}) {
     return;
   }
 
-  const subscription = await getActiveSubscription(chatUser.id);
-  if (!subscription) {
-    reply.code(403).send({
-      error: 'Accesul la comunitate este disponibil doar cu abonament activ.',
-      code: 'CHAT_SUBSCRIPTION_REQUIRED',
-    });
-    return;
-  }
-
   request.chatUser = chatUser;
-  request.subscription = subscription;
+  request.subscription = await getActiveSubscription(chatUser.id);
 }

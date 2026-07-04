@@ -1,4 +1,4 @@
-import { requireActiveSubscription } from './middleware.js';
+import { requireChatUser } from './middleware.js';
 import {
   broadcastSystemEvent,
   getChatHistoryPage,
@@ -18,7 +18,7 @@ function parseBeforeMessageId(rawBefore) {
 }
 
 /**
- * Registers subscription-gated chat routes (REST + websocket).
+ * Registers auth-gated chat routes (REST + websocket).
  *
  * @param {import('fastify').FastifyInstance} app
  * @returns {Promise<void>}
@@ -28,7 +28,7 @@ export async function registerChatRoutes(app) {
     '/chat/history',
     {
       preHandler: async (request, reply) => {
-        await requireActiveSubscription(request, reply);
+        await requireChatUser(request, reply);
       },
     },
     async (request, reply) => {
@@ -55,7 +55,7 @@ export async function registerChatRoutes(app) {
     '/chat/read',
     {
       preHandler: async (request, reply) => {
-        await requireActiveSubscription(request, reply);
+        await requireChatUser(request, reply);
       },
     },
     async (request, reply) => {
@@ -78,7 +78,7 @@ export async function registerChatRoutes(app) {
     {
       websocket: true,
       preValidation: async (request, reply) => {
-        await requireActiveSubscription(request, reply, { allowQueryToken: true });
+        await requireChatUser(request, reply, { allowQueryToken: true });
       },
     },
     (socket, request) => {
