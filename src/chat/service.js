@@ -307,6 +307,10 @@ export async function handleChatSocketMessage({ socket, rawData, chatUser }) {
   const savedMessage = await insertChatMessage(chatUser.id, content);
   const payload = buildMessagePayload(savedMessage, chatUser);
   broadcastPayload(payload);
+
+  // Cine scrie în chat este în conversație, deci a citit tot ce e până acum —
+  // evită notificări de "mesaje necitite" pentru participanții activi.
+  markChatAsRead(chatUser.id).catch(() => {});
 }
 
 /**
