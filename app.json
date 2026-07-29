@@ -106,7 +106,7 @@
     "extra": {
       "EXPO_PUBLIC_API_URL": "https://api.danfostanxios.ro",
       "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_PmKTgPqleLWWTmQYOWGzJCdQoyC",
-      "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_NpHcWatEEingJytfKUnZwRokETY",
+      "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_NpHcWatEEingJfytKUnZwRokETY",
       "EXPO_PUBLIC_REVENUECAT_API_KEY": "",
       "EXPO_PUBLIC_REVENUECAT_ENTITLEMENT": "Dan Fost Anxios Pro",
       "facebookAppId": "768698326078162",
