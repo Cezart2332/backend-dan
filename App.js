@@ -47,7 +47,9 @@ import MedicalInfoScreen from "./components/MedicalInfoScreen";
 import CommunityChatScreen from "./components/CommunityChatScreen";
 import ProfileScreen from "./components/ProfileScreen";
 import CmsSectionScreen from "./components/CmsSectionScreen";
+import NotificationsScreen from "./components/NotificationsScreen";
 import { getToken, clearToken } from "./utils/authStorage";
+import { registerForPushNotifications } from "./utils/pushRegistration";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import SubscriptionPaywall from "./components/SubscriptionPaywall";
 import { clearSubscription } from "./utils/subscriptionStorage";
@@ -140,6 +142,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!isAuthed) return;
+    registerForPushNotifications().catch(() => {});
+  }, [isAuthed]);
+
+  useEffect(() => {
     let active = true;
     const handledNotificationIds = new Set();
 
@@ -154,32 +161,14 @@ export default function App() {
       const data = notification?.request?.content?.data || {};
       const type = String(data?.type || '').toLowerCase();
 
-      if (type === 'question_response') {
-        navigationRef.current?.navigate?.('Intrebari');
-        return;
-      }
-
-      if (type === 'announcement') {
-        navigationRef.current?.navigate?.('Dashboard');
-        return;
-      }
-
-      if (type === 'webinar_created' || type === 'webinar_updated') {
-        const webinarId = Number(data?.webinarId);
-        navigationRef.current?.navigate?.('Webinarii', {
-          focusWebinarId: Number.isFinite(webinarId) ? webinarId : undefined,
-        });
-        return;
-      }
-
-      if (type === 'meeting_updated') {
-        navigationRef.current?.navigate?.('Direct');
-        return;
-      }
-
-      if (type === 'chat_unread') {
+      // Mesajele de chat duc direct în conversație (stil WhatsApp) — restul
+      // notificărilor/anunțurilor merg în secțiunea dedicată de Notificări.
+      if (type === 'chat_message' || type === 'chat_unread') {
         navigationRef.current?.navigate?.('CommunityChat');
+        return;
       }
+
+      navigationRef.current?.navigate?.('Notifications');
     };
 
     Notifications.getLastNotificationResponseAsync()
@@ -271,6 +260,7 @@ export default function App() {
             <Stack.Screen name="Intrebari" component={IntrebariScreen} />
             <Stack.Screen name="Webinarii" component={WebinariiScreen} />
             <Stack.Screen name="CommunityChat" component={CommunityChatScreen} />
+            <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="AboutDan" component={AboutDanScreen} />
             <Stack.Screen

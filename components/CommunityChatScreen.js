@@ -23,7 +23,7 @@ import { api, buildWebSocketUrl, toAbsoluteApiUrl } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { getUser } from '../utils/userStorage';
 
-const MAX_MESSAGE_LENGTH = 500;
+const MAX_MESSAGE_LENGTH = 2000;
 const RECONNECT_DELAY_MS = 2500;
 const PING_INTERVAL_MS = 25000;
 
@@ -406,7 +406,7 @@ export default function CommunityChatScreen({ navigation }) {
     if (!content.length) return;
 
     if (content.length > MAX_MESSAGE_LENGTH) {
-      Alert.alert('Mesaj prea lung', 'Mesajul poate avea maximum 500 de caractere.');
+      Alert.alert('Mesaj prea lung', `Mesajul poate avea maximum ${MAX_MESSAGE_LENGTH} de caractere.`);
       return;
     }
 
@@ -637,7 +637,7 @@ export default function CommunityChatScreen({ navigation }) {
                   multiline
                   maxLength={MAX_MESSAGE_LENGTH}
                 />
-                {remainingChars < 60 ? (
+                {remainingChars < 200 ? (
                   <Text style={styles.counterText}>{Math.max(0, remainingChars)}</Text>
                 ) : null}
                 <PressableScale

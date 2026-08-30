@@ -73,6 +73,18 @@ export const api = {
   // Notifications
   registerPushToken: (payload, token) => request('/api/notifications/push-token', { method: 'POST', body: payload, token }),
   unregisterPushToken: (payload, token) => request('/api/notifications/push-token', { method: 'DELETE', body: payload, token }),
+  listNotifications: (token, before) => request(
+    Number.isFinite(Number(before)) && Number(before) > 0
+      ? `/api/notifications?before=${encodeURIComponent(String(before))}`
+      : '/api/notifications',
+    { method: 'GET', token }
+  ),
+  getUnreadNotificationsCount: (token) => request('/api/notifications/unread-count', { method: 'GET', token }),
+  markNotificationsRead: (token, ids) => request('/api/notifications/read', {
+    method: 'POST',
+    body: Array.isArray(ids) && ids.length ? { ids } : {},
+    token,
+  }),
   // Meetings
   createMeeting: (payload, token) => request('/api/meetings', { method: 'POST', body: payload, token }),
   listMyMeetings: (token) => request('/api/meetings', { method: 'GET', token }),

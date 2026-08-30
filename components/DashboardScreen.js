@@ -164,6 +164,19 @@ export default function DashboardScreen({ navigation, onLogout }) {
   const [profileName, setProfileName] = useState("");
   const [profileAvatarUrl, setProfileAvatarUrl] = useState(null);
   const [cmsSections, setCmsSections] = useState([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  const refreshUnreadNotifications = useCallback(async () => {
+    const token = await getToken();
+    if (!token) return;
+
+    try {
+      const response = await api.getUnreadNotificationsCount(token);
+      setUnreadNotifications(Number(response?.unreadCount) || 0);
+    } catch {
+      // Contorul se reia la următoarea deschidere a ecranului.
+    }
+  }, []);
 
   const applyProfilePreview = useCallback((userPayload) => {
     const resolvedName = String(userPayload?.name || "").trim();
@@ -201,11 +214,13 @@ export default function DashboardScreen({ navigation, onLogout }) {
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", () => {
       refreshProfilePreview().catch(() => {});
+      refreshUnreadNotifications().catch(() => {});
     });
 
     refreshProfilePreview().catch(() => {});
+    refreshUnreadNotifications().catch(() => {});
     return unsubscribe;
-  }, [navigation, refreshProfilePreview]);
+  }, [navigation, refreshProfilePreview, refreshUnreadNotifications]);
 
   useEffect(() => {
     api.getCmsVideoSections()
@@ -388,17 +403,34 @@ export default function DashboardScreen({ navigation, onLogout }) {
               ) : null}
             </View>
 
-            <PressableScale
-              onPress={() => navigation.navigate("Profile")}
-              style={styles.avatarRing}
-              scaleTo={0.92}
-            >
-              {profileAvatarUrl ? (
-                <Image source={{ uri: profileAvatarUrl }} style={styles.avatar} />
-              ) : (
-                <Feather name="user" size={22} color="#24384e" />
-              )}
-            </PressableScale>
+            <View style={styles.headerActions}>
+              <PressableScale
+                onPress={() => navigation.navigate("Notifications")}
+                style={styles.bellRing}
+                scaleTo={0.92}
+              >
+                <Feather name="bell" size={19} color="#24384e" />
+                {unreadNotifications > 0 ? (
+                  <View style={styles.bellBadge}>
+                    <Text style={styles.bellBadgeText}>
+                      {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                    </Text>
+                  </View>
+                ) : null}
+              </PressableScale>
+
+              <PressableScale
+                onPress={() => navigation.navigate("Profile")}
+                style={styles.avatarRing}
+                scaleTo={0.92}
+              >
+                {profileAvatarUrl ? (
+                  <Image source={{ uri: profileAvatarUrl }} style={styles.avatar} />
+                ) : (
+                  <Feather name="user" size={22} color="#24384e" />
+                )}
+              </PressableScale>
+            </View>
           </EnterFade>
 
           {/* ── SOS ── */}
@@ -692,6 +724,40 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 1.4,
     color: "#5b6a7a",
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  bellRing: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(32,47,62,0.3)",
+  },
+  bellBadge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 3,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#a8544c",
+    borderWidth: 1.5,
+    borderColor: "#f6f7f8",
+  },
+  bellBadgeText: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: "#fff",
   },
   avatarRing: {
     width: 46,
