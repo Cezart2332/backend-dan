@@ -1,12 +1,12 @@
-import { Filter } from 'bad-words';
 import { mysqlPool } from '../mysql.js';
+import { isExpoPushToken, sendPushToExpoTokens } from '../push.js';
 
 const MESSAGE_RATE_LIMIT_COUNT = 5;
 const MESSAGE_RATE_LIMIT_WINDOW_MS = 10_000;
-const MAX_MESSAGE_LENGTH = 500;
+const MAX_MESSAGE_LENGTH = 2000;
 const MAX_HISTORY_LIMIT = 50;
+const PUSH_PREVIEW_LENGTH = 140;
 
-const profanityFilter = new Filter();
 const socketsByUserId = new Map();
 const messageTimestampsByUserId = new Map();
 
@@ -120,8 +120,10 @@ function formatIsoDate(value) {
 }
 
 function buildMessagePayload(messageRow, fallbackUser) {
+  const messageId = Number(messageRow?.id);
   return {
     type: 'message',
+    id: Number.isFinite(messageId) && messageId > 0 ? messageId : null,
     userId: String(messageRow?.user_id || fallbackUser?.id || ''),
     displayName: normalizeDisplayName(messageRow?.display_name || fallbackUser?.displayName),
     avatar: messageRow?.avatar_url || fallbackUser?.avatar || null,
@@ -281,15 +283,7 @@ export async function handleChatSocketMessage({ socket, rawData, chatUser }) {
   if (content.length > MAX_MESSAGE_LENGTH) {
     safeSend(socket, {
       type: 'error',
-      error: 'Mesajul depaseste limita de 500 de caractere.',
-    });
-    return;
-  }
-
-  if (profanityFilter.isProfane(content)) {
-    safeSend(socket, {
-      type: 'error',
-      error: 'Mesajul contine limbaj nepotrivit.',
+      error: `Mesajul depaseste limita de ${MAX_MESSAGE_LENGTH} de caractere.`,
     });
     return;
   }
@@ -308,9 +302,74 @@ export async function handleChatSocketMessage({ socket, rawData, chatUser }) {
   const payload = buildMessagePayload(savedMessage, chatUser);
   broadcastPayload(payload);
 
+  // Notificare push imediata pentru fiecare mesaj nou (stil WhatsApp).
+  sendChatMessagePush({ message: payload, senderUserId: chatUser.id }).catch(() => {});
+
   // Cine scrie în chat este în conversație, deci a citit tot ce e până acum —
   // evită notificări de "mesaje necitite" pentru participanții activi.
   markChatAsRead(chatUser.id).catch(() => {});
+}
+
+function buildChatPushPreview(content) {
+  const normalized = String(content || '').replace(/\s+/g, ' ').trim();
+  if (normalized.length <= PUSH_PREVIEW_LENGTH) return normalized;
+  return `${normalized.slice(0, PUSH_PREVIEW_LENGTH - 1).trimEnd()}…`;
+}
+
+/**
+ * Trimite o notificare push pentru un mesaj nou din chat catre toti membrii,
+ * mai putin autorul si cei care au chatul deschis (primesc mesajul live).
+ *
+ * @param {{ message: object, senderUserId: number|string }} params
+ * @returns {Promise<{ sentCount: number }>}
+ */
+export async function sendChatMessagePush({ message, senderUserId }) {
+  const senderId = Number(senderUserId);
+  if (!Number.isFinite(senderId) || senderId <= 0) return { sentCount: 0 };
+
+  // Utilizatorii cu socket deschis sunt deja in conversatie.
+  const connectedUserIds = [...socketsByUserId.keys()].filter((id) => Number.isFinite(Number(id)));
+  const excludedUserIds = [...new Set([senderId, ...connectedUserIds.map(Number)])];
+  const placeholders = excludedUserIds.map(() => '?').join(', ');
+
+  const [rows] = await mysqlPool.query(
+    `SELECT DISTINCT expo_push_token
+     FROM user_push_tokens
+     WHERE enabled = 1
+       AND user_id NOT IN (${placeholders})`,
+    excludedUserIds
+  );
+
+  const tokens = (Array.isArray(rows) ? rows : [])
+    .map((row) => row.expo_push_token)
+    .filter((token) => isExpoPushToken(token));
+
+  if (!tokens.length) return { sentCount: 0 };
+
+  const senderName = normalizeDisplayName(message?.displayName);
+  const result = await sendPushToExpoTokens({
+    tokens,
+    title: `${senderName} · Comunitate`,
+    body: buildChatPushPreview(message?.content),
+    data: {
+      type: 'chat_message',
+      messageId: message?.id ?? null,
+      senderId: String(senderId),
+    },
+    channelId: 'chat',
+  });
+
+  if (result.invalidTokens?.length) {
+    const invalidPlaceholders = result.invalidTokens.map(() => '?').join(', ');
+    await mysqlPool.query(
+      `UPDATE user_push_tokens
+       SET enabled = 0, updated_at = CURRENT_TIMESTAMP
+       WHERE expo_push_token IN (${invalidPlaceholders})`,
+      result.invalidTokens
+    );
+  }
+
+  return { sentCount: result.sentCount };
 }
 
 /**
@@ -373,62 +432,5 @@ export async function markChatAsRead(userId) {
      VALUES (?, ?)
      ON DUPLICATE KEY UPDATE last_read_message_id = VALUES(last_read_message_id), updated_at = CURRENT_TIMESTAMP`,
     [Number(userId), maxId]
-  );
-}
-
-/**
- * Returns users who have unread chat messages and active push tokens.
- * Excludes users who were notified in the last 6 hours.
- *
- * @param {object} [options]
- * @param {number} [options.minHoursSinceNotify=6]
- * @returns {Promise<Array<{user_id: number, expo_push_token: string, unread_count: number}>>}
- */
-export async function getUsersWithUnreadMessages({ minHoursSinceNotify = 6 } = {}) {
-  const [maxRows] = await mysqlPool.query('SELECT MAX(id) AS max_id FROM chat_messages');
-  const maxId = Array.isArray(maxRows) && maxRows.length ? Number(maxRows[0].max_id || 0) : 0;
-  if (!maxId) return [];
-
-  const [rows] = await mysqlPool.query(
-    `SELECT
-       u.id AS user_id,
-       upt.expo_push_token,
-       (SELECT COUNT(*)
-        FROM chat_messages cm
-        WHERE cm.user_id <> u.id
-          AND cm.id > COALESCE(cur.last_read_message_id, 0)) AS unread_count
-     FROM users u
-     INNER JOIN user_push_tokens upt ON upt.user_id = u.id AND upt.enabled = 1
-     LEFT JOIN chat_user_reads cur ON cur.user_id = u.id
-     WHERE
-       COALESCE(cur.last_read_message_id, 0) < ?
-       AND (cur.last_notified_at IS NULL OR cur.last_notified_at < DATE_SUB(NOW(), INTERVAL ? HOUR))
-       AND EXISTS (
-         SELECT 1
-         FROM chat_messages cm_unread
-         WHERE cm_unread.user_id <> u.id
-           AND cm_unread.id > COALESCE(cur.last_read_message_id, 0)
-       )
-     ORDER BY u.id`,
-    [maxId, minHoursSinceNotify]
-  );
-
-  return Array.isArray(rows) ? rows : [];
-}
-
-/**
- * Updates the last_notified_at timestamp for a set of users.
- *
- * @param {number[]} userIds
- * @returns {Promise<void>}
- */
-export async function updateChatNotificationTimestamp(userIds) {
-  if (!Array.isArray(userIds) || !userIds.length) return;
-  const placeholders = userIds.map(() => '?').join(', ');
-  await mysqlPool.query(
-    `INSERT INTO chat_user_reads (user_id, last_read_message_id, last_notified_at)
-     SELECT id, 0, CURRENT_TIMESTAMP FROM users WHERE id IN (${placeholders})
-     ON DUPLICATE KEY UPDATE last_notified_at = VALUES(last_notified_at)`,
-    userIds
   );
 }

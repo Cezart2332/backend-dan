@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { createHash, timingSafeEqual } from 'crypto';
 import { mysqlPool } from './mysql.js';
 import { isExpoPushToken, sendPushToExpoTokens } from './push.js';
+import { recordNotificationSafe } from './notifications-feed.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
 if (!JWT_SECRET) throw new Error('CRITICAL: JWT_SECRET is required');
@@ -130,6 +131,18 @@ async function notifyUserAboutMeetingUpdate({
   statusChanged,
   scheduleChanged,
 }) {
+  const pushTitle = 'Actualizare sedinta cu Dan';
+  const pushBody = buildMeetingPushBody({ previousMeeting, updatedMeeting, statusChanged, scheduleChanged });
+
+  await recordNotificationSafe({
+    userId: Number(userId),
+    type: 'meeting_updated',
+    title: pushTitle,
+    body: pushBody,
+    data: { meetingId, status: updatedMeeting?.status || null },
+    logger: request.log,
+  });
+
   const [tokenRows] = await mysqlPool.query(
     'SELECT expo_push_token FROM user_push_tokens WHERE user_id = ? AND enabled = 1',
     [Number(userId)]
@@ -143,8 +156,8 @@ async function notifyUserAboutMeetingUpdate({
 
   const pushResult = await sendPushToExpoTokens({
     tokens: pushTokens,
-    title: 'Actualizare sedinta cu Dan',
-    body: buildMeetingPushBody({ previousMeeting, updatedMeeting, statusChanged, scheduleChanged }),
+    title: pushTitle,
+    body: pushBody,
     data: {
       type: 'meeting_updated',
       meetingId,
@@ -176,6 +189,22 @@ async function disableInvalidPushTokens(invalidTokens) {
 }
 
 async function notifyPremiumVipUsersAboutWebinar({ request, webinar, webinarId, type, bodyOverride = null }) {
+  const body =
+    String(bodyOverride || '').trim() ||
+    buildWebinarPushBody(
+      webinar,
+      type === 'webinar_created' ? 'Am publicat un webinar nou.' : 'Webinarul a fost actualizat.'
+    );
+
+  await recordNotificationSafe({
+    audience: 'premium',
+    type,
+    title: 'Webinarii Dan',
+    body,
+    data: { webinarId },
+    logger: request.log,
+  });
+
   const [tokenRows] = await mysqlPool.query(
     `SELECT DISTINCT upt.expo_push_token
      FROM user_push_tokens upt
@@ -190,13 +219,6 @@ async function notifyPremiumVipUsersAboutWebinar({ request, webinar, webinarId, 
     .filter((token) => isExpoPushToken(token));
 
   if (!pushTokens.length) return 0;
-
-  const body =
-    String(bodyOverride || '').trim() ||
-    buildWebinarPushBody(
-      webinar,
-      type === 'webinar_created' ? 'Am publicat un webinar nou.' : 'Webinarul a fost actualizat.'
-    );
 
   const pushResult = await sendPushToExpoTokens({
     tokens: pushTokens,
@@ -519,6 +541,15 @@ export async function registerAdminRoutes(app) {
 
       let notified = 0;
       if (shouldNotify && normalizedResponse && existingQuestion.user_id) {
+        await recordNotificationSafe({
+          userId: Number(existingQuestion.user_id),
+          type: 'question_response',
+          title: 'Dan ti-a raspuns la intrebare',
+          body: 'Ai primit un raspuns nou la intrebarea ta.',
+          data: { questionId: id },
+          logger: request.log,
+        });
+
         const [tokenRows] = await mysqlPool.query(
           'SELECT expo_push_token FROM user_push_tokens WHERE user_id = ? AND enabled = 1',
           [Number(existingQuestion.user_id)]
@@ -1059,6 +1090,16 @@ export async function registerAdminRoutes(app) {
     if (normalizedBody.length > 500) return reply.code(400).send({ error: 'Mesajul este prea lung (maxim 500 caractere)' });
 
     try {
+      // Anuntul e salvat mai intai in feed, ca sa fie regasit in sectiunea
+      // "Notificari" din aplicatie chiar daca push-ul nu ajunge pe telefon.
+      const notificationId = await recordNotificationSafe({
+        audience: normalizedTarget === 'premium' ? 'premium' : 'all',
+        type: 'announcement',
+        title: normalizedTitle,
+        body: normalizedBody,
+        logger: request.log,
+      });
+
       let tokenRows;
       if (normalizedTarget === 'premium') {
         [tokenRows] = await mysqlPool.query(
@@ -1080,14 +1121,14 @@ export async function registerAdminRoutes(app) {
         .filter((token) => isExpoPushToken(token));
 
       if (!pushTokens.length) {
-        return reply.send({ sentCount: 0, totalTokens: 0 });
+        return reply.send({ sentCount: 0, totalTokens: 0, notificationId });
       }
 
       const pushResult = await sendPushToExpoTokens({
         tokens: pushTokens,
         title: normalizedTitle,
         body: normalizedBody,
-        data: { type: 'announcement' },
+        data: { type: 'announcement', notificationId },
         logger: request.log,
       });
 
@@ -1099,6 +1140,7 @@ export async function registerAdminRoutes(app) {
       return reply.send({
         sentCount: Number(pushResult?.sentCount || 0),
         totalTokens: pushTokens.length,
+        notificationId,
       });
     } catch (e) {
       request.log.error({ err: e }, 'Send announcement failed');

@@ -111,6 +111,10 @@ export async function runMigrations() {
   try {
     await mysqlPool.query(`ALTER TABLE chat_messages ADD INDEX idx_chat_messages_created_at (created_at)`);
   } catch {}
+  // Mesajele din chat pot fi mai lungi (limita veche era VARCHAR(500)).
+  try {
+    await mysqlPool.query(`ALTER TABLE chat_messages MODIFY COLUMN content TEXT NOT NULL`);
+  } catch {}
 
   // chat user read tracking
   await mysqlPool.query(`
@@ -429,4 +433,32 @@ export async function runMigrations() {
         (3, 'Nivel 3', '➡ scop: infruntarea situatiilor si gandurilor cele mai temute', '#d9534f', '#d9534f,#c9302c', 'Avansat', '20-30 min', 3)
     `);
   } catch {}
+
+  // ─── Notificari / Anunturi (feed in aplicatie) ───
+  await mysqlPool.query(`
+    CREATE TABLE IF NOT EXISTS app_notifications (
+      id BIGINT PRIMARY KEY AUTO_INCREMENT,
+      user_id BIGINT NULL,
+      audience ENUM('all','premium') NOT NULL DEFAULT 'all',
+      type VARCHAR(48) NOT NULL DEFAULT 'announcement',
+      title VARCHAR(255) NOT NULL,
+      body TEXT NOT NULL,
+      data TEXT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_app_notifications_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      INDEX idx_app_notifications_created (created_at),
+      INDEX idx_app_notifications_user_created (user_id, created_at)
+    )
+  `);
+
+  await mysqlPool.query(`
+    CREATE TABLE IF NOT EXISTS app_notification_reads (
+      user_id BIGINT NOT NULL,
+      notification_id BIGINT NOT NULL,
+      read_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (user_id, notification_id),
+      CONSTRAINT fk_app_notification_reads_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      CONSTRAINT fk_app_notification_reads_notification FOREIGN KEY (notification_id) REFERENCES app_notifications(id) ON DELETE CASCADE
+    )
+  `);
 }

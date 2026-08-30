@@ -24,7 +24,6 @@ import { registerAdminRoutes } from "./routes-admin.js";
 import { registerAdminCmsRoutes } from "./routes-admin-cms.js";
 import { registerCmsRoutes } from "./routes-cms.js";
 import { registerProfileRoutes } from "./routes-profile.js";
-import { scheduleChatUnreadNotifications } from "./chat-notifications.js";
 
 const logLevel = process.env.LOG_LEVEL || "info";
 const app = Fastify({ logger: { level: logLevel }, bodyLimit: 5 * 1024 * 1024 }); // 5MB max body
@@ -223,9 +222,6 @@ await registerChatRoutes(app);
 await registerAdminRoutes(app);
 await registerCmsRoutes(app);
 await registerAdminCmsRoutes(app);
-
-// Start background task for chat unread notifications (every 6 hours)
-scheduleChatUnreadNotifications({ log: app.log });
 
 async function shutdown(signal) {
   if (isShuttingDown) return;

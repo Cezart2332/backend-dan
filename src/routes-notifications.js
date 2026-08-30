@@ -1,6 +1,11 @@
 import jwt from 'jsonwebtoken';
 import { mysqlPool } from './mysql.js';
 import { isExpoPushToken } from './push.js';
+import {
+  countUnreadNotifications,
+  listNotificationsForUser,
+  markNotificationsRead,
+} from './notifications-feed.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
 if (!JWT_SECRET) throw new Error('CRITICAL: JWT_SECRET is required');
@@ -82,6 +87,58 @@ export async function registerNotificationRoutes(app) {
       return reply.send({ ok: true, affected: Number(result?.affectedRows || 0) });
     } catch (error) {
       request.log.error({ err: error }, 'Disable push token failed');
+      return reply.code(500).send({ error: 'Eroare server' });
+    }
+  });
+
+  // ─── Feed notificari / anunturi ───
+  app.get('/api/notifications', async (request, reply) => {
+    const user = authMiddleware(request);
+    if (!user) return reply.code(401).send({ error: 'Neautorizat' });
+
+    const rawBefore = request.query?.before;
+    const before = rawBefore === undefined || rawBefore === null || rawBefore === ''
+      ? null
+      : Number(rawBefore);
+    if (before !== null && (!Number.isFinite(before) || before <= 0)) {
+      return reply.code(400).send({ error: 'Parametrul before este invalid.' });
+    }
+
+    try {
+      const feed = await listNotificationsForUser(Number(user.sub), { before });
+      return reply.send(feed);
+    } catch (error) {
+      request.log.error({ err: error }, 'List notifications failed');
+      return reply.code(500).send({ error: 'Eroare server' });
+    }
+  });
+
+  app.get('/api/notifications/unread-count', async (request, reply) => {
+    const user = authMiddleware(request);
+    if (!user) return reply.code(401).send({ error: 'Neautorizat' });
+
+    try {
+      const unreadCount = await countUnreadNotifications(Number(user.sub));
+      return reply.send({ unreadCount });
+    } catch (error) {
+      request.log.error({ err: error }, 'Unread notifications count failed');
+      return reply.code(500).send({ error: 'Eroare server' });
+    }
+  });
+
+  app.post('/api/notifications/read', async (request, reply) => {
+    const user = authMiddleware(request);
+    if (!user) return reply.code(401).send({ error: 'Neautorizat' });
+
+    const rawIds = request.body?.ids;
+    const ids = Array.isArray(rawIds) ? rawIds : null;
+
+    try {
+      await markNotificationsRead(Number(user.sub), ids);
+      const unreadCount = await countUnreadNotifications(Number(user.sub));
+      return reply.send({ ok: true, unreadCount });
+    } catch (error) {
+      request.log.error({ err: error }, 'Mark notifications as read failed');
       return reply.code(500).send({ error: 'Eroare server' });
     }
   });
