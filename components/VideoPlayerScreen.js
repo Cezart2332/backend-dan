@@ -332,7 +332,7 @@ export default function VideoPlayerScreen({
         >
           {/* ── Header ── */}
           <View style={styles.header}>
-            <PressableScale
+            <PressableScale accessibilityRole="button" accessibilityLabel="Înapoi"
               onPress={() => {
                 player.pause();
                 player.staysActiveInBackground = false;
@@ -462,7 +462,7 @@ export default function VideoPlayerScreen({
               <Text style={styles.skipLabel}>15</Text>
             </PressableScale>
 
-            <PressableScale
+            <PressableScale accessibilityRole="button" accessibilityLabel={videoIsPlaying ? "Pauză" : "Redă"}
               onPress={handlePlayPause}
               disabled={controlsDisabled}
               style={[styles.playBtn, controlsDisabled && styles.disabled]}

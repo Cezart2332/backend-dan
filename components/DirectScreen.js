@@ -12,21 +12,17 @@ import {
   Pressable,
   Platform,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import * as Notifications from 'expo-notifications';
-import Constants from 'expo-constants';
 import { api } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { useTheme, useThemedStyles } from './ui/themeContext';
+import { registerForPushNotifications } from '../utils/pushRegistration';
 import { hapticNotify } from '../utils/haptics';
 
 const SLOT_TIMES = ['09:00', '10:30', '12:00', '14:00', '16:00', '18:00'];
 const DURATION_OPTIONS = [45, 60, 90];
-const SHARED_PUSH_TOKEN_KEY = 'quote_push_token';
-const DIRECT_PUSH_REGISTERED_KEY = 'direct_push_registered_v1';
 
 export default function DirectScreen({ navigation }) {
   const { tc } = useTheme();
@@ -44,40 +40,6 @@ export default function DirectScreen({ navigation }) {
     d.setDate(d.getDate() + selectedDayOffset);
     return d;
   }, [selectedDayOffset]);
-
-  const enableMeetingUpdateNotifications = React.useCallback(async (authToken) => {
-    if (!authToken) return;
-
-    try {
-      const alreadyRegistered = await AsyncStorage.getItem(DIRECT_PUSH_REGISTERED_KEY);
-      if (alreadyRegistered === '1') return;
-
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-      if (finalStatus !== 'granted') return;
-
-      let expoPushToken = await AsyncStorage.getItem(SHARED_PUSH_TOKEN_KEY);
-      if (!expoPushToken) {
-        const projectId = Constants?.expoConfig?.extra?.eas?.projectId || Constants?.easConfig?.projectId;
-        const tokenResult = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
-        expoPushToken = tokenResult?.data || null;
-        if (expoPushToken) {
-          await AsyncStorage.setItem(SHARED_PUSH_TOKEN_KEY, expoPushToken);
-        }
-      }
-
-      if (expoPushToken) {
-        await api.registerPushToken({ token: expoPushToken, platform: Platform.OS, enabled: true }, authToken);
-        await AsyncStorage.setItem(DIRECT_PUSH_REGISTERED_KEY, '1');
-      }
-    } catch (error) {
-      console.warn('Direct meeting notifications setup failed:', error?.message || error);
-    }
-  }, []);
 
   const openBookingModal = () => {
     setBookingVisible(true);
@@ -111,7 +73,7 @@ export default function DirectScreen({ navigation }) {
         token
       );
 
-      await enableMeetingUpdateNotifications(token);
+      await registerForPushNotifications();
 
       hapticNotify('success');
       setBookingVisible(false);
@@ -141,7 +103,7 @@ export default function DirectScreen({ navigation }) {
       <LinearGradient colors={[tc('#f6f7f8', 'bg'), tc('#f3f4f6', 'bg'), tc('#eef0f2', 'bg')]} style={styles.gradient}>
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Înapoi" onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
               <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
             </TouchableOpacity>
             <View style={styles.headerText}>
@@ -176,14 +138,14 @@ export default function DirectScreen({ navigation }) {
             <View style={styles.modalCard}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Programează o întâlnire cu Dan</Text>
-                <TouchableOpacity onPress={closeBookingModal} disabled={submitting}>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel="Închide" onPress={closeBookingModal} disabled={submitting}>
                   <Feather name="x" size={22} color={tc("#64748b", 'fg')} />
                 </TouchableOpacity>
               </View>
 
               <Text style={styles.sectionLabel}>Zi</Text>
               <View style={styles.dayRow}>
-                <TouchableOpacity
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel="Ziua anterioară"
                   style={[styles.navDayBtn, selectedDayOffset <= 0 && styles.navDayBtnDisabled]}
                   onPress={() => setSelectedDayOffset((v) => Math.max(0, v - 1))}
                   disabled={selectedDayOffset <= 0 || submitting}
@@ -191,7 +153,7 @@ export default function DirectScreen({ navigation }) {
                   <Feather name="chevron-left" size={18} color={tc("#24384e", 'fg')} />
                 </TouchableOpacity>
                 <Text style={styles.selectedDayText}>{formatDayLabel(selectedDate)}</Text>
-                <TouchableOpacity
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel="Ziua următoare"
                   style={[styles.navDayBtn, selectedDayOffset >= 20 && styles.navDayBtnDisabled]}
                   onPress={() => setSelectedDayOffset((v) => Math.min(20, v + 1))}
                   disabled={selectedDayOffset >= 20 || submitting}

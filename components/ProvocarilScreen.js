@@ -93,7 +93,7 @@ export default function ProvocarilScreen({ navigation }) {
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Înapoi"
               onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))}
               style={styles.backButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >

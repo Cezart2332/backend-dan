@@ -17,13 +17,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { api } from "../utils/api";
-import { getToken, clearToken } from "../utils/authStorage";
-import { clearUser } from "../utils/userStorage";
-import { clearSubscription } from "../utils/subscriptionStorage";
-import { clearEntries } from "../utils/progressStorage";
-import { replaceAllRuns } from "../utils/challengeStorage";
-import { logoutRevenueCatUser } from "../utils/revenuecat";
-import { clearAppBadge } from "../utils/appBadge";
+import { getToken } from "../utils/authStorage";
+import { signOutCleanup } from "../utils/session";
 import { hapticNotify, hapticSelection } from "../utils/haptics";
 import { useTheme, useThemedStyles } from "./ui/themeContext";
 
@@ -95,13 +90,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
       
       if (response.success) {
         // Clear all local storage
-        await logoutRevenueCatUser();
-        await clearToken();
-        await clearUser();
-        await clearSubscription();
-        await clearEntries();
-        await replaceAllRuns([]);
-        clearAppBadge();
+        await signOutCleanup();
         hapticNotify("success");
 
         Alert.alert(
@@ -180,7 +169,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
         >
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Înapoi"
               onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))}
               style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               activeOpacity={0.75}

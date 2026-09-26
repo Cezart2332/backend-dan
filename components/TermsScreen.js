@@ -21,7 +21,7 @@ export default function TermsScreen({ navigation }) {
         style={styles.background}
       >
         <View style={styles.header}>
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Înapoi"
             onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))}
             style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             activeOpacity={0.75}

@@ -208,7 +208,7 @@ export default function ProfileScreen({ navigation }) {
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={[tc('#f6f7f8', 'bg'), tc('#f3f4f6', 'bg'), tc('#eef0f2', 'bg')]} style={styles.gradient}>
         <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Înapoi" onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
             <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Profilul meu</Text>
@@ -227,7 +227,7 @@ export default function ProfileScreen({ navigation }) {
             keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
           >
             <View style={styles.avatarSection}>
-              <TouchableOpacity onPress={handlePickAvatar} activeOpacity={0.8} style={styles.avatarTapArea}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Schimbă poza de profil" onPress={handlePickAvatar} activeOpacity={0.8} style={styles.avatarTapArea}>
                 {displayedAvatarUri ? (
                   <Image source={{ uri: displayedAvatarUri }} style={styles.avatarImage} />
                 ) : (

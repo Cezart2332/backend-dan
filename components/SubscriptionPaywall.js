@@ -13,12 +13,7 @@ import {
 } from 'react-native';
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useSubscription } from "../contexts/SubscriptionContext";
-import { clearToken } from "../utils/authStorage";
-import { clearUser } from "../utils/userStorage";
-import { clearSubscription } from "../utils/subscriptionStorage";
-import { clearEntries } from "../utils/progressStorage";
-import { replaceAllRuns } from "../utils/challengeStorage";
-import { logoutRevenueCatUser } from "../utils/revenuecat";
+import { signOutCleanup } from "../utils/session";
 import { useTheme, useThemedStyles } from "./ui/themeContext";
 
 const { width } = Dimensions.get("window");
@@ -156,14 +151,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
   const handleLogout = async () => {
     try {
       setPendingAction("logout");
-      await Promise.all([
-        logoutRevenueCatUser(),
-        clearToken(),
-        clearUser(),
-        clearSubscription(),
-        clearEntries(),
-        replaceAllRuns([]),
-      ]);
+      await signOutCleanup();
     } finally {
       setPendingAction(null);
       dismissPaywall();
@@ -221,7 +209,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
           ]}
         >
           <View style={styles.gradient}>
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Închide"
               style={styles.closeButton}
               onPress={handleClose}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}

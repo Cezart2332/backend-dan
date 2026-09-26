@@ -99,7 +99,7 @@ export default function ForgotPasswordScreen({ navigation }) {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Login'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Înapoi" onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Login'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
               <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
             </TouchableOpacity>
 
@@ -174,7 +174,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                       editable={!loading}
                       onFocus={scrollFieldIntoView}
                     />
-                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel={showPassword ? "Ascunde parola" : "Arată parola"} onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
                       <Ionicons
                         name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                         size={20}

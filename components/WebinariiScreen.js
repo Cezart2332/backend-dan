@@ -14,16 +14,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import * as Notifications from 'expo-notifications';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
 import { api } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { useTheme, useThemedStyles } from './ui/themeContext';
+import { registerForPushNotifications } from '../utils/pushRegistration';
 
-const SHARED_PUSH_TOKEN_KEY = 'quote_push_token';
-const WEBINAR_PUSH_REGISTERED_KEY = 'webinars_push_registered_v1';
 
 function normalizeStatus(status) {
   const normalized = String(status || '').toLowerCase();
@@ -73,42 +69,6 @@ export default function WebinariiScreen({ navigation, route }) {
     return Number.isFinite(rawId) ? rawId : null;
   }, [route?.params?.focusWebinarId]);
 
-  const enableWebinarPush = useCallback(async () => {
-    try {
-      const authToken = await getToken();
-      if (!authToken) return;
-
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-      if (finalStatus !== 'granted') return;
-
-      let expoPushToken = await AsyncStorage.getItem(SHARED_PUSH_TOKEN_KEY);
-      if (!expoPushToken) {
-        const projectId = Constants?.expoConfig?.extra?.eas?.projectId || Constants?.easConfig?.projectId;
-        const tokenResult = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
-        expoPushToken = tokenResult?.data || null;
-        if (expoPushToken) {
-          await AsyncStorage.setItem(SHARED_PUSH_TOKEN_KEY, expoPushToken);
-        }
-      }
-
-      if (!expoPushToken) return;
-
-      await api.registerPushToken(
-        { token: expoPushToken, platform: Platform.OS, enabled: true },
-        authToken
-      );
-      await AsyncStorage.setItem(WEBINAR_PUSH_REGISTERED_KEY, '1');
-      setPushReady(true);
-    } catch {
-      // Do not block webinar content if push registration fails.
-    }
-  }, []);
-
   const loadWebinars = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setLoading(true);
     setError('');
@@ -139,8 +99,8 @@ export default function WebinariiScreen({ navigation, route }) {
 
   useEffect(() => {
     loadWebinars();
-    enableWebinarPush();
-  }, [loadWebinars, enableWebinarPush]);
+    registerForPushNotifications().then((pushToken) => setPushReady(Boolean(pushToken)));
+  }, [loadWebinars]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -191,13 +151,13 @@ export default function WebinariiScreen({ navigation, route }) {
           : 'Linkul de participare va fi publicat de Dan.';
 
     return <Text style={styles.noLinkText}>{noLinkText}</Text>;
-  }, [openWebinarLink]);
+  }, [openWebinarLink, styles]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={[tc('#f6f7f8', 'bg'), tc('#f3f4f6', 'bg'), tc('#eef0f2', 'bg')]} style={styles.gradient}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Înapoi" onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
             <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
           </TouchableOpacity>
           <View style={styles.headerTextWrap}>

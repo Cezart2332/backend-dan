@@ -163,25 +163,3 @@ export async function syncDailyQuoteSchedule() {
   if (status !== 'granted') return;
   await scheduleUpcomingQuotes();
 }
-
-export async function sendTestQuoteNotification() {
-  const granted = await ensureNotificationPermission();
-  if (!granted) return { ok: false, reason: 'permission' };
-
-  await ensureChannel();
-  const quote = randomQuote();
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: NOTIFICATION_TITLE,
-      body: quote,
-      sound: 'default',
-      data: { type: 'daily_quote', quote },
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: 2,
-      channelId: CHANNEL_ID,
-    },
-  });
-  return { ok: true };
-}

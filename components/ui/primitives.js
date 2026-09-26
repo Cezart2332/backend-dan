@@ -101,7 +101,7 @@ export function AppHeader({ title, subtitle, overline, icon, onBack, rightAction
   return (
     <View style={styles.header}>
       {onBack ? (
-        <PressableScale
+        <PressableScale accessibilityRole="button" accessibilityLabel="Înapoi"
           onPress={onBack}
           style={styles.backButton}
           scaleTo={0.9}

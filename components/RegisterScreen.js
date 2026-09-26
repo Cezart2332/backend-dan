@@ -136,7 +136,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
           <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled" onScrollBeginDrag={Keyboard.dismiss}>
             {/* Header */}
             <View style={styles.header}>
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Înapoi"
                 onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Login'))}
                 style={styles.backButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               >
@@ -189,7 +189,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                 />
-                <TouchableOpacity
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel={showPassword ? "Ascunde parola" : "Arată parola"}
                   onPress={() => setShowPassword(!showPassword)}
                   style={styles.eyeIcon}
                 >
@@ -211,7 +211,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showConfirmPassword}
                 />
-                <TouchableOpacity
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel={showConfirmPassword ? "Ascunde confirmarea parolei" : "Arată confirmarea parolei"}
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                   style={styles.eyeIcon}
                 >

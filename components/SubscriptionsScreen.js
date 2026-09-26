@@ -340,7 +340,7 @@ export default function SubscriptionsScreen({ navigation }) {
           {/* ── Header ── */}
           <EnterFade index={animIndex++}>
             <View style={styles.headerRow}>
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Înapoi"
                 style={styles.headerBtn}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 onPress={() =>
@@ -350,7 +350,7 @@ export default function SubscriptionsScreen({ navigation }) {
                 <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
               </TouchableOpacity>
               <View style={styles.headerSpacer} />
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Reîncarcă"
                 style={styles.headerBtn}
                 disabled={loading || processing === "refresh"}
                 onPress={async () => {

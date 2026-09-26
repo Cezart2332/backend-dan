@@ -111,6 +111,7 @@
     ],
     "extra": {
       "EXPO_PUBLIC_API_URL": "https://api.danfostanxios.ro",
+      "SENTRY_DSN": "",
       "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_PmKTgPqleLWWTmQYOWGzJCdQoyC",
       "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_NpHcWatEEingJfytKUnZwRokETY",
       "EXPO_PUBLIC_REVENUECAT_API_KEY": "",

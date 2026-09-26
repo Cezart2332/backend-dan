@@ -63,6 +63,7 @@ import AppSplashScreen from "./components/AppSplashScreen";
 import metaEvents from "./utils/metaEvents";
 import { clearAppBadge, syncAppBadge } from "./utils/appBadge";
 import { syncDailyQuoteSchedule } from "./utils/dailyQuote";
+import { initMonitoring, wrapWithMonitoring } from "./utils/monitoring";
 import { ThemeProvider, useTheme } from "./components/ui/themeContext";
 
 const Stack = createStackNavigator();
@@ -78,13 +79,17 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export default function App() {
+initMonitoring();
+
+function App() {
   return (
     <ThemeProvider>
       <AppContent />
     </ThemeProvider>
   );
 }
+
+export default wrapWithMonitoring(App);
 
 function AppContent() {
   const { isDark, tc } = useTheme();

@@ -10,9 +10,9 @@ import {
   isDailyQuoteEnabled,
   quoteForDate,
   randomQuote,
-  sendTestQuoteNotification,
 } from '../utils/dailyQuote';
 import { hapticNotify, hapticSelection } from '../utils/haptics';
+import { reportError } from '../utils/monitoring';
 
 function showPermissionAlert() {
   Alert.alert(
@@ -71,23 +71,11 @@ export default function QuoteOfTheDayScreen({ navigation, route }) {
         setNotificationsEnabled(false);
       }
     } catch (error) {
+      reportError(error, { flow: 'daily_quote_toggle', enable: value });
       setNotificationsEnabled(!value);
       Alert.alert('Eroare', `Nu am putut salva notificările zilnice.\n${error?.message || ''}`.trim());
     } finally {
       setSaving(false);
-    }
-  }, []);
-
-  const scheduleTestNotification = useCallback(async () => {
-    try {
-      const result = await sendTestQuoteNotification();
-      if (!result.ok) {
-        showPermissionAlert();
-        return;
-      }
-      Alert.alert('Programat', 'Notificarea de test va apărea în ~2 secunde.');
-    } catch (error) {
-      Alert.alert('Eroare', `Nu am putut programa notificarea.\n${error?.message || ''}`.trim());
     }
   }, []);
 
@@ -99,7 +87,7 @@ export default function QuoteOfTheDayScreen({ navigation, route }) {
         <ScrollView contentContainerStyle={styles.scroll}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Înapoi" onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
               <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
             </TouchableOpacity>
             <Text style={styles.title}>Gândul de azi de la Dan</Text>
@@ -129,10 +117,6 @@ export default function QuoteOfTheDayScreen({ navigation, route }) {
               />
             </View>
             <Text style={styles.notifyDesc}>Primește în fiecare dimineață, la 09:00, un gând de la Dan.</Text>
-
-            <TouchableOpacity style={styles.testBtn} onPress={scheduleTestNotification}>
-              <Text style={styles.testBtnText}>Testează notificarea</Text>
-            </TouchableOpacity>
           </View>
 
           {/* Footer */}
@@ -182,11 +166,6 @@ const createStyles = (tc) => StyleSheet.create({
   notifyRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   notifyTitle: { fontSize: 15, fontWeight: '600', color: tc('#1c2b3a', 'fg') },
   notifyDesc: { fontSize: 13, color: tc('#5b6a7a', 'fg'), marginTop: 4 },
-  testBtn: {
-    marginTop: 14, borderRadius: 12, alignSelf: 'flex-start',
-    backgroundColor: tc('#24384e', 'bg'), paddingVertical: 10, paddingHorizontal: 18,
-  },
-  testBtnText: { color: tc('#fff', 'fg'), fontWeight: '600', fontSize: 14 },
   footer: { marginTop: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   footerText: { fontSize: 13, color: tc('#5b6a7a', 'fg') },
 });

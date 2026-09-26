@@ -710,7 +710,7 @@ export default function CommunityChatScreen({ navigation }) {
       <LinearGradient colors={[tc('#f6f7f8', 'bg'), tc('#f3f4f6', 'bg'), tc('#eef0f2', 'bg')]} style={styles.gradient}>
         {/* ── Header ── */}
         <View style={styles.headerRow}>
-          <PressableScale
+          <PressableScale accessibilityRole="button" accessibilityLabel="Înapoi"
             onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))}
             style={styles.backBtn}
             scaleTo={0.9}
@@ -730,7 +730,7 @@ export default function CommunityChatScreen({ navigation }) {
               <Text style={styles.statusText}>{connectionLabel}</Text>
             </View>
           </View>
-          <PressableScale
+          <PressableScale accessibilityRole="button" accessibilityLabel="Reîncarcă"
             onPress={() => loadHistory({ before: null, appendOlder: false })}
             style={styles.headerAction}
             scaleTo={0.9}
@@ -811,7 +811,7 @@ export default function CommunityChatScreen({ navigation }) {
             />
 
             {showScrollDown ? (
-              <PressableScale
+              <PressableScale accessibilityRole="button" accessibilityLabel="Mergi la ultimele mesaje"
                 style={styles.scrollDownBtn}
                 scaleTo={0.9}
                 onPress={() => {
@@ -856,7 +856,7 @@ export default function CommunityChatScreen({ navigation }) {
                 {remainingChars < 200 ? (
                   <Text style={styles.counterText}>{Math.max(0, remainingChars)}</Text>
                 ) : null}
-                <PressableScale
+                <PressableScale accessibilityRole="button" accessibilityLabel="Trimite mesajul"
                   style={[styles.sendBtn, !String(draft || '').trim().length && styles.sendBtnIdle]}
                   onPress={handleSend}
                   scaleTo={0.88}

@@ -7,6 +7,7 @@ import { api } from './api';
 import { saveToken } from './authStorage';
 import { saveUser } from './userStorage';
 import { saveSubscription } from './subscriptionStorage';
+import { reportError } from './monitoring';
 
 // Ensure the browser auth session completes properly on Android/iOS
 WebBrowser.maybeCompleteAuthSession();
@@ -53,9 +54,11 @@ async function signInWithGoogleNative() {
       }
       // DEVELOPER_ERROR: amprenta SHA-1 a aplicației nu e înregistrată în Google Cloud.
       if (String(error.code) === '10' || error.code === 'DEVELOPER_ERROR') {
+        reportError(error, { flow: 'google_sign_in_android', code: 'DEVELOPER_ERROR' });
         return { type: 'error', error: new Error('Configurarea Google pentru Android este incompletă (DEVELOPER_ERROR).') };
       }
     }
+    reportError(error, { flow: 'google_sign_in_android' });
     return { type: 'error', error: error instanceof Error ? error : new Error(String(error)) };
   }
 }

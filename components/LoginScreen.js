@@ -178,7 +178,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => setFocusedField(null)}
                 />
-                <TouchableOpacity
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel={showPassword ? "Ascunde parola" : "Arată parola"}
                   onPress={() => setShowPassword(!showPassword)}
                   style={styles.eyeIcon}
                 >

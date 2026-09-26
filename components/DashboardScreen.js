@@ -16,15 +16,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { PressableScale } from "./ui";
-import { clearSubscription } from "../utils/subscriptionStorage";
-import { clearToken, getToken } from "../utils/authStorage";
-import { clearUser, getUser, saveUser } from "../utils/userStorage";
-import { clearEntries } from "../utils/progressStorage";
-import { replaceAllRuns } from "../utils/challengeStorage";
-import { logoutRevenueCatUser } from "../utils/revenuecat";
+import { getToken } from "../utils/authStorage";
+import { getUser, saveUser } from "../utils/userStorage";
+import { signOutCleanup } from "../utils/session";
 import { useSubscription } from "../contexts/SubscriptionContext";
 import { api, toAbsoluteApiUrl } from "../utils/api";
-import { clearAppBadge, setAppBadgeCount } from "../utils/appBadge";
+import { setAppBadgeCount } from "../utils/appBadge";
 import { hapticImpact } from "../utils/haptics";
 import { useTheme, useThemedStyles } from "./ui/themeContext";
 
@@ -251,17 +248,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
 
   const handleLogout = useCallback(async () => {
     try {
-      await Promise.all([
-        logoutRevenueCatUser(),
-        clearToken(),
-        clearUser(),
-        clearSubscription(),
-        clearEntries(),
-        replaceAllRuns([]),
-      ]);
-      clearAppBadge();
-    } catch (err) {
-      // Logout cleanup failed - proceed anyway
+      await signOutCleanup();
     } finally {
       if (typeof onLogout === "function") onLogout();
       navigation.reset({ index: 0, routes: [{ name: "Login" }] });
@@ -425,6 +412,12 @@ export default function DashboardScreen({ navigation, onLogout }) {
                 onPress={() => navigation.navigate("Notifications")}
                 style={styles.bellRing}
                 scaleTo={0.92}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  unreadNotifications > 0
+                    ? `Notificări, ${unreadNotifications} necitite`
+                    : "Notificări"
+                }
               >
                 <Feather name="bell" size={19} color={tc("#24384e", 'fg')} />
                 {unreadNotifications > 0 ? (
@@ -436,7 +429,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
                 ) : null}
               </PressableScale>
 
-              <PressableScale
+              <PressableScale accessibilityRole="button" accessibilityLabel="Profil"
                 onPress={() => navigation.navigate("Profile")}
                 style={styles.avatarRing}
                 scaleTo={0.92}
