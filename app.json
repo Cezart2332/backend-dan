@@ -101,7 +101,13 @@
           "userTrackingPermission": "Folosim acest identificator pentru a măsura eficiența reclamelor și a-ți arăta conținut relevant."
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.109371475889-sdet3ch6r3lf1n2voto4cjfcggjhc84k"
+        }
+      ]
     ],
     "extra": {
       "EXPO_PUBLIC_API_URL": "https://api.danfostanxios.ro",

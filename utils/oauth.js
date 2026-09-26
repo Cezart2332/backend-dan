@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import * as AppleAuthentication from 'expo-apple-authentication';
@@ -17,9 +18,51 @@ const GOOGLE_WEB_CLIENT_ID = '109371475889-q2keqvuk0ho5rqb1fqdtbh3fli03sc5u.apps
 const GOOGLE_IOS_CLIENT_ID = '109371475889-sdet3ch6r3lf1n2voto4cjfcggjhc84k.apps.googleusercontent.com';
 const GOOGLE_ANDROID_CLIENT_ID = '109371475889-eadfpt9ovu6bkur2scatm063ht6uvqrv.apps.googleusercontent.com';
 
+const NATIVE_REQUEST = { native: true };
+let nativeGoogleConfigured = false;
+
+/**
+ * Android: Google nu mai acceptă întoarcerea din browser printr-o schemă URI
+ * proprie pentru clienții OAuth de tip Android (eroarea 400 invalid_request),
+ * așa că folosim selectorul nativ de cont. Token-ul are ca audiență clientul
+ * Web, pe care backend-ul îl acceptă deja.
+ *
+ * @returns {Promise<object|null>} răspuns în formatul expo-auth-session, sau null
+ *   dacă o autentificare e deja în curs.
+ */
+async function signInWithGoogleNative() {
+  const { GoogleSignin, isErrorWithCode, statusCodes } = require('@react-native-google-signin/google-signin');
+  if (!nativeGoogleConfigured) {
+    GoogleSignin.configure({ webClientId: GOOGLE_WEB_CLIENT_ID });
+    nativeGoogleConfigured = true;
+  }
+
+  try {
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    // Fără sesiunea anterioară, utilizatorul își poate alege contul de fiecare dată.
+    await GoogleSignin.signOut().catch(() => {});
+    const result = await GoogleSignin.signIn();
+    if (result?.type !== 'success') return { type: 'cancel' };
+    return { type: 'success', params: { id_token: result.data?.idToken || null } };
+  } catch (error) {
+    if (isErrorWithCode(error)) {
+      if (error.code === statusCodes.IN_PROGRESS) return null;
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) return { type: 'cancel' };
+      if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        return { type: 'error', error: new Error('Serviciile Google Play nu sunt disponibile pe acest telefon.') };
+      }
+      // DEVELOPER_ERROR: amprenta SHA-1 a aplicației nu e înregistrată în Google Cloud.
+      if (String(error.code) === '10' || error.code === 'DEVELOPER_ERROR') {
+        return { type: 'error', error: new Error('Configurarea Google pentru Android este incompletă (DEVELOPER_ERROR).') };
+      }
+    }
+    return { type: 'error', error: error instanceof Error ? error : new Error(String(error)) };
+  }
+}
+
 /**
  * Hook for Google sign-in. Call this at the top level of a component.
- * Uses platform-specific client IDs for native builds and web client ID as fallback.
+ * iOS folosește fluxul expo-auth-session; Android folosește selectorul nativ.
  */
 export function useGoogleAuth() {
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
@@ -29,7 +72,17 @@ export function useGoogleAuth() {
     // Helps account switching without stale Google session reuse.
     selectAccount: true,
   });
+  const [nativeResponse, setNativeResponse] = useState(null);
 
+  const nativePromptAsync = useCallback(async () => {
+    const result = await signInWithGoogleNative();
+    if (result) setNativeResponse(result);
+    return result;
+  }, []);
+
+  if (Platform.OS === 'android') {
+    return { request: NATIVE_REQUEST, response: nativeResponse, promptAsync: nativePromptAsync };
+  }
   return { request, response, promptAsync };
 }
 
