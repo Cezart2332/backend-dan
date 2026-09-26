@@ -28,10 +28,11 @@ const SERIF = Platform.OS === "ios" ? "Georgia" : "serif";
 const TERMS_OF_USE_URL = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";
 const PRIVACY_POLICY_URL = "https://danfostanxios.ro/politica-cookie-uri-ue/";
 
+// Folosit doar când magazinul nu întoarce durata produsului; toate planurile sunt lunare.
 const OFFERING_DURATION_FALLBACK = {
   [OFFERING_IDS.basic]: "Abonament lunar",
-  [OFFERING_IDS.premium]: "Abonament anual",
-  [OFFERING_IDS.vip]: "Acces pe viață",
+  [OFFERING_IDS.premium]: "Abonament lunar",
+  [OFFERING_IDS.vip]: "Abonament lunar",
 };
 
 const PLAN_FEATURES = {

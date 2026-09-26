@@ -60,6 +60,7 @@ import { clearEntries } from "./utils/progressStorage";
 import { replaceAllRuns } from "./utils/challengeStorage";
 import { api } from "./utils/api";
 import AppSplashScreen from "./components/AppSplashScreen";
+import AppErrorBoundary from "./components/AppErrorBoundary";
 import metaEvents from "./utils/metaEvents";
 import { clearAppBadge, syncAppBadge } from "./utils/appBadge";
 import { syncDailyQuoteSchedule } from "./utils/dailyQuote";
@@ -82,9 +83,11 @@ initMonitoring();
 
 function App() {
   return (
-    <ThemeProvider>
-      <AppContent />
-    </ThemeProvider>
+    <AppErrorBoundary>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
+    </AppErrorBoundary>
   );
 }
 
