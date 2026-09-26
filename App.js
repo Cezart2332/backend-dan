@@ -71,7 +71,6 @@ const MIN_SPLASH_MS = 1400;
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldShowBanner: true,
     shouldShowList: true,
     shouldPlaySound: true,
@@ -281,7 +280,7 @@ function AppContent() {
         }}
         onStateChange={handleNavUpdate}
       >
-          <StatusBar style={isDark ? "light" : "dark"} backgroundColor={screenBackground} />
+          <StatusBar style={isDark ? "light" : "dark"} />
           <Stack.Navigator
             initialRouteName={isAuthed ? "Dashboard" : "Login"}
             screenOptions={{

@@ -159,7 +159,8 @@ export default function AppSplashScreen() {
 
   return (
     <LinearGradient
-      colors={tc(gradients.screen, 'bg')}
+      // În dark mode, negru ca splash-ul nativ afișat înainte, ca trecerea să nu se vadă.
+      colors={isDark ? ["#000000", "#000000"] : gradients.screen}
       start={{ x: 0.1, y: 0.05 }}
       end={{ x: 0.9, y: 1 }}
       style={styles.root}
@@ -184,6 +185,7 @@ export default function AppSplashScreen() {
             <Animated.Image
               source={require("../assets/brandmark.png")}
               style={styles.mark}
+              tintColor={tc('#202f3e', 'fg')}
               resizeMode="contain"
             />
           </Animated.View>
@@ -232,7 +234,6 @@ const createStyles = (tc) => StyleSheet.create({
   mark: {
     width: MARK_WIDTH,
     height: MARK_WIDTH * 0.835,
-    tintColor: tc("#202f3e", 'fg'),
   },
   goldLine: {
     width: 52,

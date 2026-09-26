@@ -143,6 +143,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
               <Image
                 source={require('../assets/brandmark.png')}
                 style={styles.brandmark}
+                tintColor={tc('#202f3e', 'fg')}
                 resizeMode="contain"
               />
               <Text style={styles.title}>Bine ai revenit</Text>
@@ -286,7 +287,6 @@ const createStyles = (tc) => StyleSheet.create({
     width: 190,
     height: 159,
     marginBottom: 18,
-    tintColor: tc("#202f3e", 'fg'),
   },
   title: {
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',

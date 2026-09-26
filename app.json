@@ -12,12 +12,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-brand.png",
-      "resizeMode": "cover",
-      "backgroundColor": "#f6f7f8"
-    },
     "ios": {
       "icon": "./assets/icon.png",
       "bundleIdentifier": "com.cartealuidan.danfostanxios",
@@ -40,7 +34,6 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#f7f7f7"
       },
-      "edgeToEdgeEnabled": true,
       "package": "com.cartealuidan.danfostanxios",
       "googleServicesFile": "./google-services.json",
       "permissions": [
@@ -77,12 +70,6 @@
       "expo-font",
       "expo-apple-authentication",
       [
-        "expo-av",
-        {
-          "microphonePermission": false
-        }
-      ],
-      [
         "react-native-fbsdk-next",
         {
           "appID": "768698326078162",
@@ -106,6 +93,19 @@
         "@react-native-google-signin/google-signin",
         {
           "iosUrlScheme": "com.googleusercontent.apps.109371475889-sdet3ch6r3lf1n2voto4cjfcggjhc84k"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/brandmark.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#f6f7f8",
+          "dark": {
+            "image": "./assets/brandmark-dark.png",
+            "backgroundColor": "#000000"
+          }
         }
       ]
     ],

@@ -386,7 +386,7 @@ export default function VideoPlayerScreen({
               <VideoView
                 style={[styles.video, { width: videoWidth, height: videoHeight }]}
                 player={player}
-                allowsFullscreen
+                fullscreenOptions={{ enable: true }}
                 allowsPictureInPicture
                 contentFit="contain"
               />
