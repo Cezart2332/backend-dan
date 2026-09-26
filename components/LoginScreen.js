@@ -22,10 +22,13 @@ import { saveToken } from '../utils/authStorage';
 import { saveUser } from '../utils/userStorage';
 import { saveSubscription } from '../utils/subscriptionStorage';
 import { useGoogleAuth, handleGoogleResponse, signInWithApple } from '../utils/oauth';
+import { useTheme, useThemedStyles } from './ui/themeContext';
 
 const { width, height } = Dimensions.get('window');
 
 export default function LoginScreen({ navigation, onAuthenticated }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -119,7 +122,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={['#f6f7f8', '#f3f4f6', '#eef0f2']}
+        colors={[tc('#f6f7f8', 'bg'), tc('#f3f4f6', 'bg'), tc('#eef0f2', 'bg')]}
         style={styles.gradient}
       >
         <KeyboardAvoidingView
@@ -149,11 +152,11 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
             {/* Form */}
             <View style={styles.formContainer}>
               <View style={[styles.inputContainer, focusedField === 'email' && styles.inputContainerFocused]}>
-                <Feather name="mail" size={18} color={focusedField === 'email' ? '#24384e' : '#8a97a5'} style={styles.inputIcon} />
+                <Feather name="mail" size={18} color={focusedField === 'email' ? tc('#24384e', 'fg') : tc('#8a97a5', 'fg')} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Email"
-                  placeholderTextColor="#8a97a5"
+                  placeholderTextColor={tc("#8a97a5", 'fg')}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -164,11 +167,11 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
               </View>
 
               <View style={[styles.inputContainer, focusedField === 'password' && styles.inputContainerFocused]}>
-                <Feather name="lock" size={18} color={focusedField === 'password' ? '#24384e' : '#8a97a5'} style={styles.inputIcon} />
+                <Feather name="lock" size={18} color={focusedField === 'password' ? tc('#24384e', 'fg') : tc('#8a97a5', 'fg')} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Parolă"
-                  placeholderTextColor="#8a97a5"
+                  placeholderTextColor={tc("#8a97a5", 'fg')}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -182,7 +185,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
                   <Feather
                     name={showPassword ? "eye" : "eye-off"}
                     size={18}
-                    color="#8a97a5"
+                    color={tc("#8a97a5", 'fg')}
                   />
                 </TouchableOpacity>
               </View>
@@ -201,7 +204,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
                 disabled={loading}
               >
                 <LinearGradient
-                  colors={['rgba(28,43,58,0.94)', 'rgba(22,34,47,0.96)']}
+                  colors={[tc('rgba(28,43,58,0.94)', 'bg'), tc('rgba(22,34,47,0.96)', 'bg')]}
                   style={styles.buttonGradient}
                 >
                   <Text style={styles.loginButtonText}>{loading ? 'Se conectează...' : 'Conectare'}</Text>
@@ -223,7 +226,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
                 onPress={() => googlePromptAsync()}
                 disabled={!googleRequest || loading}
               >
-                <Ionicons name="logo-google" size={20} color="#4285F4" style={{ marginRight: 8 }} />
+                <Ionicons name="logo-google" size={20} color={tc("#4285F4", 'fg')} style={{ marginRight: 8 }} />
                 <Text style={styles.socialButtonText}>Google</Text>
               </TouchableOpacity>
 
@@ -233,7 +236,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
                   onPress={handleAppleLogin}
                   disabled={loading}
                 >
-                  <Ionicons name="logo-apple" size={20} color="#1c2b3a" style={{ marginRight: 8 }} />
+                  <Ionicons name="logo-apple" size={20} color={tc("#1c2b3a", 'fg')} style={{ marginRight: 8 }} />
                   <Text style={styles.socialButtonText}>Apple</Text>
                 </TouchableOpacity>
               )}
@@ -261,8 +264,8 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
+const createStyles = (tc) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: tc('#f6f7f8', 'bg') },
   gradient: {
     flex: 1,
   },
@@ -283,15 +286,16 @@ const styles = StyleSheet.create({
     width: 190,
     height: 159,
     marginBottom: 18,
+    tintColor: tc("#202f3e", 'fg'),
   },
   title: {
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     fontSize: 28, fontWeight: '700', letterSpacing: 0.2,
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
     marginBottom: 8, textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16, color: '#5b6a7a',
+    fontSize: 16, color: tc('#5b6a7a', 'fg'),
     textAlign: 'center', fontWeight: '400',
   },
   formContainer: {
@@ -299,21 +303,21 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.45)',
+    backgroundColor: tc('rgba(255,255,255,0.45)', 'bg'),
     borderRadius: 18, marginBottom: 16,
     paddingHorizontal: 16, paddingVertical: 4,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(32,47,62,0.28)',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: tc('rgba(32,47,62,0.28)', 'bg'),
   },
   inputContainerFocused: {
     borderWidth: 1,
-    borderColor: '#24384e',
-    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderColor: tc('#24384e', 'bg'),
+    backgroundColor: tc('rgba(255,255,255,0.75)', 'bg'),
   },
   inputIcon: {
     marginRight: 12,
   },
   input: {
-    flex: 1, fontSize: 16, color: '#1c2b3a',
+    flex: 1, fontSize: 16, color: tc('#1c2b3a', 'fg'),
     paddingVertical: 16, fontWeight: '400',
   },
   eyeIcon: {
@@ -334,7 +338,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   forgotPasswordText: {
-    color: '#24384e',
+    color: tc('#24384e', 'fg'),
     fontSize: 14,
     fontWeight: '500',
   },
@@ -355,14 +359,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loginButtonText: {
-    color: '#ffffff',
+    color: tc('#ffffff', 'fg'),
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 1.8,
     textTransform: 'uppercase',
   },
   errorText: {
-    color: '#a8544c',
+    color: tc('#a8544c', 'fg'),
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -374,10 +378,10 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(32,47,62,0.22)',
+    backgroundColor: tc('rgba(32,47,62,0.22)', 'bg'),
   },
   dividerText: {
-    marginHorizontal: 16, color: '#5b6a7a',
+    marginHorizontal: 16, color: tc('#5b6a7a', 'fg'),
     fontSize: 14, fontWeight: '400',
   },
   socialContainer: {
@@ -390,18 +394,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.5)',
+    backgroundColor: tc('rgba(255,255,255,0.5)', 'bg'),
     borderRadius: 999,
     paddingVertical: 14,
     marginHorizontal: 4,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(32,47,62,0.28)',
+    borderColor: tc('rgba(32,47,62,0.28)', 'bg'),
   },
   socialButtonText: {
     marginLeft: 8,
     fontSize: 14,
     fontWeight: '500',
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
   },
   registerContainer: {
     flexDirection: 'row',
@@ -411,12 +415,12 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   registerText: {
-    color: '#5b6a7a',
+    color: tc('#5b6a7a', 'fg'),
     fontSize: 15,
     fontWeight: '400',
   },
   registerLink: {
-    color: '#24384e',
+    color: tc('#24384e', 'fg'),
     fontSize: 15,
     fontWeight: '600',
   },
@@ -426,7 +430,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   termsText: {
-    color: '#5b6a7a',
+    color: tc('#5b6a7a', 'fg'),
     fontSize: 13,
     textDecorationLine: 'underline',
   },

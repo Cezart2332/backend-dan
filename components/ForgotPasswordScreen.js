@@ -14,8 +14,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
+import { useTheme, useThemedStyles } from './ui/themeContext';
 
 export default function ForgotPasswordScreen({ navigation }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -88,7 +91,7 @@ export default function ForgotPasswordScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.gradient}>
+      <LinearGradient colors={[tc('#f6f7f8', 'bg'), tc('#f3f4f6', 'bg'), tc('#eef0f2', 'bg')]} style={styles.gradient}>
         <KeyboardAvoidingView behavior="padding" style={styles.keyboardAvoid}>
           <ScrollView
             ref={scrollRef}
@@ -97,12 +100,12 @@ export default function ForgotPasswordScreen({ navigation }) {
             showsVerticalScrollIndicator={false}
           >
             <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Login'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
-              <Feather name="chevron-left" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
             </TouchableOpacity>
 
             {done ? (
               <View style={styles.successCard}>
-                <Feather name="check-circle" size={48} color="#14b86e" />
+                <Feather name="check-circle" size={48} color={tc("#14b86e", 'fg')} />
                 <Text style={styles.successTitle}>Parola resetata</Text>
                 <Text style={styles.successText}>
                   Parola ta a fost actualizata cu succes. Te poti autentifica acum.
@@ -112,7 +115,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                   onPress={() => navigation.navigate('Login')}
                   activeOpacity={0.8}
                 >
-                  <LinearGradient colors={['rgba(28,43,58,0.94)', 'rgba(22,34,47,0.96)']} style={styles.buttonGradient}>
+                  <LinearGradient colors={[tc('rgba(28,43,58,0.94)', 'bg'), tc('rgba(22,34,47,0.96)', 'bg')]} style={styles.buttonGradient}>
                     <Text style={styles.buttonText}>Inapoi la autentificare</Text>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -121,23 +124,23 @@ export default function ForgotPasswordScreen({ navigation }) {
               <>
                 <View style={styles.header}>
                   <View style={styles.iconCircle}>
-                    <Feather name="key" size={36} color="#24384e" />
+                    <Feather name="key" size={36} color={tc("#24384e", 'fg')} />
                   </View>
                   <Text style={styles.title}>Codul de resetare</Text>
                   <Text style={styles.subtitle}>
                     Am trimis un cod la adresa {'\n'}
-                    <Text style={{ fontWeight: '700', color: '#1c2b3a' }}>{email.trim()}</Text>{'\n'}
+                    <Text style={{ fontWeight: '700', color: tc('#1c2b3a', 'fg') }}>{email.trim()}</Text>{'\n'}
                     Introdu codul primit si alege o noua parola.
                   </Text>
                 </View>
 
                 <View style={styles.formContainer}>
                   <View style={styles.inputContainer}>
-                    <Feather name="key" size={20} color="#24384e" style={styles.inputIcon} />
+                    <Feather name="key" size={20} color={tc("#24384e", 'fg')} style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
                       placeholder="Codul din email"
-                      placeholderTextColor="#8a97a5"
+                      placeholderTextColor={tc("#8a97a5", 'fg')}
                       value={token}
                       onChangeText={setToken}
                       autoCapitalize="none"
@@ -146,11 +149,11 @@ export default function ForgotPasswordScreen({ navigation }) {
                   </View>
 
                   <View style={styles.inputContainer}>
-                    <Feather name="lock" size={20} color="#24384e" style={styles.inputIcon} />
+                    <Feather name="lock" size={20} color={tc("#24384e", 'fg')} style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
                       placeholder="Parola noua"
-                      placeholderTextColor="#8a97a5"
+                      placeholderTextColor={tc("#8a97a5", 'fg')}
                       value={newPassword}
                       onChangeText={setNewPassword}
                       secureTextEntry={!showPassword}
@@ -160,11 +163,11 @@ export default function ForgotPasswordScreen({ navigation }) {
                   </View>
 
                   <View style={styles.inputContainer}>
-                    <Feather name="lock" size={20} color="#24384e" style={styles.inputIcon} />
+                    <Feather name="lock" size={20} color={tc("#24384e", 'fg')} style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
                       placeholder="Confirma parola noua"
-                      placeholderTextColor="#8a97a5"
+                      placeholderTextColor={tc("#8a97a5", 'fg')}
                       value={confirmPassword}
                       onChangeText={setConfirmPassword}
                       secureTextEntry={!showPassword}
@@ -175,7 +178,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                       <Ionicons
                         name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                         size={20}
-                        color="#24384e"
+                        color={tc("#24384e", 'fg')}
                       />
                     </TouchableOpacity>
                   </View>
@@ -188,9 +191,9 @@ export default function ForgotPasswordScreen({ navigation }) {
                     disabled={loading}
                     activeOpacity={0.8}
                   >
-                    <LinearGradient colors={['rgba(28,43,58,0.94)', 'rgba(22,34,47,0.96)']} style={styles.buttonGradient}>
+                    <LinearGradient colors={[tc('rgba(28,43,58,0.94)', 'bg'), tc('rgba(22,34,47,0.96)', 'bg')]} style={styles.buttonGradient}>
                       {loading ? (
-                        <ActivityIndicator color="#fff" />
+                        <ActivityIndicator color={tc("#fff", 'fg')} />
                       ) : (
                         <Text style={styles.buttonText}>Reseteaza parola</Text>
                       )}
@@ -202,7 +205,7 @@ export default function ForgotPasswordScreen({ navigation }) {
               <>
                 <View style={styles.header}>
                   <View style={styles.iconCircle}>
-                    <Feather name="unlock" size={36} color="#24384e" />
+                    <Feather name="unlock" size={36} color={tc("#24384e", 'fg')} />
                   </View>
                   <Text style={styles.title}>Ai uitat parola?</Text>
                   <Text style={styles.subtitle}>
@@ -212,11 +215,11 @@ export default function ForgotPasswordScreen({ navigation }) {
 
                 <View style={styles.formContainer}>
                   <View style={styles.inputContainer}>
-                    <Feather name="mail" size={20} color="#24384e" style={styles.inputIcon} />
+                    <Feather name="mail" size={20} color={tc("#24384e", 'fg')} style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
                       placeholder="Adresa de email"
-                      placeholderTextColor="#8a97a5"
+                      placeholderTextColor={tc("#8a97a5", 'fg')}
                       value={email}
                       onChangeText={setEmail}
                       keyboardType="email-address"
@@ -233,9 +236,9 @@ export default function ForgotPasswordScreen({ navigation }) {
                     disabled={loading}
                     activeOpacity={0.8}
                   >
-                    <LinearGradient colors={['rgba(28,43,58,0.94)', 'rgba(22,34,47,0.96)']} style={styles.buttonGradient}>
+                    <LinearGradient colors={[tc('rgba(28,43,58,0.94)', 'bg'), tc('rgba(22,34,47,0.96)', 'bg')]} style={styles.buttonGradient}>
                       {loading ? (
-                        <ActivityIndicator color="#fff" />
+                        <ActivityIndicator color={tc("#fff", 'fg')} />
                       ) : (
                         <Text style={styles.buttonText}>Trimite codul de resetare</Text>
                       )}
@@ -251,8 +254,8 @@ export default function ForgotPasswordScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
+const createStyles = (tc) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: tc('#f6f7f8', 'bg') },
   gradient: { flex: 1 },
   keyboardAvoid: { flex: 1 },
   scrollContainer: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 48 },
@@ -260,11 +263,11 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     marginBottom: 20,
   },
   header: { alignItems: 'center', marginBottom: 36 },
@@ -272,11 +275,11 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     marginBottom: 20,
     shadowColor: '#24384e',
     shadowOffset: { width: 0, height: 4 },
@@ -284,23 +287,23 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 24, fontWeight: '700', color: '#1c2b3a', textAlign: 'center', marginBottom: 8 },
-  subtitle: { fontSize: 15, color: '#5b6a7a', textAlign: 'center', lineHeight: 22 },
+  title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 24, fontWeight: '700', color: tc('#1c2b3a', 'fg'), textAlign: 'center', marginBottom: 8 },
+  subtitle: { fontSize: 15, color: tc('#5b6a7a', 'fg'), textAlign: 'center', lineHeight: 22 },
   formContainer: { marginTop: 8 },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.45)',
+    backgroundColor: tc('rgba(255,255,255,0.45)', 'bg'),
     borderRadius: 18,
     marginBottom: 16,
     paddingHorizontal: 16,
     paddingVertical: 4,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(32,47,62,0.28)',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: tc('rgba(32,47,62,0.28)', 'bg'),
   },
   inputIcon: { marginRight: 12 },
-  input: { flex: 1, fontSize: 16, color: '#1c2b3a', paddingVertical: 16, fontWeight: '400' },
+  input: { flex: 1, fontSize: 16, color: tc('#1c2b3a', 'fg'), paddingVertical: 16, fontWeight: '400' },
   eyeIcon: { padding: 4 },
-  errorText: { color: '#a8544c', textAlign: 'center', marginBottom: 12, fontSize: 14 },
+  errorText: { color: tc('#a8544c', 'fg'), textAlign: 'center', marginBottom: 12, fontSize: 14 },
   submitBtn: {
     borderRadius: 16,
     overflow: 'hidden',
@@ -311,8 +314,8 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   buttonGradient: { paddingVertical: 18, alignItems: 'center' },
-  buttonText: { color: '#fff', fontSize: 13, fontWeight: '700', letterSpacing: 1.6, textTransform: 'uppercase' },
+  buttonText: { color: tc('#fff', 'fg'), fontSize: 13, fontWeight: '700', letterSpacing: 1.6, textTransform: 'uppercase' },
   successCard: { alignItems: 'center', marginTop: 16 },
-  successTitle: { fontSize: 20, fontWeight: '700', color: '#1c2b3a', marginTop: 16, marginBottom: 8 },
-  successText: { fontSize: 15, color: '#5b6a7a', textAlign: 'center', lineHeight: 22, marginBottom: 28 },
+  successTitle: { fontSize: 20, fontWeight: '700', color: tc('#1c2b3a', 'fg'), marginTop: 16, marginBottom: 8 },
+  successText: { fontSize: 15, color: tc('#5b6a7a', 'fg'), textAlign: 'center', lineHeight: 22, marginBottom: 28 },
 });

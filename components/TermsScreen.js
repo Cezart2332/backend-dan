@@ -9,12 +9,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { useTheme, useThemedStyles } from "./ui/themeContext";
 
 export default function TermsScreen({ navigation }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={["#f6f7f8", "#f3f4f6", "#eef0f2"]}
+        colors={[tc("#f6f7f8", 'bg'), tc("#f3f4f6", 'bg'), tc("#eef0f2", 'bg')]}
         style={styles.background}
       >
         <View style={styles.header}>
@@ -23,7 +26,7 @@ export default function TermsScreen({ navigation }) {
             style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             activeOpacity={0.75}
           >
-            <Feather name="chevron-left" size={22} color="#24384e" />
+            <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
           </TouchableOpacity>
           <Text style={styles.title}>Termeni și Condiții</Text>
         </View>
@@ -34,7 +37,7 @@ export default function TermsScreen({ navigation }) {
         >
           <View style={styles.warningBox}>
             <View style={styles.warningTitleRow}>
-              <Feather name="alert-triangle" size={18} color="#a8544c" style={{ marginRight: 6 }} />
+              <Feather name="alert-triangle" size={18} color={tc("#a8544c", 'fg')} style={{ marginRight: 6 }} />
               <Text style={styles.warningTitle}>ATENȚIE!</Text>
             </View>
             <Text style={styles.warningText}>
@@ -197,7 +200,7 @@ export default function TermsScreen({ navigation }) {
 
           <View style={styles.contactBox}>
             <View style={styles.contactTitleRow}>
-              <Feather name="phone" size={16} color="#1c2b3a" style={{ marginRight: 6 }} />
+              <Feather name="phone" size={16} color={tc("#1c2b3a", 'fg')} style={{ marginRight: 6 }} />
               <Text style={styles.contactTitle}>Contact</Text>
             </View>
             <Text style={styles.contactText}>
@@ -220,8 +223,8 @@ export default function TermsScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
+const createStyles = (tc) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: tc('#f6f7f8', 'bg') },
   background: { flex: 1 },
   header: {
     flexDirection: "row",
@@ -229,46 +232,46 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(32,47,62,0.18)",
+    borderBottomColor: tc("rgba(32,47,62,0.18)", 'bg'),
   },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.55)",
+    backgroundColor: tc("rgba(255,255,255,0.55)", 'bg'),
     alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: "rgba(32,47,62,0.18)",
+    borderWidth: 1, borderColor: tc("rgba(32,47,62,0.18)", 'bg'),
     shadowColor: "#24384e", shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12, shadowRadius: 6, elevation: 3, marginRight: 12,
   },
   title: {
     flex: 1,
     fontSize: 20, fontWeight: "700",
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
     textAlign: "center",
     marginRight: 38,
   },
   content: { padding: 20 },
   warningBox: {
-    backgroundColor: "#fff4f2", borderRadius: 16, padding: 16, marginBottom: 16,
-    borderWidth: 1, borderColor: "#f5d0ca",
+    backgroundColor: tc("#fff4f2", 'bg'), borderRadius: 16, padding: 16, marginBottom: 16,
+    borderWidth: 1, borderColor: tc("#f5d0ca", 'bg'),
   },
   warningTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 8 },
-  warningTitle: { fontSize: 16, fontWeight: "700", color: "#a8544c" },
-  warningText: { fontSize: 14, color: "#8b3a2e", lineHeight: 22 },
+  warningTitle: { fontSize: 16, fontWeight: "700", color: tc("#a8544c", 'fg') },
+  warningText: { fontSize: 14, color: tc("#8b3a2e", 'fg'), lineHeight: 22 },
   infoBox: {
-    backgroundColor: "#e8ebef", borderRadius: 16, padding: 16, marginBottom: 20,
-    borderWidth: 1, borderColor: "rgba(32,47,62,0.22)",
+    backgroundColor: tc("#e8ebef", 'bg'), borderRadius: 16, padding: 16, marginBottom: 20,
+    borderWidth: 1, borderColor: tc("rgba(32,47,62,0.22)", 'bg'),
   },
-  infoText: { fontSize: 14, color: "#2c5282", lineHeight: 22 },
-  sectionTitle: { fontSize: 16, fontWeight: "700", color: "#1c2b3a", marginTop: 20, marginBottom: 12 },
-  paragraph: { fontSize: 14, color: "#4a5568", lineHeight: 22, textAlign: "justify" },
-  bold: { fontWeight: "700", color: "#1c2b3a" },
+  infoText: { fontSize: 14, color: tc("#2c5282", 'fg'), lineHeight: 22 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: tc("#1c2b3a", 'fg'), marginTop: 20, marginBottom: 12 },
+  paragraph: { fontSize: 14, color: tc("#4a5568", 'fg'), lineHeight: 22, textAlign: "justify" },
+  bold: { fontWeight: "700", color: tc("#1c2b3a", 'fg') },
   contactBox: {
-    backgroundColor: "rgba(255,255,255,0.58)", borderRadius: 18, padding: 16, marginTop: 24,
-    borderWidth: 1, borderColor: "rgba(32,47,62,0.18)",
+    backgroundColor: tc("rgba(255,255,255,0.58)", 'bg'), borderRadius: 18, padding: 16, marginTop: 24,
+    borderWidth: 1, borderColor: tc("rgba(32,47,62,0.18)", 'bg'),
     shadowColor: "#24384e", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
   },
   contactTitleRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
-  contactTitle: { fontSize: 16, fontWeight: "700", color: "#1c2b3a" },
-  contactText: { fontSize: 14, color: "#4a5568", lineHeight: 22 },
-  lastUpdated: { fontSize: 12, color: "#8a97a5", textAlign: "center", marginTop: 24, fontStyle: "italic" },
+  contactTitle: { fontSize: 16, fontWeight: "700", color: tc("#1c2b3a", 'fg') },
+  contactText: { fontSize: 14, color: tc("#4a5568", 'fg'), lineHeight: 22 },
+  lastUpdated: { fontSize: 12, color: tc("#8a97a5", 'fg'), textAlign: "center", marginTop: 24, fontStyle: "italic" },
 });

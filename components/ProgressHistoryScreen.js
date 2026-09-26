@@ -8,8 +8,11 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { getEntries, replaceAllWithServerEntries, isBackendReady } from '../utils/progressStorage';
 import { getToken } from '../utils/authStorage';
 import { api } from '../utils/api';
+import { useTheme, useThemedStyles } from './ui/themeContext';
 
 export default function ProgressHistoryScreen({ navigation }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [entries, setEntries] = useState([]);
 
   useEffect(() => {
@@ -47,7 +50,7 @@ export default function ProgressHistoryScreen({ navigation }) {
       <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('ProgressDetail', { id: item.id })}>
         <View style={styles.cardRow}>
           <View style={styles.cardIconWrap}>
-            <Feather name="bar-chart-2" size={18} color="#24384e" />
+            <Feather name="bar-chart-2" size={18} color={tc("#24384e", 'fg')} />
           </View>
           <View style={{ flex: 1 }}>
             <View style={styles.row}>
@@ -56,7 +59,7 @@ export default function ProgressHistoryScreen({ navigation }) {
             </View>
             <Text style={styles.desc} numberOfLines={2}>{item.description || 'Fără descriere'}</Text>
           </View>
-          <Feather name="chevron-right" size={16} color="#9aa5b1" style={{ marginLeft: 8 }} />
+          <Feather name="chevron-right" size={16} color={tc("#9aa5b1", 'fg')} style={{ marginLeft: 8 }} />
         </View>
       </TouchableOpacity>
     );
@@ -64,10 +67,10 @@ export default function ProgressHistoryScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.background}>
+      <LinearGradient colors={[tc('#f6f7f8', 'bg'), tc('#f3f4f6', 'bg'), tc('#eef0f2', 'bg')]} style={styles.background}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Feather name="chevron-left" size={22} color="#24384e" />
+            <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
           </TouchableOpacity>
           <Text style={styles.title}>Istoric Progres</Text>
         </View>
@@ -83,8 +86,8 @@ export default function ProgressHistoryScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
+const createStyles = (tc) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: tc('#f6f7f8', 'bg') },
   background: { flex: 1 },
   headerRow: {
     flexDirection: 'row', alignItems: 'center',
@@ -93,29 +96,29 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 38, height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.55)',
-    borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
+    borderWidth: 1, borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
     marginRight: 14,
   },
-  title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 22, fontWeight: '700', color: '#1c2b3a' },
+  title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 22, fontWeight: '700', color: tc('#1c2b3a', 'fg') },
   list: { padding: 16 },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.58)', borderRadius: 18, padding: 14, marginBottom: 12,
-    borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
+    backgroundColor: tc('rgba(255,255,255,0.58)', 'bg'), borderRadius: 18, padding: 14, marginBottom: 12,
+    borderWidth: 1, borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     shadowColor: '#24384e', shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
     shadowOffset: { width: 0, height: 4 },
   },
   cardRow: { flexDirection: 'row', alignItems: 'center' },
   cardIconWrap: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(36,56,78,0.1)',
+    backgroundColor: tc('rgba(36,56,78,0.1)', 'bg'),
     alignItems: 'center', justifyContent: 'center', marginRight: 12,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  level: { fontWeight: '700', color: '#1c2b3a', fontSize: 14 },
-  date: { color: '#5b6a7a', fontSize: 12 },
-  desc: { color: '#5b6a7a', fontSize: 13 },
-  empty: { textAlign: 'center', color: '#5b6a7a', marginTop: 40 },
+  level: { fontWeight: '700', color: tc('#1c2b3a', 'fg'), fontSize: 14 },
+  date: { color: tc('#5b6a7a', 'fg'), fontSize: 12 },
+  desc: { color: tc('#5b6a7a', 'fg'), fontSize: 13 },
+  empty: { textAlign: 'center', color: tc('#5b6a7a', 'fg'), marginTop: 40 },
 });

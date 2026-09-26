@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { colors, fonts, gradients, radius, shadows, spacing, type } from "./theme";
+import { useTheme, useThemedStyles } from "./themeContext";
 
 /**
  * Pressable cu animație de apăsare (scale + fade) — folosit de toate
@@ -62,6 +63,8 @@ export function PressableScale({
 }
 
 export function AppScreen({ children, scroll = true, keyboard = false, contentStyle }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const body = scroll ? (
     <ScrollView
       contentContainerStyle={[styles.content, contentStyle]}
@@ -85,7 +88,7 @@ export function AppScreen({ children, scroll = true, keyboard = false, contentSt
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={gradients.screen} style={styles.flex}>
+      <LinearGradient colors={tc(gradients.screen, 'bg')} style={styles.flex}>
         {wrapped}
       </LinearGradient>
     </SafeAreaView>
@@ -93,6 +96,8 @@ export function AppScreen({ children, scroll = true, keyboard = false, contentSt
 }
 
 export function AppHeader({ title, subtitle, overline, icon, onBack, rightAction }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.header}>
       {onBack ? (
@@ -102,13 +107,13 @@ export function AppHeader({ title, subtitle, overline, icon, onBack, rightAction
           scaleTo={0.9}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
-          <Feather name="chevron-left" size={22} color={colors.primary} />
+          <Feather name="chevron-left" size={22} color={tc(colors.primary, 'fg')} />
         </PressableScale>
       ) : null}
       <View style={styles.headerText}>
         {icon ? (
           <View style={styles.headerIcon}>
-            <Feather name={icon} size={22} color={colors.primary} />
+            <Feather name={icon} size={22} color={tc(colors.primary, 'fg')} />
           </View>
         ) : null}
         {overline ? <Text style={styles.overline}>{overline}</Text> : null}
@@ -121,6 +126,7 @@ export function AppHeader({ title, subtitle, overline, icon, onBack, rightAction
 }
 
 export function AppCard({ children, style, muted = false }) {
+  const styles = useThemedStyles(createStyles);
   return <View style={[styles.card, muted && styles.cardMuted, style]}>{children}</View>;
 }
 
@@ -137,10 +143,12 @@ export function AppButton({
   onPress,
   style,
 }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const isSolid = variant === "solid" || variant === "primary";
   const isDanger = variant === "danger";
   const isGhost = variant === "ghost";
-  const contentColor = isSolid ? colors.white : isDanger ? colors.danger : colors.primary;
+  const contentColor = tc(isSolid ? colors.white : isDanger ? colors.danger : colors.primary, 'fg');
 
   return (
     <PressableScale
@@ -174,6 +182,8 @@ export function AppButton({
  * Câmp de text lean: umplere translucidă, hairline, focus ring navy.
  */
 export function AppTextField({ label, error, icon, style, inputStyle, ...props }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [focused, setFocused] = useState(false);
 
   return (
@@ -190,12 +200,12 @@ export function AppTextField({ label, error, icon, style, inputStyle, ...props }
           <Feather
             name={icon}
             size={18}
-            color={focused ? colors.primary : colors.textSoft}
+            color={focused ? tc(colors.primary, 'fg') : tc(colors.textSoft, 'fg')}
             style={styles.inputIcon}
           />
         ) : null}
         <TextInput
-          placeholderTextColor={colors.textSoft}
+          placeholderTextColor={tc(colors.textSoft, 'fg')}
           style={[styles.input, props.multiline && styles.multilineInput, inputStyle]}
           onFocus={(e) => {
             setFocused(true);
@@ -214,10 +224,12 @@ export function AppTextField({ label, error, icon, style, inputStyle, ...props }
 }
 
 export function StateView({ icon = "feather", title, message, action }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <AppCard style={styles.stateCard}>
       <View style={styles.stateIcon}>
-        <Feather name={icon} size={22} color={colors.primary} />
+        <Feather name={icon} size={22} color={tc(colors.primary, 'fg')} />
       </View>
       <Text style={styles.stateTitle}>{title}</Text>
       {message ? <Text style={styles.stateMessage}>{message}</Text> : null}
@@ -230,9 +242,9 @@ export function StateView({ icon = "feather", title, message, action }) {
 // care trimite nume de iconițe Ionicons.
 export { Feather, Ionicons };
 
-const styles = StyleSheet.create({
+const createStyles = (tc) => StyleSheet.create({
   flex: { flex: 1 },
-  safeArea: { flex: 1, backgroundColor: colors.backgroundTop },
+  safeArea: { flex: 1, backgroundColor: tc(colors.backgroundTop, 'bg') },
   content: {
     flexGrow: 1,
     paddingHorizontal: spacing.xl,
@@ -251,9 +263,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.55)",
+    backgroundColor: tc("rgba(255,255,255,0.55)", 'bg'),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(32,47,62,0.22)",
+    borderColor: tc("rgba(32,47,62,0.22)", 'bg'),
     marginRight: spacing.md,
     zIndex: 10,
   },
@@ -264,23 +276,23 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.5)",
+    backgroundColor: tc("rgba(255,255,255,0.5)", 'bg'),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(32,47,62,0.2)",
+    borderColor: tc("rgba(32,47,62,0.2)", 'bg'),
     marginBottom: spacing.sm,
   },
-  overline: { ...type.overline, marginBottom: 4 },
-  title: type.title,
-  subtitle: { ...type.subtitle, marginTop: 3 },
+  overline: { ...type.overline, color: tc(type.overline.color, 'fg'), marginBottom: 4 },
+  title: { ...type.title, color: tc(type.title.color, 'fg') },
+  subtitle: { ...type.subtitle, color: tc(type.subtitle.color, 'fg'), marginTop: 3 },
   rightAction: { marginLeft: spacing.md },
   card: {
-    backgroundColor: "rgba(255,255,255,0.62)",
+    backgroundColor: tc("rgba(255,255,255,0.62)", 'bg'),
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(32,47,62,0.2)",
+    borderColor: tc("rgba(32,47,62,0.2)", 'bg'),
     padding: spacing.lg,
   },
-  cardMuted: { backgroundColor: "rgba(243,244,246,0.55)" },
+  cardMuted: { backgroundColor: tc("rgba(243,244,246,0.55)", 'bg') },
   button: {
     minHeight: 50,
     paddingHorizontal: spacing.xl,
@@ -291,23 +303,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   solidButton: {
-    backgroundColor: "rgba(28,43,58,0.92)",
+    backgroundColor: tc("rgba(28,43,58,0.92)", 'bg'),
     ...shadows.button,
   },
   glassButton: {
-    backgroundColor: "rgba(255,255,255,0.5)",
+    backgroundColor: tc("rgba(255,255,255,0.5)", 'bg'),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(32,47,62,0.28)",
+    borderColor: tc("rgba(32,47,62,0.28)", 'bg'),
   },
   ghostButton: {
     backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: "rgba(32,47,62,0.24)",
+    borderColor: tc("rgba(32,47,62,0.24)", 'bg'),
   },
   dangerButton: {
-    backgroundColor: "rgba(168,84,76,0.08)",
+    backgroundColor: tc("rgba(168,84,76,0.08)", 'bg'),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(168,84,76,0.32)",
+    borderColor: tc("rgba(168,84,76,0.32)", 'bg'),
   },
   buttonIcon: { marginRight: spacing.sm },
   buttonText: {
@@ -324,7 +336,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 1.2,
     textTransform: "uppercase",
-    color: colors.textMuted,
+    color: tc(colors.textMuted, 'fg'),
   },
   inputWrap: {
     flexDirection: "row",
@@ -332,22 +344,22 @@ const styles = StyleSheet.create({
     minHeight: 52,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(32,47,62,0.24)",
-    backgroundColor: "rgba(255,255,255,0.5)",
+    borderColor: tc("rgba(32,47,62,0.24)", 'bg'),
+    backgroundColor: tc("rgba(255,255,255,0.5)", 'bg'),
     paddingHorizontal: spacing.lg,
   },
   inputWrapFocused: {
     borderWidth: 1,
-    borderColor: colors.primary,
-    backgroundColor: "rgba(255,255,255,0.78)",
+    borderColor: tc(colors.primary, 'bg'),
+    backgroundColor: tc("rgba(255,255,255,0.78)", 'bg'),
   },
   inputWrapError: {
-    borderColor: colors.danger,
+    borderColor: tc(colors.danger, 'bg'),
   },
   inputIcon: { marginRight: spacing.sm },
   input: {
     flex: 1,
-    color: colors.text,
+    color: tc(colors.text, 'fg'),
     paddingVertical: spacing.md,
     fontSize: 15,
   },
@@ -357,7 +369,7 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   fieldError: {
-    color: colors.danger,
+    color: tc(colors.danger, 'fg'),
     fontSize: 12,
     marginTop: spacing.xs,
   },
@@ -368,11 +380,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.55)",
+    backgroundColor: tc("rgba(255,255,255,0.55)", 'bg'),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(32,47,62,0.2)",
+    borderColor: tc("rgba(32,47,62,0.2)", 'bg'),
     marginBottom: spacing.md,
   },
-  stateTitle: { ...type.sectionTitle, textAlign: "center" },
-  stateMessage: { ...type.body, textAlign: "center", marginTop: spacing.xs },
+  stateTitle: { ...type.sectionTitle, color: tc(type.sectionTitle.color, 'fg'), textAlign: "center" },
+  stateMessage: { ...type.body, color: tc(type.body.color, 'fg'), textAlign: "center", marginTop: spacing.xs },
 });

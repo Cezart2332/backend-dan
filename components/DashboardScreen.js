@@ -24,6 +24,9 @@ import { replaceAllRuns } from "../utils/challengeStorage";
 import { logoutRevenueCatUser } from "../utils/revenuecat";
 import { useSubscription } from "../contexts/SubscriptionContext";
 import { api, toAbsoluteApiUrl } from "../utils/api";
+import { clearAppBadge, setAppBadgeCount } from "../utils/appBadge";
+import { hapticImpact } from "../utils/haptics";
+import { useTheme, useThemedStyles } from "./ui/themeContext";
 
 const SERIF = Platform.OS === "ios" ? "Georgia" : "serif";
 
@@ -72,6 +75,7 @@ function EnterFade({ index = 0, children, style }) {
  * se extinde și se estompează — un memento subtil de calm, pe tema aplicației.
  */
 function BreathingIcon({ children }) {
+  const styles = useThemedStyles(createStyles);
   const breath = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
@@ -127,6 +131,7 @@ function BreathingIcon({ children }) {
 
 /** Etichetă de secțiune centrată, cu hairline-uri ornamentale pe laturi. */
 function SectionLabel({ children }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.labelRow}>
       <View style={styles.labelLine} />
@@ -156,6 +161,8 @@ const BUILTIN_CMS_SLUGS = new Set([
 ]);
 
 export default function DashboardScreen({ navigation, onLogout }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { subscription, hasProEntitlement, requestPaywall } = useSubscription();
   const subType = subscription?.type || null;
   const normalizedSubType = String(subType || "").toLowerCase();
@@ -165,16 +172,25 @@ export default function DashboardScreen({ navigation, onLogout }) {
   const [profileAvatarUrl, setProfileAvatarUrl] = useState(null);
   const [cmsSections, setCmsSections] = useState([]);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadChat, setUnreadChat] = useState(0);
 
   const refreshUnreadNotifications = useCallback(async () => {
     const token = await getToken();
     if (!token) return;
 
-    try {
-      const response = await api.getUnreadNotificationsCount(token);
-      setUnreadNotifications(Number(response?.unreadCount) || 0);
-    } catch {
-      // Contorul se reia la următoarea deschidere a ecranului.
+    const [notifications, chat] = await Promise.allSettled([
+      api.getUnreadNotificationsCount(token),
+      api.getChatUnreadCount(token),
+    ]);
+    // Un contor care eșuează își păstrează valoarea până la următorul focus.
+    const notificationCount =
+      notifications.status === "fulfilled" ? Number(notifications.value?.unreadCount) || 0 : null;
+    const chatCount = chat.status === "fulfilled" ? Number(chat.value?.unreadCount) || 0 : null;
+
+    if (notificationCount !== null) setUnreadNotifications(notificationCount);
+    if (chatCount !== null) setUnreadChat(chatCount);
+    if (notificationCount !== null && chatCount !== null) {
+      setAppBadgeCount(notificationCount + chatCount);
     }
   }, []);
 
@@ -243,6 +259,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
         clearEntries(),
         replaceAllRuns([]),
       ]);
+      clearAppBadge();
     } catch (err) {
       // Logout cleanup failed - proceed anyway
     } finally {
@@ -381,7 +398,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={["#f6f7f8", "#f3f4f6", "#eef0f2"]}
+        colors={[tc("#f6f7f8", 'bg'), tc("#f3f4f6", 'bg'), tc("#eef0f2", 'bg')]}
         style={styles.gradient}
       >
         <ScrollView
@@ -409,7 +426,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
                 style={styles.bellRing}
                 scaleTo={0.92}
               >
-                <Feather name="bell" size={19} color="#24384e" />
+                <Feather name="bell" size={19} color={tc("#24384e", 'fg')} />
                 {unreadNotifications > 0 ? (
                   <View style={styles.bellBadge}>
                     <Text style={styles.bellBadgeText}>
@@ -427,7 +444,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
                 {profileAvatarUrl ? (
                   <Image source={{ uri: profileAvatarUrl }} style={styles.avatar} />
                 ) : (
-                  <Feather name="user" size={22} color="#24384e" />
+                  <Feather name="user" size={22} color={tc("#24384e", 'fg')} />
                 )}
               </PressableScale>
             </View>
@@ -435,15 +452,20 @@ export default function DashboardScreen({ navigation, onLogout }) {
 
           {/* ── SOS ── */}
           <EnterFade index={animIndex++}>
-            <PressableScale onPress={() => handleMenuPress({ id: 7 })}>
+            <PressableScale
+              onPress={() => {
+                hapticImpact("medium");
+                handleMenuPress({ id: 7 });
+              }}
+            >
               <LinearGradient
-                colors={["rgba(28,43,58,0.94)", "rgba(22,34,47,0.97)"]}
+                colors={[tc("rgba(28,43,58,0.94)", 'bg'), tc("rgba(22,34,47,0.97)", 'bg')]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.sosCard}
               >
                 <BreathingIcon>
-                  <Feather name="wind" size={22} color="#f6f7f8" />
+                  <Feather name="wind" size={22} color={tc("#f6f7f8", 'fg')} />
                 </BreathingIcon>
                 <View style={styles.sosTextWrap}>
                   <Text style={styles.sosTitle}>Am nevoie de ajutor acum</Text>
@@ -451,7 +473,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
                     Respiră. Intervenție ghidată, imediat.
                   </Text>
                 </View>
-                <Feather name="arrow-right" size={20} color="rgba(246,247,248,0.85)" />
+                <Feather name="arrow-right" size={20} color={tc("rgba(246,247,248,0.85)", 'fg')} />
               </LinearGradient>
             </PressableScale>
           </EnterFade>
@@ -469,7 +491,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
                   scaleTo={0.95}
                 >
                   <View style={styles.tileIconRing}>
-                    <Feather name={tile.iconName} size={19} color="#24384e" />
+                    <Feather name={tile.iconName} size={19} color={tc("#24384e", 'fg')} />
                   </View>
                   <View style={styles.tileLabelWrap}>
                     <Text
@@ -506,7 +528,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
                           <Feather
                             name={item.iconName}
                             size={18}
-                            color={locked ? "#9aa5b1" : "#24384e"}
+                            color={locked ? tc("#9aa5b1", 'fg') : tc("#24384e", 'fg')}
                           />
                         </View>
                         <View style={styles.rowText}>
@@ -517,10 +539,17 @@ export default function DashboardScreen({ navigation, onLogout }) {
                             {locked ? lockLabel : item.subtitle}
                           </Text>
                         </View>
+                        {!locked && item.id === 12 && unreadChat > 0 ? (
+                          <View style={styles.rowBadge}>
+                            <Text style={styles.rowBadgeText}>
+                              {unreadChat > 99 ? "99+" : unreadChat}
+                            </Text>
+                          </View>
+                        ) : null}
                         <Feather
                           name={locked ? "lock" : "chevron-right"}
                           size={17}
-                          color={locked ? "#b6bfc9" : "#8a97a5"}
+                          color={locked ? tc("#b6bfc9", 'fg') : tc("#8a97a5", 'fg')}
                         />
                       </PressableScale>
                     </View>
@@ -557,7 +586,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
                           <Feather
                             name={locked ? "lock" : "layers"}
                             size={18}
-                            color={locked ? "#9aa5b1" : "#24384e"}
+                            color={locked ? tc("#9aa5b1", 'fg') : tc("#24384e", 'fg')}
                           />
                         </View>
                         <View style={styles.rowText}>
@@ -571,7 +600,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
                         <Feather
                           name={locked ? "lock" : "chevron-right"}
                           size={17}
-                          color={locked ? "#b6bfc9" : "#8a97a5"}
+                          color={locked ? tc("#b6bfc9", 'fg') : tc("#8a97a5", 'fg')}
                         />
                       </PressableScale>
                     </View>
@@ -588,10 +617,10 @@ export default function DashboardScreen({ navigation, onLogout }) {
               style={styles.planRow}
               scaleTo={0.985}
             >
-              <Feather name="star" size={16} color="#b3924f" />
+              <Feather name="star" size={16} color={tc("#b3924f", 'fg')} />
               <Text style={styles.planText}>Abonamente & Acces</Text>
               <Text style={styles.planMeta}>Basic · Premium · VIP</Text>
-              <Feather name="chevron-right" size={16} color="#8a97a5" />
+              <Feather name="chevron-right" size={16} color={tc("#8a97a5", 'fg')} />
             </PressableScale>
           </EnterFade>
 
@@ -603,7 +632,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
               scaleTo={0.95}
               onPress={() => Linking.openURL("https://www.facebook.com/groups/820094195023604/")}
             >
-              <Feather name="users" size={15} color="#24384e" />
+              <Feather name="users" size={15} color={tc("#24384e", 'fg')} />
               <Text
                 style={styles.externalText}
                 numberOfLines={1}
@@ -618,7 +647,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
               scaleTo={0.95}
               onPress={() => Linking.openURL("https://danfostanxios.ro/testimoniale-2/")}
             >
-              <Feather name="heart" size={15} color="#24384e" />
+              <Feather name="heart" size={15} color={tc("#24384e", 'fg')} />
               <Text
                 style={styles.externalText}
                 numberOfLines={1}
@@ -675,8 +704,8 @@ export default function DashboardScreen({ navigation, onLogout }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#f6f7f8" },
+const createStyles = (tc) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: tc("#f6f7f8", 'bg') },
   gradient: { flex: 1 },
   scrollContainer: {
     flexGrow: 1,
@@ -696,7 +725,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
     letterSpacing: 2.6,
-    color: "#8a97a5",
+    color: tc("#8a97a5", 'fg'),
     marginBottom: 6,
   },
   headline: {
@@ -705,7 +734,7 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     fontWeight: "700",
     letterSpacing: 0.2,
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
   },
   subRow: {
     flexDirection: "row",
@@ -716,14 +745,14 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#b3924f",
+    backgroundColor: tc("#b3924f", 'bg'),
     marginRight: 6,
   },
   subText: {
     fontSize: 11,
     fontWeight: "600",
     letterSpacing: 1.4,
-    color: "#5b6a7a",
+    color: tc("#5b6a7a", 'fg'),
   },
   headerActions: {
     flexDirection: "row",
@@ -736,9 +765,9 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.55)",
+    backgroundColor: tc("rgba(255,255,255,0.55)", 'bg'),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(32,47,62,0.3)",
+    borderColor: tc("rgba(32,47,62,0.3)", 'bg'),
   },
   bellBadge: {
     position: "absolute",
@@ -750,14 +779,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#a8544c",
+    backgroundColor: tc("#a8544c", 'bg'),
     borderWidth: 1.5,
-    borderColor: "#f6f7f8",
+    borderColor: tc("#f6f7f8", 'bg'),
   },
   bellBadgeText: {
     fontSize: 9,
     fontWeight: "700",
-    color: "#fff",
+    color: tc("#fff", 'fg'),
   },
   avatarRing: {
     width: 46,
@@ -765,9 +794,9 @@ const styles = StyleSheet.create({
     borderRadius: 23,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.55)",
+    backgroundColor: tc("rgba(255,255,255,0.55)", 'bg'),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(32,47,62,0.3)",
+    borderColor: tc("rgba(32,47,62,0.3)", 'bg'),
     overflow: "hidden",
   },
   avatar: { width: 46, height: 46, borderRadius: 23 },
@@ -800,7 +829,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(246,247,248,0.35)",
+    borderColor: tc("rgba(246,247,248,0.35)", 'bg'),
   },
   sosHalo: {
     position: "absolute",
@@ -808,19 +837,19 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: "rgba(246,247,248,0.55)",
+    borderColor: tc("rgba(246,247,248,0.55)", 'bg'),
   },
   sosTextWrap: { flex: 1, paddingRight: 10 },
   sosTitle: {
     fontFamily: SERIF,
     fontSize: 17,
     fontWeight: "700",
-    color: "#f6f7f8",
+    color: tc("#f6f7f8", 'fg'),
     marginBottom: 3,
   },
   sosSubtitle: {
     fontSize: 12.5,
-    color: "rgba(246,247,248,0.72)",
+    color: tc("rgba(246,247,248,0.72)", 'fg'),
   },
 
   // Etichete de secțiune — centrate, cu hairline-uri ornamentale
@@ -834,14 +863,14 @@ const styles = StyleSheet.create({
   labelLine: {
     width: 28,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(32,47,62,0.3)",
+    backgroundColor: tc("rgba(32,47,62,0.3)", 'bg'),
   },
   sectionLabel: {
     fontSize: 11,
     fontWeight: "600",
     letterSpacing: 2.6,
     textTransform: "uppercase",
-    color: "#8a97a5",
+    color: tc("#8a97a5", 'fg'),
     textAlign: "center",
   },
   section: { marginBottom: 24 },
@@ -860,9 +889,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 6,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.62)",
+    backgroundColor: tc("rgba(255,255,255,0.62)", 'bg'),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(32,47,62,0.24)",
+    borderColor: tc("rgba(32,47,62,0.24)", 'bg'),
     shadowColor: "#16222f",
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.06,
@@ -875,7 +904,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(36,56,78,0.06)",
+    backgroundColor: tc("rgba(36,56,78,0.06)", 'bg'),
     marginBottom: 9,
   },
   // Spațiu rezervat pentru 2 rânduri: iconițele rămân aliniate între tiles,
@@ -888,16 +917,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontWeight: "600",
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
     textAlign: "center",
   },
 
   // Grupuri de rânduri
   groupCard: {
     borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.62)",
+    backgroundColor: tc("rgba(255,255,255,0.62)", 'bg'),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(32,47,62,0.24)",
+    borderColor: tc("rgba(32,47,62,0.24)", 'bg'),
     // fără overflow: "hidden" — pe iOS ar tăia umbra; rândurile sunt oricum transparente
     shadowColor: "#16222f",
     shadowOffset: { width: 0, height: 6 },
@@ -914,7 +943,7 @@ const styles = StyleSheet.create({
   rowLocked: { opacity: 0.55 },
   rowDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(32,47,62,0.16)",
+    backgroundColor: tc("rgba(32,47,62,0.16)", 'bg'),
     marginLeft: 62,
   },
   rowIconRing: {
@@ -923,20 +952,35 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(36,56,78,0.06)",
+    backgroundColor: tc("rgba(36,56,78,0.06)", 'bg'),
     marginRight: 12,
   },
   rowText: { flex: 1, paddingRight: 8 },
   rowTitle: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
     marginBottom: 2,
   },
-  rowTitleLocked: { color: "#8a97a5" },
+  rowTitleLocked: { color: tc("#8a97a5", 'fg') },
+  rowBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: tc("#24384e", 'bg'),
+    marginRight: 8,
+  },
+  rowBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: tc("#fff", 'fg'),
+  },
   rowSubtitle: {
     fontSize: 12.5,
-    color: "#5b6a7a",
+    color: tc("#5b6a7a", 'fg'),
     lineHeight: 17,
   },
 
@@ -948,9 +992,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingVertical: 13,
     paddingHorizontal: 18,
-    backgroundColor: "rgba(255,255,255,0.62)",
+    backgroundColor: tc("rgba(255,255,255,0.62)", 'bg'),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(179,146,79,0.45)",
+    borderColor: tc("rgba(179,146,79,0.45)", 'bg'),
     marginBottom: 14,
     shadowColor: "#8a6d3b",
     shadowOffset: { width: 0, height: 4 },
@@ -962,11 +1006,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13.5,
     fontWeight: "700",
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
   },
   planMeta: {
     fontSize: 11,
-    color: "#8a97a5",
+    color: tc("#8a97a5", 'fg'),
     marginRight: 4,
   },
 
@@ -989,9 +1033,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.62)",
+    backgroundColor: tc("rgba(255,255,255,0.62)", 'bg'),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(32,47,62,0.24)",
+    borderColor: tc("rgba(32,47,62,0.24)", 'bg'),
     shadowColor: "#16222f",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
@@ -1002,7 +1046,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: 12.5,
     fontWeight: "600",
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
   },
 
   // Footer
@@ -1014,19 +1058,19 @@ const styles = StyleSheet.create({
   footerLine: {
     width: 36,
     height: 1,
-    backgroundColor: "rgba(32,47,62,0.2)",
+    backgroundColor: tc("rgba(32,47,62,0.2)", 'bg'),
     marginBottom: 14,
   },
   medicalNote: {
     fontSize: 11.5,
     lineHeight: 17,
-    color: "#8a97a5",
+    color: tc("#8a97a5", 'fg'),
     textAlign: "center",
     paddingHorizontal: 12,
     marginBottom: 12,
   },
   medicalLink: {
-    color: "#5b6a7a",
+    color: tc("#5b6a7a", 'fg'),
     fontWeight: "600",
     textDecorationLine: "underline",
   },
@@ -1038,8 +1082,8 @@ const styles = StyleSheet.create({
   footerBtnText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#5b6a7a",
+    color: tc("#5b6a7a", 'fg'),
   },
-  footerLogout: { color: "#a8544c" },
-  footerSep: { color: "#b6bfc9" },
+  footerLogout: { color: tc("#a8544c", 'fg') },
+  footerSep: { color: tc("#b6bfc9", 'fg') },
 });

@@ -21,6 +21,7 @@ import {
   isUserCancelledPurchase,
   OFFERING_IDS,
 } from "../utils/revenuecat";
+import { useTheme, useThemedStyles } from "./ui/themeContext";
 
 const SERIF = Platform.OS === "ios" ? "Georgia" : "serif";
 
@@ -151,6 +152,8 @@ function planLabelFor(subscription) {
 }
 
 function ProductCard({ title, durationText, packageItem, selected, onSelect, features, badge }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const priceText = packageItem?.product?.priceString || "Preț indisponibil";
 
   return (
@@ -183,7 +186,7 @@ function ProductCard({ title, durationText, packageItem, selected, onSelect, fea
             <Ionicons
               name={feature.included ? "checkmark-circle" : "close-circle-outline"}
               size={17}
-              color={feature.included ? "#3d7d5f" : "#b6bfc9"}
+              color={feature.included ? tc("#3d7d5f", 'fg') : tc("#b6bfc9", 'fg')}
               style={styles.featureIcon}
             />
             <Text style={[styles.featureText, !feature.included && styles.featureTextExcluded]}>
@@ -197,6 +200,8 @@ function ProductCard({ title, durationText, packageItem, selected, onSelect, fea
 }
 
 export default function SubscriptionsScreen({ navigation }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const {
     status,
     hasProEntitlement,
@@ -330,7 +335,7 @@ export default function SubscriptionsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={["#f6f7f8", "#f3f4f6", "#eef0f2"]} style={styles.gradient}>
+      <LinearGradient colors={[tc("#f6f7f8", 'bg'), tc("#f3f4f6", 'bg'), tc("#eef0f2", 'bg')]} style={styles.gradient}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {/* ── Header ── */}
           <EnterFade index={animIndex++}>
@@ -342,7 +347,7 @@ export default function SubscriptionsScreen({ navigation }) {
                   navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Dashboard")
                 }
               >
-                <Feather name="chevron-left" size={22} color="#24384e" />
+                <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
               </TouchableOpacity>
               <View style={styles.headerSpacer} />
               <TouchableOpacity
@@ -358,9 +363,9 @@ export default function SubscriptionsScreen({ navigation }) {
                 }}
               >
                 {processing === "refresh" ? (
-                  <ActivityIndicator size="small" color="#24384e" />
+                  <ActivityIndicator size="small" color={tc("#24384e", 'fg')} />
                 ) : (
-                  <Feather name="refresh-cw" size={18} color="#24384e" />
+                  <Feather name="refresh-cw" size={18} color={tc("#24384e", 'fg')} />
                 )}
               </TouchableOpacity>
             </View>
@@ -377,7 +382,7 @@ export default function SubscriptionsScreen({ navigation }) {
             <EnterFade index={animIndex++}>
               <View style={styles.statusCard}>
                 <View style={styles.statusIconRing}>
-                  <Feather name={statusCard.icon} size={18} color="#b3924f" />
+                  <Feather name={statusCard.icon} size={18} color={tc("#b3924f", 'fg')} />
                 </View>
                 <View style={styles.statusTextWrap}>
                   <Text style={styles.statusTitle}>{statusCard.title}</Text>
@@ -443,7 +448,7 @@ export default function SubscriptionsScreen({ navigation }) {
               disabled={loading || processing.startsWith("purchase") || !selectedPackageAvailable}
             >
               {processing.startsWith("purchase") ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={tc("#fff", 'fg')} />
               ) : (
                 <Text style={styles.primaryBtnText}>
                   {selectedPackageAvailable
@@ -460,10 +465,10 @@ export default function SubscriptionsScreen({ navigation }) {
                 disabled={processing === "trial"}
               >
                 {processing === "trial" ? (
-                  <ActivityIndicator size="small" color="#24384e" />
+                  <ActivityIndicator size="small" color={tc("#24384e", 'fg')} />
                 ) : (
                   <>
-                    <Feather name="gift" size={15} color="#b3924f" />
+                    <Feather name="gift" size={15} color={tc("#b3924f", 'fg')} />
                     <Text style={styles.trialBtnText}>Încearcă gratuit 3 zile</Text>
                   </>
                 )}
@@ -477,7 +482,7 @@ export default function SubscriptionsScreen({ navigation }) {
                 disabled={processing === "restore"}
               >
                 {processing === "restore" ? (
-                  <ActivityIndicator size="small" color="#5b6a7a" />
+                  <ActivityIndicator size="small" color={tc("#5b6a7a", 'fg')} />
                 ) : (
                   <Text style={styles.secondaryLinkText}>Restaurează achizițiile</Text>
                 )}
@@ -489,7 +494,7 @@ export default function SubscriptionsScreen({ navigation }) {
                 disabled={processing === "customer-center"}
               >
                 {processing === "customer-center" ? (
-                  <ActivityIndicator size="small" color="#5b6a7a" />
+                  <ActivityIndicator size="small" color={tc("#5b6a7a", 'fg')} />
                 ) : (
                   <Text style={styles.secondaryLinkText}>Gestionează abonamentul</Text>
                 )}
@@ -528,8 +533,8 @@ export default function SubscriptionsScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#f6f7f8" },
+const createStyles = (tc) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: tc("#f6f7f8", 'bg') },
   gradient: { flex: 1 },
   content: { padding: 20, paddingBottom: 36 },
 
@@ -544,17 +549,17 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.55)",
+    backgroundColor: tc("rgba(255,255,255,0.55)", 'bg'),
     alignItems: "center",
     justifyContent: "center",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(32,47,62,0.22)",
+    borderColor: tc("rgba(32,47,62,0.22)", 'bg'),
   },
   overline: {
     fontSize: 11,
     fontWeight: "600",
     letterSpacing: 2.6,
-    color: "#8a97a5",
+    color: tc("#8a97a5", 'fg'),
     marginBottom: 6,
   },
   headline: {
@@ -563,13 +568,13 @@ const styles = StyleSheet.create({
     lineHeight: 33,
     fontWeight: "700",
     letterSpacing: 0.2,
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
     marginBottom: 6,
   },
   subtitle: {
     fontSize: 14,
     lineHeight: 21,
-    color: "#5b6a7a",
+    color: tc("#5b6a7a", 'fg'),
     marginBottom: 22,
   },
 
@@ -580,9 +585,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 14,
     marginBottom: 18,
-    backgroundColor: "rgba(255,255,255,0.62)",
+    backgroundColor: tc("rgba(255,255,255,0.62)", 'bg'),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(179,146,79,0.45)",
+    borderColor: tc("rgba(179,146,79,0.45)", 'bg'),
     shadowColor: "#8a6d3b",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
@@ -595,28 +600,28 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(179,146,79,0.1)",
+    backgroundColor: tc("rgba(179,146,79,0.1)", 'bg'),
     marginRight: 12,
   },
   statusTextWrap: { flex: 1 },
   statusTitle: {
     fontSize: 14.5,
     fontWeight: "700",
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
     marginBottom: 2,
   },
   statusDetail: {
     fontSize: 12.5,
-    color: "#5b6a7a",
+    color: tc("#5b6a7a", 'fg'),
     lineHeight: 17,
   },
 
   // Carduri de plan
   card: {
     borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.62)",
+    backgroundColor: tc("rgba(255,255,255,0.62)", 'bg'),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(32,47,62,0.24)",
+    borderColor: tc("rgba(32,47,62,0.24)", 'bg'),
     padding: 18,
     marginBottom: 14,
     shadowColor: "#16222f",
@@ -627,8 +632,8 @@ const styles = StyleSheet.create({
   },
   cardSelected: {
     borderWidth: 1.5,
-    borderColor: "#24384e",
-    backgroundColor: "rgba(255,255,255,0.82)",
+    borderColor: tc("#24384e", 'bg'),
+    backgroundColor: tc("rgba(255,255,255,0.82)", 'bg'),
   },
   recommendBadge: {
     position: "absolute",
@@ -637,10 +642,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 3,
     borderRadius: 999,
-    backgroundColor: "#b3924f",
+    backgroundColor: tc("#b3924f", 'bg'),
   },
   recommendBadgeText: {
-    color: "#fff",
+    color: tc("#fff", 'fg'),
     fontSize: 9,
     fontWeight: "700",
     letterSpacing: 1.4,
@@ -655,12 +660,12 @@ const styles = StyleSheet.create({
     fontFamily: SERIF,
     fontSize: 20,
     fontWeight: "700",
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
     marginBottom: 2,
   },
   cardDuration: {
     fontSize: 12,
-    color: "#8a97a5",
+    color: tc("#8a97a5", 'fg'),
     letterSpacing: 0.3,
   },
   radioOuter: {
@@ -668,27 +673,27 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 1.5,
-    borderColor: "rgba(32,47,62,0.3)",
+    borderColor: tc("rgba(32,47,62,0.3)", 'bg'),
     alignItems: "center",
     justifyContent: "center",
   },
-  radioOuterSelected: { borderColor: "#24384e" },
+  radioOuterSelected: { borderColor: tc("#24384e", 'bg') },
   radioInner: {
     width: 11,
     height: 11,
     borderRadius: 5.5,
-    backgroundColor: "#24384e",
+    backgroundColor: tc("#24384e", 'bg'),
   },
   cardPrice: {
     fontFamily: SERIF,
     fontSize: 24,
     fontWeight: "700",
-    color: "#24384e",
+    color: tc("#24384e", 'fg'),
     marginBottom: 12,
   },
   featureList: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(32,47,62,0.18)",
+    borderTopColor: tc("rgba(32,47,62,0.18)", 'bg'),
     paddingTop: 12,
   },
   featureRow: {
@@ -703,17 +708,17 @@ const styles = StyleSheet.create({
   featureText: {
     flex: 1,
     fontSize: 13,
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
     lineHeight: 18,
   },
   featureTextExcluded: {
-    color: "#8a97a5",
+    color: tc("#8a97a5", 'fg'),
   },
 
   // Acțiuni
   primaryBtn: {
     marginTop: 4,
-    backgroundColor: "rgba(28,43,58,0.94)",
+    backgroundColor: tc("rgba(28,43,58,0.94)", 'bg'),
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
@@ -726,7 +731,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   primaryBtnText: {
-    color: "#fff",
+    color: tc("#fff", 'fg'),
     fontSize: 13,
     fontWeight: "700",
     letterSpacing: 1.6,
@@ -741,12 +746,12 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     minHeight: 48,
     paddingVertical: 13,
-    backgroundColor: "rgba(255,255,255,0.62)",
+    backgroundColor: tc("rgba(255,255,255,0.62)", 'bg'),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(179,146,79,0.45)",
+    borderColor: tc("rgba(179,146,79,0.45)", 'bg'),
   },
   trialBtnText: {
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
     fontSize: 13,
     fontWeight: "700",
     letterSpacing: 0.4,
@@ -761,9 +766,9 @@ const styles = StyleSheet.create({
   secondaryLinkText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#5b6a7a",
+    color: tc("#5b6a7a", 'fg'),
   },
-  secondarySep: { color: "#b6bfc9" },
+  secondarySep: { color: tc("#b6bfc9", 'fg') },
   disabledBtn: { opacity: 0.55 },
 
   // Legal
@@ -774,13 +779,13 @@ const styles = StyleSheet.create({
   footerLine: {
     width: 36,
     height: 1,
-    backgroundColor: "rgba(32,47,62,0.2)",
+    backgroundColor: tc("rgba(32,47,62,0.2)", 'bg'),
     marginBottom: 14,
   },
   legalNoticeText: {
     fontSize: 11.5,
     lineHeight: 17,
-    color: "#8a97a5",
+    color: tc("#8a97a5", 'fg'),
     textAlign: "center",
     paddingHorizontal: 8,
     marginBottom: 10,
@@ -793,7 +798,7 @@ const styles = StyleSheet.create({
   legalLinkText: {
     fontSize: 12.5,
     fontWeight: "600",
-    color: "#5b6a7a",
+    color: tc("#5b6a7a", 'fg'),
     textDecorationLine: "underline",
   },
 });

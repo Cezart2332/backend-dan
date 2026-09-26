@@ -20,6 +20,8 @@ import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { api } from '../utils/api';
 import { getToken } from '../utils/authStorage';
+import { useTheme, useThemedStyles } from './ui/themeContext';
+import { hapticNotify } from '../utils/haptics';
 
 const SLOT_TIMES = ['09:00', '10:30', '12:00', '14:00', '16:00', '18:00'];
 const DURATION_OPTIONS = [45, 60, 90];
@@ -27,6 +29,8 @@ const SHARED_PUSH_TOKEN_KEY = 'quote_push_token';
 const DIRECT_PUSH_REGISTERED_KEY = 'direct_push_registered_v1';
 
 export default function DirectScreen({ navigation }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [bookingVisible, setBookingVisible] = React.useState(false);
   const [selectedDayOffset, setSelectedDayOffset] = React.useState(0);
   const [selectedTime, setSelectedTime] = React.useState(SLOT_TIMES[1]);
@@ -109,6 +113,7 @@ export default function DirectScreen({ navigation }) {
 
       await enableMeetingUpdateNotifications(token);
 
+      hapticNotify('success');
       setBookingVisible(false);
       setNotes('');
       setSelectedDayOffset(0);
@@ -133,11 +138,11 @@ export default function DirectScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.gradient}>
+      <LinearGradient colors={[tc('#f6f7f8', 'bg'), tc('#f3f4f6', 'bg'), tc('#eef0f2', 'bg')]} style={styles.gradient}>
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
-              <Feather name="chevron-left" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
             </TouchableOpacity>
             <View style={styles.headerText}>
               <Text style={styles.title}>Intră în direct cu Dan</Text>
@@ -149,7 +154,7 @@ export default function DirectScreen({ navigation }) {
             <Text style={styles.cardTitle}>Programează-te</Text>
             <Text style={styles.cardText}>Deschide calendarul intern și rezervă direct un interval cu Dan.</Text>
             <TouchableOpacity style={styles.primaryBtn} onPress={openBookingModal}>
-              <LinearGradient colors={["rgba(28,43,58,0.94)", "rgba(22,34,47,0.96)"]} style={styles.btnInner}>
+              <LinearGradient colors={[tc("rgba(28,43,58,0.94)", 'bg'), tc("rgba(22,34,47,0.96)", 'bg')]} style={styles.btnInner}>
                 <Text style={styles.primaryText}>Programează-te</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -159,7 +164,7 @@ export default function DirectScreen({ navigation }) {
             <Text style={styles.cardTitle}>Trimite jurnalul</Text>
             <Text style={styles.cardText}>Trimite-ți jurnalul către Dan pentru feedback.</Text>
             <TouchableOpacity style={styles.primaryBtn} onPress={sendJournal}>
-              <LinearGradient colors={["#3d7d5f", "#4cae4c"]} style={styles.btnInner}>
+              <LinearGradient colors={[tc("#3d7d5f", 'bg'), tc("#4cae4c", 'bg')]} style={styles.btnInner}>
                 <Text style={styles.primaryText}>Trimite jurnal</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -172,7 +177,7 @@ export default function DirectScreen({ navigation }) {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Programează o întâlnire cu Dan</Text>
                 <TouchableOpacity onPress={closeBookingModal} disabled={submitting}>
-                  <Feather name="x" size={22} color="#64748b" />
+                  <Feather name="x" size={22} color={tc("#64748b", 'fg')} />
                 </TouchableOpacity>
               </View>
 
@@ -183,7 +188,7 @@ export default function DirectScreen({ navigation }) {
                   onPress={() => setSelectedDayOffset((v) => Math.max(0, v - 1))}
                   disabled={selectedDayOffset <= 0 || submitting}
                 >
-                  <Feather name="chevron-left" size={18} color="#24384e" />
+                  <Feather name="chevron-left" size={18} color={tc("#24384e", 'fg')} />
                 </TouchableOpacity>
                 <Text style={styles.selectedDayText}>{formatDayLabel(selectedDate)}</Text>
                 <TouchableOpacity
@@ -191,7 +196,7 @@ export default function DirectScreen({ navigation }) {
                   onPress={() => setSelectedDayOffset((v) => Math.min(20, v + 1))}
                   disabled={selectedDayOffset >= 20 || submitting}
                 >
-                  <Feather name="chevron-right" size={18} color="#24384e" />
+                  <Feather name="chevron-right" size={18} color={tc("#24384e", 'fg')} />
                 </TouchableOpacity>
               </View>
 
@@ -227,7 +232,7 @@ export default function DirectScreen({ navigation }) {
               <TextInput
                 style={styles.notesInput}
                 placeholder="Spune pe scurt ce ai vrea să discutați..."
-                placeholderTextColor="#8a97a5"
+                placeholderTextColor={tc("#8a97a5", 'fg')}
                 multiline
                 value={notes}
                 onChangeText={setNotes}
@@ -235,8 +240,8 @@ export default function DirectScreen({ navigation }) {
               />
 
               <TouchableOpacity style={[styles.primaryBtn, submitting && { opacity: 0.7 }]} onPress={createMeeting} disabled={submitting}>
-                <LinearGradient colors={["rgba(28,43,58,0.94)", "rgba(22,34,47,0.96)"]} style={styles.btnInner}>
-                  {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Confirmă programarea</Text>}
+                <LinearGradient colors={[tc("rgba(28,43,58,0.94)", 'bg'), tc("rgba(22,34,47,0.96)", 'bg')]} style={styles.btnInner}>
+                  {submitting ? <ActivityIndicator color={tc("#fff", 'fg')} /> : <Text style={styles.primaryText}>Confirmă programarea</Text>}
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -263,45 +268,45 @@ function formatDisplayDate(date) {
   });
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
+const createStyles = (tc) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: tc('#f6f7f8', 'bg') },
   gradient: { flex: 1 },
   content: { padding: 20 },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 24, marginTop: 4 },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
+    borderWidth: 1, borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12, shadowRadius: 6, elevation: 3, marginRight: 14,
   },
   headerText: { flex: 1 },
-  title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 20, fontWeight: '700', color: '#1c2b3a' },
-  subtitle: { fontSize: 13, color: '#5b6a7a', marginTop: 2 },
+  title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 20, fontWeight: '700', color: tc('#1c2b3a', 'fg') },
+  subtitle: { fontSize: 13, color: tc('#5b6a7a', 'fg'), marginTop: 2 },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.58)', borderRadius: 18, padding: 18, marginBottom: 14,
-    borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
+    backgroundColor: tc('rgba(255,255,255,0.58)', 'bg'), borderRadius: 18, padding: 18, marginBottom: 14,
+    borderWidth: 1, borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#1c2b3a', marginBottom: 6 },
-  cardText: { fontSize: 14, color: '#5b6a7a' },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: tc('#1c2b3a', 'fg'), marginBottom: 6 },
+  cardText: { fontSize: 14, color: tc('#5b6a7a', 'fg') },
   primaryBtn: { marginTop: 12, borderRadius: 12, overflow: 'hidden' },
   btnInner: { paddingVertical: 12, alignItems: 'center' },
-  primaryText: { color: '#fff', fontWeight: '700' },
+  primaryText: { color: tc('#fff', 'fg'), fontWeight: '700' },
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(20,35,55,0.45)',
+    backgroundColor: tc('rgba(20,35,55,0.45)', 'bg'),
     justifyContent: 'center',
     padding: 20,
   },
   modalCard: {
-    backgroundColor: 'rgba(246,247,248,0.98)',
+    backgroundColor: tc('rgba(246,247,248,0.98)', 'bg'),
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(195,202,210,0.7)',
+    borderColor: tc('rgba(195,202,210,0.7)', 'bg'),
   },
   modalHeader: {
     flexDirection: 'row',
@@ -309,8 +314,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 8,
   },
-  modalTitle: { fontSize: 17, fontWeight: '700', color: '#1c2b3a', flex: 1, marginRight: 8 },
-  sectionLabel: { marginTop: 8, marginBottom: 6, color: '#64748b', fontSize: 13, fontWeight: '600' },
+  modalTitle: { fontSize: 17, fontWeight: '700', color: tc('#1c2b3a', 'fg'), flex: 1, marginRight: 8 },
+  sectionLabel: { marginTop: 8, marginBottom: 6, color: tc('#64748b', 'fg'), fontSize: 13, fontWeight: '600' },
 
   dayRow: {
     flexDirection: 'row',
@@ -323,34 +328,34 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(36,56,78,0.1)',
+    backgroundColor: tc('rgba(36,56,78,0.1)', 'bg'),
   },
   navDayBtnDisabled: { opacity: 0.4 },
-  selectedDayText: { flex: 1, textAlign: 'center', color: '#1c2b3a', fontWeight: '600', textTransform: 'capitalize' },
+  selectedDayText: { flex: 1, textAlign: 'center', color: tc('#1c2b3a', 'fg'), fontWeight: '600', textTransform: 'capitalize' },
 
   choiceWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choiceChip: {
     borderWidth: 1,
-    borderColor: 'rgba(154,165,177,0.65)',
-    backgroundColor: 'rgba(255,255,255,0.68)',
+    borderColor: tc('rgba(154,165,177,0.65)', 'bg'),
+    backgroundColor: tc('rgba(255,255,255,0.68)', 'bg'),
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   choiceChipSelected: {
-    borderColor: '#24384e',
-    backgroundColor: 'rgba(36,56,78,0.12)',
+    borderColor: tc('#24384e', 'bg'),
+    backgroundColor: tc('rgba(36,56,78,0.12)', 'bg'),
   },
-  choiceChipText: { color: '#466581', fontWeight: '600' },
-  choiceChipTextSelected: { color: '#16222f' },
+  choiceChipText: { color: tc('#466581', 'fg'), fontWeight: '600' },
+  choiceChipTextSelected: { color: tc('#16222f', 'fg') },
 
   notesInput: {
     minHeight: 80,
     borderWidth: 1,
-    borderColor: 'rgba(154,165,177,0.65)',
+    borderColor: tc('rgba(154,165,177,0.65)', 'bg'),
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.68)',
-    color: '#1c2b3a',
+    backgroundColor: tc('rgba(255,255,255,0.68)', 'bg'),
+    color: tc('#1c2b3a', 'fg'),
     padding: 10,
     textAlignVertical: 'top',
   },

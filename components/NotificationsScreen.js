@@ -16,6 +16,8 @@ import * as Notifications from 'expo-notifications';
 import { PressableScale } from './ui';
 import { api } from '../utils/api';
 import { getToken } from '../utils/authStorage';
+import { syncAppBadge } from '../utils/appBadge';
+import { useTheme, useThemedStyles } from './ui/themeContext';
 
 const TYPE_META = {
   announcement: { icon: 'bell', label: 'Anunț' },
@@ -69,6 +71,8 @@ function mergeNotifications(existing, incoming) {
 }
 
 export default function NotificationsScreen({ navigation }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const isFocused = useIsFocused();
 
   const [items, setItems] = useState([]);
@@ -121,6 +125,7 @@ export default function NotificationsScreen({ navigation }) {
     try {
       await api.markNotificationsRead(authToken);
       setItems((prev) => prev.map((item) => ({ ...item, read: true })));
+      syncAppBadge();
     } catch {
       // Marcarea ca citit se reia la următoarea deschidere a ecranului.
     }
@@ -183,7 +188,7 @@ export default function NotificationsScreen({ navigation }) {
           disabled={!isActionable}
         >
           <View style={[styles.iconRing, !item.read && styles.iconRingUnread]}>
-            <Feather name={meta.icon} size={17} color={item.read ? '#5b6a7a' : '#1c2b3a'} />
+            <Feather name={meta.icon} size={17} color={item.read ? tc('#5b6a7a', 'fg') : tc('#1c2b3a', 'fg')} />
           </View>
           <View style={styles.cardBody}>
             <View style={styles.cardTopRow}>
@@ -197,7 +202,7 @@ export default function NotificationsScreen({ navigation }) {
               {isActionable ? (
                 <View style={styles.cardLinkWrap}>
                   <Text style={styles.cardLink}>Deschide</Text>
-                  <Feather name="chevron-right" size={13} color="#24384e" />
+                  <Feather name="chevron-right" size={13} color={tc("#24384e", 'fg')} />
                 </View>
               ) : null}
             </View>
@@ -205,12 +210,12 @@ export default function NotificationsScreen({ navigation }) {
         </PressableScale>
       );
     },
-    [handleItemPress]
+    [handleItemPress, styles, tc]
   );
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.gradient}>
+      <LinearGradient colors={[tc('#f6f7f8', 'bg'), tc('#f3f4f6', 'bg'), tc('#eef0f2', 'bg')]} style={styles.gradient}>
         {/* ── Header ── */}
         <View style={styles.headerRow}>
           <PressableScale
@@ -219,7 +224,7 @@ export default function NotificationsScreen({ navigation }) {
             scaleTo={0.9}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Feather name="chevron-left" size={22} color="#24384e" />
+            <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
           </PressableScale>
           <View style={styles.headerTextWrap}>
             <Text style={styles.overline}>ANUNȚURI</Text>
@@ -231,20 +236,20 @@ export default function NotificationsScreen({ navigation }) {
             scaleTo={0.9}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Feather name="refresh-cw" size={17} color="#24384e" />
+            <Feather name="refresh-cw" size={17} color={tc("#24384e", 'fg')} />
           </PressableScale>
         </View>
 
         {loading ? (
           <View style={styles.loaderWrap}>
-            <ActivityIndicator size="large" color="#24384e" />
+            <ActivityIndicator size="large" color={tc("#24384e", 'fg')} />
             <Text style={styles.loaderText}>Se încarcă notificările...</Text>
           </View>
         ) : (
           <>
             {error ? (
               <View style={styles.errorBanner}>
-                <Feather name="alert-circle" size={13} color="#a8544c" />
+                <Feather name="alert-circle" size={13} color={tc("#a8544c", 'fg')} />
                 <Text style={styles.errorBannerText}>{error}</Text>
               </View>
             ) : null}
@@ -256,21 +261,21 @@ export default function NotificationsScreen({ navigation }) {
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
               refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#24384e" />
+                <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={tc("#24384e", 'fg')} />
               }
               onEndReachedThreshold={0.4}
               onEndReached={handleLoadOlder}
               ListFooterComponent={
                 loadingOlder ? (
                   <View style={styles.footerLoader}>
-                    <ActivityIndicator size="small" color="#5b6a7a" />
+                    <ActivityIndicator size="small" color={tc("#5b6a7a", 'fg')} />
                   </View>
                 ) : null
               }
               ListEmptyComponent={
                 <View style={styles.emptyWrap}>
                   <View style={styles.emptyRing}>
-                    <Feather name="bell" size={22} color="#8a97a5" />
+                    <Feather name="bell" size={22} color={tc("#8a97a5", 'fg')} />
                   </View>
                   <Text style={styles.emptyText}>
                     Nicio notificare deocamdată.{'\n'}Aici vei găsi anunțurile lui Dan.
@@ -285,8 +290,8 @@ export default function NotificationsScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
+const createStyles = (tc) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: tc('#f6f7f8', 'bg') },
   gradient: { flex: 1, paddingHorizontal: 16, paddingTop: 6 },
 
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
@@ -294,18 +299,18 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(32,47,62,0.28)',
+    borderColor: tc('rgba(32,47,62,0.28)', 'bg'),
     marginRight: 12,
   },
   headerTextWrap: { flex: 1 },
   overline: {
     fontSize: 10,
     letterSpacing: 1.6,
-    color: '#8a97a5',
+    color: tc('#8a97a5', 'fg'),
     fontWeight: '700',
     marginBottom: 2,
   },
@@ -314,7 +319,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     fontSize: 21,
     fontWeight: '700',
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
   },
   headerAction: {
     width: 40,
@@ -322,40 +327,40 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(32,47,62,0.28)',
+    borderColor: tc('rgba(32,47,62,0.28)', 'bg'),
   },
 
   loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
-  loaderText: { color: '#5b6a7a', fontSize: 13 },
+  loaderText: { color: tc('#5b6a7a', 'fg'), fontSize: 13 },
 
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(168,84,76,0.10)',
+    backgroundColor: tc('rgba(168,84,76,0.10)', 'bg'),
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 10,
   },
-  errorBannerText: { color: '#a8544c', fontSize: 12, flex: 1 },
+  errorBannerText: { color: tc('#a8544c', 'fg'), fontSize: 12, flex: 1 },
 
   listContent: { paddingBottom: 28, gap: 10 },
 
   card: {
     flexDirection: 'row',
     gap: 12,
-    backgroundColor: 'rgba(255,255,255,0.62)',
+    backgroundColor: tc('rgba(255,255,255,0.62)', 'bg'),
     borderRadius: 18,
     padding: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(32,47,62,0.16)',
+    borderColor: tc('rgba(32,47,62,0.16)', 'bg'),
   },
   cardUnread: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderColor: 'rgba(32,47,62,0.30)',
+    backgroundColor: tc('rgba(255,255,255,0.92)', 'bg'),
+    borderColor: tc('rgba(32,47,62,0.30)', 'bg'),
   },
   iconRing: {
     width: 38,
@@ -363,24 +368,24 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(32,47,62,0.06)',
+    backgroundColor: tc('rgba(32,47,62,0.06)', 'bg'),
   },
-  iconRingUnread: { backgroundColor: 'rgba(32,47,62,0.12)' },
+  iconRingUnread: { backgroundColor: tc('rgba(32,47,62,0.12)', 'bg') },
   cardBody: { flex: 1 },
   cardTopRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 },
-  cardLabel: { fontSize: 9.5, letterSpacing: 1.2, color: '#8a97a5', fontWeight: '700' },
-  unreadDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#3d7d5f' },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: '#1c2b3a', marginBottom: 3 },
-  cardText: { fontSize: 13.5, lineHeight: 19, color: '#41505f' },
+  cardLabel: { fontSize: 9.5, letterSpacing: 1.2, color: tc('#8a97a5', 'fg'), fontWeight: '700' },
+  unreadDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: tc('#3d7d5f', 'bg') },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: tc('#1c2b3a', 'fg'), marginBottom: 3 },
+  cardText: { fontSize: 13.5, lineHeight: 19, color: tc('#41505f', 'fg') },
   cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 8,
   },
-  cardTime: { fontSize: 11.5, color: '#8a97a5' },
+  cardTime: { fontSize: 11.5, color: tc('#8a97a5', 'fg') },
   cardLinkWrap: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  cardLink: { fontSize: 12, fontWeight: '600', color: '#24384e' },
+  cardLink: { fontSize: 12, fontWeight: '600', color: tc('#24384e', 'fg') },
 
   footerLoader: { paddingVertical: 14, alignItems: 'center' },
 
@@ -391,7 +396,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(32,47,62,0.06)',
+    backgroundColor: tc('rgba(32,47,62,0.06)', 'bg'),
   },
-  emptyText: { color: '#5b6a7a', fontSize: 13.5, textAlign: 'center', lineHeight: 20 },
+  emptyText: { color: tc('#5b6a7a', 'fg'), fontSize: 13.5, textAlign: 'center', lineHeight: 20 },
 });

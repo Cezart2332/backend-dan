@@ -15,10 +15,13 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { levels as levelDefs } from '../challenges';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { api } from '../utils/api';
+import { useTheme, useThemedStyles } from './ui/themeContext';
 
 const { width } = Dimensions.get('window');
 
 export default function ProvocarilScreen({ navigation }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [selectedLevel, setSelectedLevel] = useState(null);
   const [cmsLevels, setCmsLevels] = useState([]);
   const { subscription } = useSubscription();
@@ -84,7 +87,7 @@ export default function ProvocarilScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={['#f6f7f8', '#f3f4f6', '#eef0f2']}
+        colors={[tc('#f6f7f8', 'bg'), tc('#f3f4f6', 'bg'), tc('#eef0f2', 'bg')]}
         style={styles.background}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -94,12 +97,12 @@ export default function ProvocarilScreen({ navigation }) {
               onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))}
               style={styles.backButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Feather name="chevron-left" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
             </TouchableOpacity>
 
             <View style={styles.headerContent}>
               <View style={styles.headerIcon}>
-                <Feather name="award" size={34} color="#24384e" />
+                <Feather name="award" size={34} color={tc("#24384e", 'fg')} />
               </View>
               <Text style={styles.title}>Provocări</Text>
               <Text style={styles.subtitle}>Alege-ți nivelul de provocare</Text>
@@ -107,7 +110,7 @@ export default function ProvocarilScreen({ navigation }) {
 
             <View style={styles.historyWrap}>
               <TouchableOpacity onPress={() => navigation.navigate('ChallengeHistory')} style={styles.historyButton}>
-                <Feather name="clock" size={16} color="#24384e" style={{ marginRight: 5 }} />
+                <Feather name="clock" size={16} color={tc("#24384e", 'fg')} style={{ marginRight: 5 }} />
                 <Text style={styles.historyButtonText}>Istoric</Text>
               </TouchableOpacity>
             </View>
@@ -127,14 +130,14 @@ export default function ProvocarilScreen({ navigation }) {
                   onPress={() => handleLevelPress(level)}
                 >
                   <View style={styles.levelHeaderInner}>
-                      <View style={[styles.levelIconContainer, { backgroundColor: locked ? 'rgba(32,47,62,0.14)' : level.iconColor + '18' }]}>
-                        <Ionicons name={locked ? 'lock-closed-outline' : level.iconName} size={26} color={locked ? '#bbb' : level.iconColor} />
+                      <View style={[styles.levelIconContainer, { backgroundColor: locked ? tc('rgba(32,47,62,0.14)', 'bg') : tc(level.iconColor, 'bg') + '18' }]}>
+                        <Ionicons name={locked ? 'lock-closed-outline' : level.iconName} size={26} color={locked ? tc('#bbb', 'fg') : tc(level.iconColor, 'fg')} />
                       </View>
                       
                       <View style={styles.levelInfo}>
                         <View style={styles.levelTitleRow}>
                           <Text style={[styles.levelNumber, locked && styles.lockedText]}>{level.level}</Text>
-                          <View style={[styles.difficultyBadge, { backgroundColor: locked ? '#bbb' : level.color }]}>
+                          <View style={[styles.difficultyBadge, { backgroundColor: locked ? tc('#bbb', 'bg') : level.color }]}>
                             <Text style={styles.difficultyText}>{level.difficulty}</Text>
                           </View>
                         </View>
@@ -147,7 +150,7 @@ export default function ProvocarilScreen({ navigation }) {
                       <Ionicons
                         name={selectedLevel === level.id ? 'chevron-up' : 'chevron-down'}
                         size={18}
-                        color={locked ? '#ccc' : '#24384e'}
+                        color={locked ? tc('#ccc', 'fg') : tc('#24384e', 'fg')}
                       />
                   </View>
                 </TouchableOpacity>
@@ -159,11 +162,11 @@ export default function ProvocarilScreen({ navigation }) {
                     
                     <View style={styles.levelDetails}>
                       <View style={styles.detailItem}>
-                        <Feather name="clock" size={15} color="#5b6a7a" style={{ marginRight: 5 }} />
+                        <Feather name="clock" size={15} color={tc("#5b6a7a", 'fg')} style={{ marginRight: 5 }} />
                         <Text style={styles.detailText}>Durată: {level.duration}</Text>
                       </View>
                       <View style={styles.detailItem}>
-                        <Feather name="list" size={15} color="#5b6a7a" style={{ marginRight: 5 }} />
+                        <Feather name="list" size={15} color={tc("#5b6a7a", 'fg')} style={{ marginRight: 5 }} />
                         <Text style={styles.detailText}>{level.exercises} exerciții</Text>
                       </View>
                     </View>
@@ -174,7 +177,7 @@ export default function ProvocarilScreen({ navigation }) {
                     >
                       <View style={styles.startButtonInner}>
                         <Text style={styles.startButtonText}>Începe Provocarea</Text>
-                        <Feather name="arrow-right" size={18} color="#fff" style={{ marginLeft: 8 }} />
+                        <Feather name="arrow-right" size={18} color={tc("#fff", 'fg')} style={{ marginLeft: 8 }} />
                       </View>
                     </TouchableOpacity>
                   </View>
@@ -187,7 +190,7 @@ export default function ProvocarilScreen({ navigation }) {
           {/* Tips Section */}
           <View style={styles.tipsSection}>
             <View style={styles.tipsTitleRow}>
-              <Feather name="zap" size={18} color="#24384e" style={{ marginRight: 7 }} />
+              <Feather name="zap" size={18} color={tc("#24384e", 'fg')} style={{ marginRight: 7 }} />
               <Text style={styles.tipsTitle}>Sfaturi pentru succes</Text>
             </View>
             <View style={styles.tipsList}>
@@ -203,10 +206,10 @@ export default function ProvocarilScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (tc) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f6f7f8',
+    backgroundColor: tc('#f6f7f8', 'bg'),
   },
   background: {
     flex: 1,
@@ -230,9 +233,9 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
     borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#24384e',
@@ -245,14 +248,14 @@ const styles = StyleSheet.create({
   historyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
     borderRadius: 18,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
   },
-  historyButtonText: { color: '#24384e', fontWeight: '700', fontSize: 13 },
+  historyButtonText: { color: tc('#24384e', 'fg'), fontWeight: '700', fontSize: 13 },
   headerContent: {
     alignItems: 'center',
   },
@@ -260,9 +263,9 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
     borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 15,
@@ -277,13 +280,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     fontSize: 28,
     fontWeight: '700',
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#5b6a7a',
+    color: tc('#5b6a7a', 'fg'),
     textAlign: 'center',
     fontWeight: '400',
   },
@@ -303,14 +306,14 @@ const styles = StyleSheet.create({
     opacity: 0.55,
   },
   lockedText: {
-    color: '#999',
+    color: tc('#999', 'fg'),
   },
   levelHeader: {
     borderRadius: 18,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.58)',
+    backgroundColor: tc('rgba(255,255,255,0.58)', 'bg'),
     borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
   },
   levelHeaderExpanded: {
     borderBottomLeftRadius: 0,
@@ -343,7 +346,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.0,
-    color: '#8a97a5',
+    color: tc('#8a97a5', 'fg'),
     marginRight: 10,
     textTransform: 'uppercase',
   },
@@ -354,32 +357,32 @@ const styles = StyleSheet.create({
   },
   difficultyText: {
     fontSize: 11,
-    color: '#ffffff',
+    color: tc('#ffffff', 'fg'),
     fontWeight: '600',
   },
   levelTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
     marginBottom: 3,
   },
   levelSubtitle: {
     fontSize: 13,
-    color: '#5b6a7a',
+    color: tc('#5b6a7a', 'fg'),
     fontWeight: '400',
   },
   expandedContent: {
-    backgroundColor: 'rgba(246,247,248,0.95)',
+    backgroundColor: tc('rgba(246,247,248,0.95)', 'bg'),
     padding: 18,
     borderWidth: 1,
     borderTopWidth: 0,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     borderBottomLeftRadius: 18,
     borderBottomRightRadius: 18,
   },
   levelGoal: {
     fontSize: 14,
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
     lineHeight: 20,
     marginBottom: 14,
     fontWeight: '500',
@@ -395,7 +398,7 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 13,
-    color: '#5b6a7a',
+    color: tc('#5b6a7a', 'fg'),
     fontWeight: '500',
   },
   startButton: {
@@ -408,16 +411,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 14,
     paddingHorizontal: 20,
-    backgroundColor: '#24384e',
+    backgroundColor: tc('#24384e', 'bg'),
     borderRadius: 14,
   },
   startButtonText: {
-    color: '#ffffff',
+    color: tc('#ffffff', 'fg'),
     fontSize: 16,
     fontWeight: '600',
   },
   tipsSection: {
-    backgroundColor: 'rgba(255,255,255,0.58)',
+    backgroundColor: tc('rgba(255,255,255,0.58)', 'bg'),
     borderRadius: 18,
     padding: 20,
     shadowColor: '#24384e',
@@ -426,7 +429,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
     borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     marginBottom: 20,
   },
   tipsTitleRow: {
@@ -437,14 +440,14 @@ const styles = StyleSheet.create({
   tipsTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
   },
   tipsList: {
     paddingLeft: 5,
   },
   tipItem: {
     fontSize: 14,
-    color: '#5b6a7a',
+    color: tc('#5b6a7a', 'fg'),
     lineHeight: 24,
   },
 });

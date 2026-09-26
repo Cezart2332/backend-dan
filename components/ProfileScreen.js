@@ -18,6 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { api, toAbsoluteApiUrl } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { getUser, saveUser } from '../utils/userStorage';
+import { useTheme, useThemedStyles } from './ui/themeContext';
 
 const MAX_AVATAR_BYTES = 3 * 1024 * 1024;
 
@@ -34,6 +35,8 @@ function normalizeName(value) {
 }
 
 export default function ProfileScreen({ navigation }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
@@ -203,10 +206,10 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.gradient}>
+      <LinearGradient colors={[tc('#f6f7f8', 'bg'), tc('#f3f4f6', 'bg'), tc('#eef0f2', 'bg')]} style={styles.gradient}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
-            <Feather name="chevron-left" size={22} color="#24384e" />
+            <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Profilul meu</Text>
           <View style={styles.headerSpacer} />
@@ -214,7 +217,7 @@ export default function ProfileScreen({ navigation }) {
 
         {loading ? (
           <View style={styles.loaderWrap}>
-            <ActivityIndicator size="large" color="#24384e" />
+            <ActivityIndicator size="large" color={tc("#24384e", 'fg')} />
             <Text style={styles.loaderText}>Se încărca profilul...</Text>
           </View>
         ) : (
@@ -229,18 +232,18 @@ export default function ProfileScreen({ navigation }) {
                   <Image source={{ uri: displayedAvatarUri }} style={styles.avatarImage} />
                 ) : (
                   <View style={styles.avatarPlaceholder}>
-                    <Feather name="user" size={38} color="#24384e" />
+                    <Feather name="user" size={38} color={tc("#24384e", 'fg')} />
                   </View>
                 )}
                 <View style={styles.avatarBadge}>
-                  <Feather name="camera" size={12} color="#fff" />
+                  <Feather name="camera" size={12} color={tc("#fff", 'fg')} />
                 </View>
               </TouchableOpacity>
               <Text style={styles.avatarHint}>Apasa pe avatar pentru a schimba poză</Text>
 
               {displayedAvatarUri ? (
                 <TouchableOpacity style={styles.removeAvatarBtn} onPress={handleRemoveAvatar}>
-                  <Feather name="trash-2" size={14} color="#a8544c" />
+                  <Feather name="trash-2" size={14} color={tc("#a8544c", 'fg')} />
                   <Text style={styles.removeAvatarText}>Sterge poză</Text>
                 </TouchableOpacity>
               ) : null}
@@ -253,7 +256,7 @@ export default function ProfileScreen({ navigation }) {
                 value={name}
                 onChangeText={setName}
                 placeholder="Numele tau"
-                placeholderTextColor="#90a2b4"
+                placeholderTextColor={tc("#90a2b4", 'fg')}
                 maxLength={60}
                 autoCapitalize="words"
               />
@@ -267,10 +270,10 @@ export default function ProfileScreen({ navigation }) {
               activeOpacity={0.85}
             >
               {saving ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={tc("#fff", 'fg')} />
               ) : (
                 <>
-                  <Feather name="check-circle" size={18} color="#fff" />
+                  <Feather name="check-circle" size={18} color={tc("#fff", 'fg')} />
                   <Text style={styles.saveBtnText}>Salveaza profilul</Text>
                 </>
               )}
@@ -282,8 +285,8 @@ export default function ProfileScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
+const createStyles = (tc) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: tc('#f6f7f8', 'bg') },
   gradient: { flex: 1, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 18 },
   headerRow: {
     flexDirection: 'row',
@@ -295,16 +298,16 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
   },
   headerSpacer: {
     width: 38,
@@ -317,7 +320,7 @@ const styles = StyleSheet.create({
   },
   loaderText: {
     marginTop: 8,
-    color: '#24384e',
+    color: tc('#24384e', 'fg'),
   },
   contentWrap: {
     flex: 1,
@@ -337,7 +340,7 @@ const styles = StyleSheet.create({
     height: 110,
     borderRadius: 55,
     borderWidth: 2,
-    borderColor: 'rgba(36,56,78,0.2)',
+    borderColor: tc('rgba(36,56,78,0.2)', 'bg'),
   },
   avatarPlaceholder: {
     width: 110,
@@ -346,8 +349,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(36,56,78,0.2)',
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderColor: tc('rgba(36,56,78,0.2)', 'bg'),
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
   },
   avatarBadge: {
     position: 'absolute',
@@ -356,15 +359,15 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#24384e',
+    backgroundColor: tc('#24384e', 'bg'),
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.58)',
+    borderColor: tc('rgba(255,255,255,0.58)', 'bg'),
   },
   avatarHint: {
     marginTop: 8,
-    color: '#5b6a7a',
+    color: tc('#5b6a7a', 'fg'),
     fontSize: 12,
   },
   removeAvatarBtn: {
@@ -375,24 +378,24 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(168,84,76,0.25)',
-    backgroundColor: 'rgba(168,84,76,0.08)',
+    borderColor: tc('rgba(168,84,76,0.25)', 'bg'),
+    backgroundColor: tc('rgba(168,84,76,0.08)', 'bg'),
   },
   removeAvatarText: {
     marginLeft: 6,
-    color: '#a8544c',
+    color: tc('#a8544c', 'fg'),
     fontWeight: '600',
     fontSize: 12,
   },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.78)',
+    backgroundColor: tc('rgba(255,255,255,0.78)', 'bg'),
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(195,202,210,0.65)',
+    borderColor: tc('rgba(195,202,210,0.65)', 'bg'),
     padding: 14,
   },
   label: {
-    color: '#4a6078',
+    color: tc('#4a6078', 'fg'),
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 6,
@@ -401,22 +404,22 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: 10,
     paddingHorizontal: 12,
-    backgroundColor: 'rgba(255,255,255,0.7)',
+    backgroundColor: tc('rgba(255,255,255,0.7)', 'bg'),
     borderWidth: 1,
-    borderColor: 'rgba(195,202,210,0.8)',
-    color: '#1c2b3a',
+    borderColor: tc('rgba(195,202,210,0.8)', 'bg'),
+    color: tc('#1c2b3a', 'fg'),
     fontSize: 15,
   },
   helperText: {
     marginTop: 8,
-    color: '#6f859d',
+    color: tc('#6f859d', 'fg'),
     fontSize: 12,
   },
   saveBtn: {
     marginTop: 16,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#24384e',
+    backgroundColor: tc('#24384e', 'bg'),
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -430,7 +433,7 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   saveBtnText: {
-    color: '#fff',
+    color: tc('#fff', 'fg'),
     fontWeight: '700',
     fontSize: 15,
     marginLeft: 8,

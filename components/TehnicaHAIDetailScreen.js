@@ -11,14 +11,17 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import HeadphonesDisclaimer from "./HeadphonesDisclaimer";
+import { useTheme, useThemedStyles } from "./ui/themeContext";
 
 export default function TehnicaHAIDetailScreen({ navigation, route }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { title, description, note } = route.params || {};
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={["#f6f7f8", "#f3f4f6", "#eef0f2"]}
+        colors={[tc("#f6f7f8", 'bg'), tc("#f3f4f6", 'bg'), tc("#eef0f2", 'bg')]}
         style={styles.background}
       >
         <ScrollView contentContainerStyle={styles.content}>
@@ -42,7 +45,7 @@ export default function TehnicaHAIDetailScreen({ navigation, route }) {
             style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))}
           >
-            <Feather name="chevron-left" size={20} color="#24384e" />
+            <Feather name="chevron-left" size={20} color={tc("#24384e", 'fg')} />
             <Text style={styles.backText}>Înapoi</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -52,8 +55,8 @@ export default function TehnicaHAIDetailScreen({ navigation, route }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
+const createStyles = (tc) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: tc('#f6f7f8', 'bg') },
   background: { flex: 1 },
   content: { padding: 20 },
   title: {
@@ -61,32 +64,32 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     fontSize: 22,
     fontWeight: "700",
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
     textAlign: "center",
     marginBottom: 16,
   },
   paragraph: {
     fontSize: 15,
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
     lineHeight: 22,
     marginBottom: 12,
     textAlign: "center",
   },
   note: {
     fontStyle: "italic",
-    color: "#24384e",
+    color: tc("#24384e", 'fg'),
   },
   backBtn: {
     flexDirection: 'row',
     alignSelf: "center",
     marginTop: 20,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     alignItems: 'center',
   },
-  backText: { color: "#24384e", fontWeight: "600", marginLeft: 2 },
+  backText: { color: tc("#24384e", 'fg'), fontWeight: "600", marginLeft: 2 },
 });

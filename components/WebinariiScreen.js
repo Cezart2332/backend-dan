@@ -20,6 +20,7 @@ import Constants from 'expo-constants';
 import { api } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { useSubscription } from '../contexts/SubscriptionContext';
+import { useTheme, useThemedStyles } from './ui/themeContext';
 
 const SHARED_PUSH_TOKEN_KEY = 'quote_push_token';
 const WEBINAR_PUSH_REGISTERED_KEY = 'webinars_push_registered_v1';
@@ -54,6 +55,8 @@ function formatWebinarDate(value) {
 }
 
 export default function WebinariiScreen({ navigation, route }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { subscription, hasProEntitlement } = useSubscription();
   const subType = String(subscription?.type || '').toLowerCase();
   const hasWebinarAccess = hasProEntitlement || ['premium', 'vip', 'pro'].includes(subType);
@@ -192,10 +195,10 @@ export default function WebinariiScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.gradient}>
+      <LinearGradient colors={[tc('#f6f7f8', 'bg'), tc('#f3f4f6', 'bg'), tc('#eef0f2', 'bg')]} style={styles.gradient}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
-            <Feather name="chevron-left" size={22} color="#24384e" />
+            <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
           </TouchableOpacity>
           <View style={styles.headerTextWrap}>
             <Text style={styles.title}>Webinarii</Text>
@@ -205,7 +208,7 @@ export default function WebinariiScreen({ navigation, route }) {
 
         {!hasWebinarAccess ? (
           <View style={styles.blockedCard}>
-            <Feather name="lock" size={24} color="#5c5a80" />
+            <Feather name="lock" size={24} color={tc("#5c5a80", 'fg')} />
             <Text style={styles.blockedTitle}>Acces Premium/VIP</Text>
             <Text style={styles.blockedText}>
               Accesul la webinarii necesita Premium sau VIP
@@ -219,7 +222,7 @@ export default function WebinariiScreen({ navigation, route }) {
           </View>
         ) : loading ? (
           <View style={styles.centerWrap}>
-            <ActivityIndicator size="large" color="#24384e" />
+            <ActivityIndicator size="large" color={tc("#24384e", 'fg')} />
             <Text style={styles.loadingText}>Se încărca webinariile...</Text>
           </View>
         ) : (
@@ -229,7 +232,7 @@ export default function WebinariiScreen({ navigation, route }) {
           >
             {pushReady ? (
               <View style={styles.pushInfoCard}>
-                <Feather name="bell" size={16} color="#16222f" />
+                <Feather name="bell" size={16} color={tc("#16222f", 'fg')} />
                 <Text style={styles.pushInfoText}>Notificarile pentru webinarii sunt active pe acest dispozitiv.</Text>
               </View>
             ) : null}
@@ -254,7 +257,7 @@ export default function WebinariiScreen({ navigation, route }) {
 
             {!items.length && !error ? (
               <View style={styles.emptyCard}>
-                <Feather name="calendar" size={22} color="#8aa6c8" />
+                <Feather name="calendar" size={22} color={tc("#8aa6c8", 'fg')} />
                 <Text style={styles.emptyText}>Momentan nu exista webinarii publicate.</Text>
               </View>
             ) : null}
@@ -289,19 +292,19 @@ export default function WebinariiScreen({ navigation, route }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
+const createStyles = (tc) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: tc('#f6f7f8', 'bg') },
   gradient: { flex: 1, padding: 20 },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 14, marginTop: 4 },
   backBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     shadowColor: '#24384e',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
@@ -310,32 +313,32 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   headerTextWrap: { flex: 1 },
-  title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 20, fontWeight: '700', color: '#1c2b3a' },
-  subtitle: { fontSize: 13, color: '#5b6a7a', marginTop: 2 },
+  title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 20, fontWeight: '700', color: tc('#1c2b3a', 'fg') },
+  subtitle: { fontSize: 13, color: tc('#5b6a7a', 'fg'), marginTop: 2 },
   centerWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { marginTop: 8, color: '#24384e' },
+  loadingText: { marginTop: 8, color: tc('#24384e', 'fg') },
   scrollContent: { paddingBottom: 20 },
   pushInfoCard: {
     borderRadius: 12,
     padding: 10,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: 'rgba(36,56,78,0.18)',
-    backgroundColor: 'rgba(36,56,78,0.08)',
+    borderColor: tc('rgba(36,56,78,0.18)', 'bg'),
+    backgroundColor: tc('rgba(36,56,78,0.08)', 'bg'),
     flexDirection: 'row',
     alignItems: 'center',
   },
-  pushInfoText: { marginLeft: 8, color: '#16222f', fontSize: 12, flex: 1 },
+  pushInfoText: { marginLeft: 8, color: tc('#16222f', 'fg'), fontSize: 12, flex: 1 },
   webinarCard: {
-    backgroundColor: 'rgba(255,255,255,0.58)',
+    backgroundColor: tc('rgba(255,255,255,0.58)', 'bg'),
     borderRadius: 16,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
   },
   webinarCardFocused: {
-    borderColor: '#5c5a80',
+    borderColor: tc('#5c5a80', 'bg'),
     shadowColor: '#5c5a80',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.14,
@@ -343,66 +346,66 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   webinarTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  webinarTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: '#1c2b3a' },
-  webinarDate: { marginTop: 6, color: '#5b6a7a', fontSize: 12 },
-  webinarDescription: { marginTop: 8, color: '#34495e', fontSize: 13, lineHeight: 19 },
+  webinarTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: tc('#1c2b3a', 'fg') },
+  webinarDate: { marginTop: 6, color: tc('#5b6a7a', 'fg'), fontSize: 12 },
+  webinarDescription: { marginTop: 8, color: tc('#34495e', 'fg'), fontSize: 13, lineHeight: 19 },
   actionRow: { marginTop: 12 },
   actionBtnJoin: {
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center',
-    backgroundColor: '#24384e',
+    backgroundColor: tc('#24384e', 'bg'),
   },
   actionBtnRecording: {
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center',
-    backgroundColor: '#5d8f4f',
+    backgroundColor: tc('#5d8f4f', 'bg'),
   },
-  actionBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  noLinkText: { color: '#7d8ea1', fontSize: 12 },
+  actionBtnText: { color: tc('#fff', 'fg'), fontWeight: '700', fontSize: 13 },
+  noLinkText: { color: tc('#7d8ea1', 'fg'), fontSize: 12 },
   statusBadge: { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4 },
-  status_scheduled: { backgroundColor: 'rgba(36,56,78,0.14)' },
-  status_live: { backgroundColor: 'rgba(168,84,76,0.16)' },
-  status_held: { backgroundColor: 'rgba(61,125,95,0.16)' },
-  status_cancelled: { backgroundColor: 'rgba(107,118,131,0.2)' },
-  statusText: { fontSize: 11, fontWeight: '700', color: '#1c2b3a' },
+  status_scheduled: { backgroundColor: tc('rgba(36,56,78,0.14)', 'bg') },
+  status_live: { backgroundColor: tc('rgba(168,84,76,0.16)', 'bg') },
+  status_held: { backgroundColor: tc('rgba(61,125,95,0.16)', 'bg') },
+  status_cancelled: { backgroundColor: tc('rgba(107,118,131,0.2)', 'bg') },
+  statusText: { fontSize: 11, fontWeight: '700', color: tc('#1c2b3a', 'fg') },
   blockedCard: {
     marginTop: 20,
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
-    borderColor: 'rgba(92,90,128,0.24)',
-    backgroundColor: 'rgba(92,90,128,0.08)',
+    borderColor: tc('rgba(92,90,128,0.24)', 'bg'),
+    backgroundColor: tc('rgba(92,90,128,0.08)', 'bg'),
     alignItems: 'center',
   },
-  blockedTitle: { marginTop: 8, fontSize: 17, fontWeight: '700', color: '#2b2f5f' },
-  blockedText: { marginTop: 6, textAlign: 'center', color: '#4a5d75' },
+  blockedTitle: { marginTop: 8, fontSize: 17, fontWeight: '700', color: tc('#2b2f5f', 'fg') },
+  blockedText: { marginTop: 6, textAlign: 'center', color: tc('#4a5d75', 'fg') },
   errorCard: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(168,84,76,0.25)',
-    backgroundColor: 'rgba(168,84,76,0.1)',
+    borderColor: tc('rgba(168,84,76,0.25)', 'bg'),
+    backgroundColor: tc('rgba(168,84,76,0.1)', 'bg'),
     padding: 12,
     marginBottom: 10,
   },
-  errorText: { color: '#b13f52', fontSize: 13 },
+  errorText: { color: tc('#b13f52', 'fg'), fontSize: 13 },
   emptyCard: {
     marginTop: 20,
     alignItems: 'center',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(138,166,200,0.3)',
-    backgroundColor: 'rgba(255,255,255,0.58)',
+    borderColor: tc('rgba(138,166,200,0.3)', 'bg'),
+    backgroundColor: tc('rgba(255,255,255,0.58)', 'bg'),
     padding: 18,
   },
-  emptyText: { marginTop: 8, color: '#5b6a7a' },
+  emptyText: { marginTop: 8, color: tc('#5b6a7a', 'fg') },
   upgradeBtn: {
     marginTop: 12,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    backgroundColor: '#5c5a80',
+    backgroundColor: tc('#5c5a80', 'bg'),
   },
-  upgradeBtnText: { color: '#fff', fontWeight: '700' },
+  upgradeBtnText: { color: tc('#fff', 'fg'), fontWeight: '700' },
 });

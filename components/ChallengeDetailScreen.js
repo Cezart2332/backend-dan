@@ -9,8 +9,11 @@ import { api } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { getRunById } from '../utils/challengeStorage';
 import { resolveChallengeTitle } from '../challenges';
+import { useTheme, useThemedStyles } from './ui/themeContext';
 
 export default function ChallengeDetailScreen({ route, navigation }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { id } = route.params || {};
   const [item, setItem] = useState(null);
 
@@ -38,11 +41,11 @@ export default function ChallengeDetailScreen({ route, navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.background}>
+      <LinearGradient colors={[tc('#f6f7f8', 'bg'), tc('#f3f4f6', 'bg'), tc('#eef0f2', 'bg')]} style={styles.background}>
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Feather name="chevron-left" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
             </TouchableOpacity>
             <Text style={styles.title}>{resolved.title}</Text>
             <Text style={styles.subtitle}>{resolved.levelTitle}</Text>
@@ -56,7 +59,7 @@ export default function ChallengeDetailScreen({ route, navigation }) {
               {!!item.notes && <Text style={[styles.cardText, { marginTop: 8 }]}>Note: {item.notes}</Text>}
             </View>
           ) : (
-            <Text style={{ textAlign: 'center', color: '#5b6a7a' }}>Se încarcă...</Text>
+            <Text style={{ textAlign: 'center', color: tc('#5b6a7a', 'fg') }}>Se încarcă...</Text>
           )}
         </ScrollView>
       </LinearGradient>
@@ -64,8 +67,8 @@ export default function ChallengeDetailScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
+const createStyles = (tc) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: tc('#f6f7f8', 'bg') },
   background: { flex: 1 },
   content: { padding: 20 },
   header: { alignItems: 'center', marginBottom: 20, paddingTop: 4 },
@@ -73,18 +76,18 @@ const styles = StyleSheet.create({
     position: 'absolute', left: 0, top: 0, zIndex: 10,
     width: 38, height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.55)',
-    borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
+    borderWidth: 1, borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
   },
-  title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 20, fontWeight: '700', color: '#1c2b3a', textAlign: 'center' },
-  subtitle: { fontSize: 13, color: '#5b6a7a', textAlign: 'center', marginTop: 4 },
+  title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 20, fontWeight: '700', color: tc('#1c2b3a', 'fg'), textAlign: 'center' },
+  subtitle: { fontSize: 13, color: tc('#5b6a7a', 'fg'), textAlign: 'center', marginTop: 4 },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.58)', borderRadius: 18, padding: 18, marginBottom: 14,
-    borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
+    backgroundColor: tc('rgba(255,255,255,0.58)', 'bg'), borderRadius: 18, padding: 18, marginBottom: 14,
+    borderWidth: 1, borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#1c2b3a', marginBottom: 8 },
-  cardText: { fontSize: 14, color: '#1c2b3a', lineHeight: 22 },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: tc('#1c2b3a', 'fg'), marginBottom: 8 },
+  cardText: { fontSize: 14, color: tc('#1c2b3a', 'fg'), lineHeight: 22 },
 });

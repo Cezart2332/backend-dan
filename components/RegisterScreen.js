@@ -20,10 +20,13 @@ import { saveUser } from '../utils/userStorage';
 import { saveSubscription } from '../utils/subscriptionStorage';
 import { useGoogleAuth, handleGoogleResponse, signInWithApple } from '../utils/oauth';
 import metaEvents from '../utils/metaEvents';
+import { useTheme, useThemedStyles } from './ui/themeContext';
 
 const { width, height } = Dimensions.get('window');
 
 export default function RegisterScreen({ navigation, onAuthenticated }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -123,7 +126,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={['#f6f7f8', '#f3f4f6', '#eef0f2']}
+        colors={[tc('#f6f7f8', 'bg'), tc('#f3f4f6', 'bg'), tc('#eef0f2', 'bg')]}
         style={styles.gradient}
       >
         <KeyboardAvoidingView
@@ -137,12 +140,12 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                 onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Login'))}
                 style={styles.backButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               >
-                <Feather name="chevron-left" size={24} color="#24384e" />
+                <Feather name="chevron-left" size={24} color={tc("#24384e", 'fg')} />
               </TouchableOpacity>
 
               <View style={styles.logoContainer}>
                 <View style={styles.logoCircle}>
-                  <Feather name="feather" size={40} color="#24384e" />
+                  <Feather name="feather" size={40} color={tc("#24384e", 'fg')} />
                 </View>
               </View>
               <Text style={styles.title}>Creează cont</Text>
@@ -152,11 +155,11 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
             {/* Form */}
             <View style={styles.formContainer}>
               <View style={styles.inputContainer}>
-                <Feather name="user" size={20} color="#24384e" style={styles.inputIcon} />
+                <Feather name="user" size={20} color={tc("#24384e", 'fg')} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Nume complet"
-                  placeholderTextColor="#8a97a5"
+                  placeholderTextColor={tc("#8a97a5", 'fg')}
                   value={fullName}
                   onChangeText={setFullName}
                   autoCapitalize="words"
@@ -164,11 +167,11 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
               </View>
 
               <View style={styles.inputContainer}>
-                <Feather name="mail" size={20} color="#24384e" style={styles.inputIcon} />
+                <Feather name="mail" size={20} color={tc("#24384e", 'fg')} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Email"
-                  placeholderTextColor="#8a97a5"
+                  placeholderTextColor={tc("#8a97a5", 'fg')}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -177,11 +180,11 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
               </View>
 
               <View style={styles.inputContainer}>
-                <Feather name="lock" size={20} color="#24384e" style={styles.inputIcon} />
+                <Feather name="lock" size={20} color={tc("#24384e", 'fg')} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Parolă"
-                  placeholderTextColor="#8a97a5"
+                  placeholderTextColor={tc("#8a97a5", 'fg')}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -193,17 +196,17 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                   <Ionicons
                     name={showPassword ? "eye-outline" : "eye-off-outline"}
                     size={20}
-                    color="#24384e"
+                    color={tc("#24384e", 'fg')}
                   />
                 </TouchableOpacity>
               </View>
 
               <View style={[styles.inputContainer, { marginBottom: 0 }]}>
-                <Feather name="lock" size={20} color="#24384e" style={styles.inputIcon} />
+                <Feather name="lock" size={20} color={tc("#24384e", 'fg')} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Confirmă parola"
-                  placeholderTextColor="#8a97a5"
+                  placeholderTextColor={tc("#8a97a5", 'fg')}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showConfirmPassword}
@@ -215,7 +218,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                   <Ionicons
                     name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
                     size={20}
-                    color="#24384e"
+                    color={tc("#24384e", 'fg')}
                   />
                 </TouchableOpacity>
               </View>
@@ -227,7 +230,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
               >
                 <View style={styles.checkboxRow}>
                   <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
-                    {agreedToTerms && <Feather name="check" size={14} color="#fff" />}
+                    {agreedToTerms && <Feather name="check" size={14} color={tc("#fff", 'fg')} />}
                   </View>
                   <Text style={styles.agreementText}>
                     Sunt de acord cu{' '}
@@ -250,7 +253,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                 disabled={loading}
               >
                 <LinearGradient
-                  colors={['rgba(28,43,58,0.94)', 'rgba(22,34,47,0.96)']}
+                  colors={[tc('rgba(28,43,58,0.94)', 'bg'), tc('rgba(22,34,47,0.96)', 'bg')]}
                   style={styles.buttonGradient}
                 >
                   <Text style={styles.registerButtonText}>{loading ? 'Se creează...' : 'Creează cont'}</Text>
@@ -272,7 +275,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                 onPress={() => googlePromptAsync()}
                 disabled={!googleRequest || loading}
               >
-                <Ionicons name="logo-google" size={20} color="#4285F4" style={{ marginRight: 8 }} />
+                <Ionicons name="logo-google" size={20} color={tc("#4285F4", 'fg')} style={{ marginRight: 8 }} />
                 <Text style={styles.socialButtonText}>Google</Text>
               </TouchableOpacity>
 
@@ -282,7 +285,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
                   onPress={handleAppleSignUp}
                   disabled={loading}
                 >
-                  <Ionicons name="logo-apple" size={20} color="#1c2b3a" style={{ marginRight: 8 }} />
+                  <Ionicons name="logo-apple" size={20} color={tc("#1c2b3a", 'fg')} style={{ marginRight: 8 }} />
                   <Text style={styles.socialButtonText}>Apple</Text>
                 </TouchableOpacity>
               )}
@@ -322,7 +325,7 @@ Sunt coach și autor de cărți despre anxietate și am trecut personal prin ace
                 navigation.navigate('Onboarding');
               }}
             >
-              <LinearGradient colors={['rgba(28,43,58,0.94)', 'rgba(22,34,47,0.96)']} style={styles.disclaimerButtonGrad}>
+              <LinearGradient colors={[tc('rgba(28,43,58,0.94)', 'bg'), tc('rgba(22,34,47,0.96)', 'bg')]} style={styles.disclaimerButtonGrad}>
                 <Text style={styles.disclaimerButtonText}>Am înțeles</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -333,8 +336,8 @@ Sunt coach și autor de cărți despre anxietate și am trecut personal prin ace
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
+const createStyles = (tc) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: tc('#f6f7f8', 'bg') },
   gradient: { flex: 1 },
   keyboardAvoid: {
     flex: 1,
@@ -353,15 +356,15 @@ const styles = StyleSheet.create({
   backButton: {
     position: 'absolute', left: 0, top: 0, zIndex: 10,
     padding: 8, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.55)',
-    borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
+    borderWidth: 1, borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1, shadowRadius: 4, elevation: 4,
     width: 40, height: 40, justifyContent: 'center', alignItems: 'center',
   },
   backButtonText: {
     fontSize: 18,
-    color: '#24384e',
+    color: tc('#24384e', 'fg'),
     fontWeight: 'bold',
   },
   logoContainer: {
@@ -369,9 +372,9 @@ const styles = StyleSheet.create({
   },
   logoCircle: {
     width: 80, height: 80, borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
     justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
+    borderWidth: 1, borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15, shadowRadius: 8, elevation: 8,
   },
@@ -380,13 +383,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     fontSize: 28,
     fontWeight: '700',
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#5b6a7a',
+    color: tc('#5b6a7a', 'fg'),
     textAlign: 'center',
     fontWeight: '400',
   },
@@ -396,12 +399,12 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: tc('#ffffff', 'bg'),
     borderRadius: 16,
     marginBottom: 16,
     paddingHorizontal: 16,
     paddingVertical: 4,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(32,47,62,0.28)',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: tc('rgba(32,47,62,0.28)', 'bg'),
   },
   inputIcon: {
     marginRight: 12,
@@ -409,7 +412,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
     paddingVertical: 16,
     fontWeight: '400',
   },
@@ -429,24 +432,24 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#24384e',
-    backgroundColor: '#ffffff',
+    borderColor: tc('#24384e', 'bg'),
+    backgroundColor: tc('#ffffff', 'bg'),
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   checkboxChecked: {
-    backgroundColor: '#24384e',
+    backgroundColor: tc('#24384e', 'bg'),
   },
   agreementText: {
     fontSize: 14,
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
     lineHeight: 20,
     flex: 1,
     fontWeight: '400',
   },
   linkText: {
-    color: '#24384e',
+    color: tc('#24384e', 'fg'),
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
@@ -467,14 +470,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   registerButtonText: {
-    color: '#ffffff',
+    color: tc('#ffffff', 'fg'),
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 1.8,
     textTransform: 'uppercase',
   },
   errorText: {
-    color: '#a8544c',
+    color: tc('#a8544c', 'fg'),
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -486,11 +489,11 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(32,47,62,0.22)',
+    backgroundColor: tc('rgba(32,47,62,0.22)', 'bg'),
   },
   dividerText: {
     marginHorizontal: 16,
-    color: '#5b6a7a',
+    color: tc('#5b6a7a', 'fg'),
     fontSize: 14,
     fontWeight: '400',
   },
@@ -504,7 +507,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: tc('#ffffff', 'bg'),
     borderRadius: 12,
     paddingVertical: 14,
     marginHorizontal: 4,
@@ -517,13 +520,13 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
     borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
   },
   socialButtonText: {
     marginLeft: 8,
     fontSize: 14,
     fontWeight: '500',
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
   },
   loginContainer: {
     flexDirection: 'row',
@@ -533,12 +536,12 @@ const styles = StyleSheet.create({
     paddingTop: 15,
   },
   loginText: {
-    color: '#5b6a7a',
+    color: tc('#5b6a7a', 'fg'),
     fontSize: 15,
     fontWeight: '400',
   },
   loginLink: {
-    color: '#24384e',
+    color: tc('#24384e', 'fg'),
     fontSize: 15,
     fontWeight: '600',
   },
@@ -548,7 +551,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   termsText: {
-    color: '#5b6a7a',
+    color: tc('#5b6a7a', 'fg'),
     fontSize: 13,
     textDecorationLine: 'underline',
   },
@@ -559,7 +562,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: tc('rgba(0,0,0,0.35)', 'bg'),
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -567,7 +570,7 @@ const styles = StyleSheet.create({
   disclaimerBox: {
     width: '100%',
     maxHeight: '80%',
-    backgroundColor: '#ffffff',
+    backgroundColor: tc('#ffffff', 'bg'),
     borderRadius: 20,
     paddingHorizontal: 20,
     paddingTop: 20,
@@ -578,7 +581,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 10,
     borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
   },
   disclaimerScroll: {
     paddingBottom: 8,
@@ -586,14 +589,14 @@ const styles = StyleSheet.create({
   disclaimerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
     marginBottom: 12,
     textAlign: 'center',
   },
   disclaimerText: {
     fontSize: 14,
     lineHeight: 20,
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
     textAlign: 'left',
   },
   disclaimerButton: {
@@ -607,7 +610,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   disclaimerButtonText: {
-    color: '#ffffff',
+    color: tc('#ffffff', 'fg'),
     fontSize: 16,
     fontWeight: '600',
   },

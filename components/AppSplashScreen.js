@@ -3,12 +3,14 @@ import { Animated, Dimensions, Easing, StyleSheet, Text, View } from "react-nati
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { colors, fonts, gradients } from "./ui";
+import { useTheme, useThemedStyles } from "./ui/themeContext";
 
 const { width } = Dimensions.get("window");
 const MARK_WIDTH = Math.min(width * 0.56, 290);
 const RING_SIZE = MARK_WIDTH * 1.55;
 
 function BreathRing({ delay, size }) {
+  const styles = useThemedStyles(createStyles);
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -59,6 +61,7 @@ function BreathRing({ delay, size }) {
 }
 
 function PulseDot({ pulse, index }) {
+  const styles = useThemedStyles(createStyles);
   const opacity = pulse.interpolate({
     inputRange: [index, index + 0.5, index + 1, 3],
     outputRange: [0.25, 1, 0.25, 0.25],
@@ -68,6 +71,8 @@ function PulseDot({ pulse, index }) {
 }
 
 export default function AppSplashScreen() {
+  const { tc, isDark } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const fade = useRef(new Animated.Value(0)).current;
   const rise = useRef(new Animated.Value(18)).current;
   const scale = useRef(new Animated.Value(0.9)).current;
@@ -154,12 +159,12 @@ export default function AppSplashScreen() {
 
   return (
     <LinearGradient
-      colors={gradients.screen}
+      colors={tc(gradients.screen, 'bg')}
       start={{ x: 0.1, y: 0.05 }}
       end={{ x: 0.9, y: 1 }}
       style={styles.root}
     >
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={styles.center}>
         <View style={styles.haloArea}>
@@ -204,7 +209,7 @@ export default function AppSplashScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (tc) => StyleSheet.create({
   root: {
     flex: 1,
     alignItems: "center",
@@ -222,17 +227,18 @@ const styles = StyleSheet.create({
   ring: {
     position: "absolute",
     borderWidth: 1,
-    borderColor: "rgba(179, 146, 79, 0.55)",
+    borderColor: tc("rgba(179, 146, 79, 0.55)", 'bg'),
   },
   mark: {
     width: MARK_WIDTH,
     height: MARK_WIDTH * 0.835,
+    tintColor: tc("#202f3e", 'fg'),
   },
   goldLine: {
     width: 52,
     height: 2,
     borderRadius: 1,
-    backgroundColor: "rgba(179, 146, 79, 0.85)",
+    backgroundColor: tc("rgba(179, 146, 79, 0.85)", 'bg'),
     marginTop: 8,
   },
   footer: {
@@ -244,7 +250,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display,
     fontSize: 14,
     letterSpacing: 1.4,
-    color: colors.textMuted,
+    color: tc(colors.textMuted, 'fg'),
   },
   dots: {
     flexDirection: "row",
@@ -255,6 +261,6 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: "rgba(179, 146, 79, 0.9)",
+    backgroundColor: tc("rgba(179, 146, 79, 0.9)", 'bg'),
   },
 });

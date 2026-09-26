@@ -22,10 +22,20 @@ import { PressableScale } from './ui';
 import { api, buildWebSocketUrl, toAbsoluteApiUrl } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { getUser } from '../utils/userStorage';
+import { syncAppBadge } from '../utils/appBadge';
+import { hapticImpact, hapticNotify } from '../utils/haptics';
+import { useTheme, useThemedStyles } from './ui/themeContext';
 
 const MAX_MESSAGE_LENGTH = 2000;
 const RECONNECT_DELAY_MS = 2500;
 const PING_INTERVAL_MS = 25000;
+const SEND_TIMEOUT_MS = 12000;
+const GROUP_WINDOW_MS = 5 * 60 * 1000;
+const CHAT_NOTIFICATION_TYPES = new Set(['chat_message', 'chat_unread']);
+
+function createClientId() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 function toIsoDate(value) {
   const parsed = new Date(value);
@@ -80,30 +90,77 @@ function mergeMessages(first, second) {
   });
 }
 
-function formatMessageDate(value) {
+function formatMessageTime(value) {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '--/--';
+  if (Number.isNaN(date.getTime())) return '--:--';
+  return date.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' });
+}
+
+function dayKeyOf(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'unknown';
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+function formatDayLabel(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
 
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const messageDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const diffTime = today.getTime() - messageDay.getTime();
-  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((today.getTime() - day.getTime()) / (1000 * 60 * 60 * 24));
 
-  const timeStr = date.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' });
+  if (diffDays === 0) return 'Azi';
+  if (diffDays === 1) return 'Ieri';
 
-  if (diffDays === 0) return timeStr;
-  if (diffDays === 1) return 'ieri';
-  if (diffDays >= 2 && diffDays <= 6) return diffDays + ' zile in urma';
-  if (diffDays >= 7 && diffDays <= 13) return 'o saptamana in urma';
-  if (diffDays >= 14 && diffDays <= 20) return '2 saptamani in urma';
-  if (diffDays >= 21 && diffDays <= 27) return '3 saptamani in urma';
-  if (diffDays >= 28 && diffDays <= 60) {
-    const months = Math.round(diffDays / 30);
-    return (months === 1 ? 'o luna' : months + ' luni') + ' in urma';
-  }
+  const label = date.toLocaleDateString(
+    'ro-RO',
+    date.getFullYear() === now.getFullYear()
+      ? { weekday: 'long', day: 'numeric', month: 'long' }
+      : { day: 'numeric', month: 'long', year: 'numeric' }
+  );
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
 
-  return date.toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+function isSameGroup(previous, current) {
+  if (!previous || !current) return false;
+  if (previous.type !== 'message' || current.type !== 'message') return false;
+  if (String(previous.userId) !== String(current.userId)) return false;
+  if (dayKeyOf(previous.createdAt) !== dayKeyOf(current.createdAt)) return false;
+  const gap = Date.parse(current.createdAt) - Date.parse(previous.createdAt);
+  return Number.isFinite(gap) && gap <= GROUP_WINDOW_MS;
+}
+
+// Intercalează separatoare de zi și marchează începutul/sfârșitul fiecărui
+// grup de mesaje consecutive ale aceleiași persoane.
+function buildListItems(messages) {
+  const items = [];
+  let previousDayKey = null;
+
+  messages.forEach((message, index) => {
+    const dayKey = dayKeyOf(message.createdAt);
+    if (dayKey !== previousDayKey) {
+      items.push({ kind: 'day', key: `day-${dayKey}`, label: formatDayLabel(message.createdAt) });
+      previousDayKey = dayKey;
+    }
+
+    const previous = index > 0 ? messages[index - 1] : null;
+    const next = index < messages.length - 1 ? messages[index + 1] : null;
+    items.push({
+      kind: 'message',
+      key: message.pending
+        ? `pending-${message.clientId}`
+        : message.id
+          ? `id-${message.id}`
+          : `local-${message.localId || getMessageKey(message)}`,
+      message,
+      isFirstInGroup: !isSameGroup(previous, message),
+      isLastInGroup: !isSameGroup(message, next),
+    });
+  });
+
+  return items;
 }
 
 function avatarInitial(displayName) {
@@ -113,6 +170,8 @@ function avatarInitial(displayName) {
 }
 
 export default function CommunityChatScreen({ navigation }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
 
@@ -128,7 +187,10 @@ export default function CommunityChatScreen({ navigation }) {
   const [socketError, setSocketError] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [showScrollDown, setShowScrollDown] = useState(false);
+  const [onlineCount, setOnlineCount] = useState(null);
+  const [pending, setPending] = useState([]);
 
+  const pendingTimersRef = useRef(new Map());
   const wsRef = useRef(null);
   const listRef = useRef(null);
   const reconnectTimerRef = useRef(null);
@@ -151,6 +213,47 @@ export default function CommunityChatScreen({ navigation }) {
 
     return () => {
       mounted = false;
+    };
+  }, []);
+
+  const clearPendingTimer = useCallback((clientId) => {
+    const timer = pendingTimersRef.current.get(clientId);
+    if (timer) clearTimeout(timer);
+    pendingTimersRef.current.delete(clientId);
+  }, []);
+
+  const markPendingFailed = useCallback((clientId) => {
+    clearPendingTimer(clientId);
+    setPending((prev) =>
+      prev.map((item) => (item.clientId === clientId ? { ...item, status: 'failed' } : item))
+    );
+  }, [clearPendingTimer]);
+
+  const resolvePending = useCallback((clientId) => {
+    clearPendingTimer(clientId);
+    setPending((prev) => prev.filter((item) => item.clientId !== clientId));
+  }, [clearPendingTimer]);
+
+  const startPendingTimer = useCallback((clientId) => {
+    clearPendingTimer(clientId);
+    pendingTimersRef.current.set(
+      clientId,
+      setTimeout(() => {
+        pendingTimersRef.current.delete(clientId);
+        setPending((prev) =>
+          prev.map((item) =>
+            item.clientId === clientId && item.status === 'sending' ? { ...item, status: 'failed' } : item
+          )
+        );
+      }, SEND_TIMEOUT_MS)
+    );
+  }, [clearPendingTimer]);
+
+  useEffect(() => {
+    const timers = pendingTimersRef.current;
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer));
+      timers.clear();
     };
   }, []);
 
@@ -228,13 +331,27 @@ export default function CommunityChatScreen({ navigation }) {
 
       if (payloadType === 'ping') return;
 
+      if (payloadType === 'presence') {
+        const online = Number(payload?.online);
+        setOnlineCount(Number.isFinite(online) && online >= 0 ? online : null);
+        return;
+      }
+
       if (payloadType === 'error') {
         const errorText = String(payload?.error || 'Eroare chat.').trim();
         setSocketError(errorText || 'Eroare chat.');
+        if (payload?.clientId) {
+          markPendingFailed(String(payload.clientId));
+          hapticNotify('error');
+        }
         return;
       }
 
       if (payloadType === 'message' || payloadType === 'system') {
+        if (payload?.clientId) {
+          resolvePending(String(payload.clientId));
+          setSocketError('');
+        }
         setMessages((prev) => mergeMessages(prev, [payload]));
         // Mark as read when receiving new messages while screen is focused
         if (payloadType === 'message' && isFocused) {
@@ -266,7 +383,7 @@ export default function CommunityChatScreen({ navigation }) {
         });
       }, RECONNECT_DELAY_MS);
     };
-  }, [isFocused]);
+  }, [isFocused, markPendingFailed, resolvePending]);
 
   const loadHistory = useCallback(async ({ before = null, appendOlder = false } = {}) => {
     const authToken = await getToken();
@@ -302,7 +419,7 @@ export default function CommunityChatScreen({ navigation }) {
 
       if (!appendOlder) {
         // Nu blocăm afișarea istoricului dacă marcarea ca citit eșuează.
-        api.markChatAsRead(authToken).catch(() => {});
+        api.markChatAsRead(authToken).then(syncAppBadge).catch(() => {});
       }
     } catch (error) {
       setHistoryError(String(error?.message || 'Nu am putut încărca istoricul chatului.'));
@@ -318,7 +435,9 @@ export default function CommunityChatScreen({ navigation }) {
     Notifications.getPresentedNotificationsAsync()
       .then((presented) => Promise.all(
         (presented || [])
-          .filter((n) => String(n?.request?.content?.data?.type || '').toLowerCase() === 'chat_unread')
+          .filter((n) =>
+            CHAT_NOTIFICATION_TYPES.has(String(n?.request?.content?.data?.type || '').toLowerCase())
+          )
           .map((n) => Notifications.dismissNotificationAsync(n.request.identifier))
       ))
       .catch(() => {});
@@ -355,17 +474,30 @@ export default function CommunityChatScreen({ navigation }) {
     };
   }, [isFocused, connectWebSocket, clearSocketRuntime]);
 
+  const listItems = useMemo(() => {
+    const pendingMessages = pending.map((item) => ({
+      type: 'message',
+      pending: true,
+      clientId: item.clientId,
+      status: item.status,
+      userId: currentUserId,
+      content: item.content,
+      createdAt: item.createdAt,
+    }));
+    return buildListItems([...messages, ...pendingMessages]);
+  }, [messages, pending, currentUserId]);
+
   useEffect(() => {
-    const grew = messages.length > previousLengthRef.current;
+    const grew = listItems.length > previousLengthRef.current;
     if (grew && (isNearBottomRef.current || shouldAutoScrollRef.current)) {
       requestAnimationFrame(() => {
         listRef.current?.scrollToEnd({ animated: true });
       });
     }
 
-    previousLengthRef.current = messages.length;
+    previousLengthRef.current = listItems.length;
     shouldAutoScrollRef.current = false;
-  }, [messages]);
+  }, [listItems]);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillChangeFrame' : 'keyboardDidShow';
@@ -416,58 +548,140 @@ export default function CommunityChatScreen({ navigation }) {
       return;
     }
 
+    const clientId = createClientId();
     try {
-      ws.send(
-        JSON.stringify({
-          type: 'message',
-          content,
-        })
-      );
-      setDraft('');
+      ws.send(JSON.stringify({ type: 'message', content, clientId }));
     } catch {
       Alert.alert('Eroare', 'Nu am putut trimite mesajul.');
+      return;
     }
-  }, [draft]);
+
+    // Mesajul apare imediat; se confirmă când serverul îl trimite înapoi
+    // cu același clientId, altfel devine „netrimis” și poate fi reîncercat.
+    setPending((prev) => [
+      ...prev,
+      { clientId, content, createdAt: new Date().toISOString(), status: 'sending' },
+    ]);
+    startPendingTimer(clientId);
+    shouldAutoScrollRef.current = true;
+    setDraft('');
+    hapticImpact('light');
+  }, [draft, startPendingTimer]);
+
+  const retryPending = useCallback((item) => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== 1) {
+      Alert.alert('Conectare în curs', 'Chatul se reconectează. Încearcă din nou în câteva secunde.');
+      return;
+    }
+
+    try {
+      ws.send(JSON.stringify({ type: 'message', content: item.content, clientId: item.clientId }));
+    } catch {
+      Alert.alert('Eroare', 'Nu am putut trimite mesajul.');
+      return;
+    }
+
+    setPending((prev) =>
+      prev.map((entry) => (entry.clientId === item.clientId ? { ...entry, status: 'sending' } : entry))
+    );
+    startPendingTimer(item.clientId);
+    hapticImpact('light');
+  }, [startPendingTimer]);
+
+  const handleFailedPress = useCallback((item) => {
+    Alert.alert('Mesaj netrimis', 'Mesajul nu a ajuns în comunitate.', [
+      { text: 'Anulează', style: 'cancel' },
+      { text: 'Șterge', style: 'destructive', onPress: () => resolvePending(item.clientId) },
+      { text: 'Reîncearcă', onPress: () => retryPending(item) },
+    ]);
+  }, [resolvePending, retryPending]);
 
   const connectionLabel = useMemo(() => {
-    if (socketStatus === 'connected') return 'Conectat';
+    if (socketStatus === 'connected') {
+      return onlineCount ? `Conectat · ${onlineCount} online` : 'Conectat';
+    }
     if (socketStatus === 'connecting') return 'Conectare...';
     if (socketStatus === 'error') return 'Eroare conexiune';
     return 'Deconectat';
-  }, [socketStatus]);
+  }, [socketStatus, onlineCount]);
 
   const remainingChars = MAX_MESSAGE_LENGTH - String(draft || '').length;
 
   const renderMessageItem = useCallback(
-    ({ item }) => {
+    ({ item: row }) => {
+      if (row.kind === 'day') {
+        return (
+          <View style={styles.dayRow}>
+            <Text style={styles.dayText}>{row.label}</Text>
+          </View>
+        );
+      }
+
+      const { message: item, isFirstInGroup, isLastInGroup } = row;
+
       if (item.type === 'system') {
         return (
           <View style={styles.systemRow}>
             <View style={styles.systemLine} />
             <Text style={styles.systemText}>
-              {item.content} · {formatMessageDate(item.createdAt)}
+              {item.content} · {formatMessageTime(item.createdAt)}
             </Text>
             <View style={styles.systemLine} />
           </View>
         );
       }
 
-      const isMine = currentUserId && String(item.userId || '') === String(currentUserId);
+      const isMine =
+        item.pending || (currentUserId && String(item.userId || '') === String(currentUserId));
 
       if (isMine) {
+        const isFailed = item.pending && item.status === 'failed';
+        const isSending = item.pending && item.status === 'sending';
+        const bubble = (
+          <View
+            style={[
+              styles.mineBubble,
+              isLastInGroup && styles.mineBubbleTail,
+              isSending && styles.mineBubbleSending,
+              isFailed && styles.mineBubbleFailed,
+            ]}
+          >
+            <Text style={styles.mineText}>{item.content}</Text>
+          </View>
+        );
+
         return (
-          <View style={styles.mineRow}>
-            <View style={styles.mineBubble}>
-              <Text style={styles.mineText}>{item.content}</Text>
-            </View>
-            <Text style={styles.mineTime}>{formatMessageDate(item.createdAt)}</Text>
+          <View style={[styles.mineRow, isLastInGroup ? styles.groupEnd : styles.groupInner]}>
+            {isFailed ? (
+              <PressableScale onPress={() => handleFailedPress(item)} scaleTo={0.97}>
+                {bubble}
+              </PressableScale>
+            ) : (
+              bubble
+            )}
+            {isFailed ? (
+              <View style={styles.mineStatusRow}>
+                <Feather name="alert-circle" size={11} color={tc("#a8544c", 'fg')} />
+                <Text style={styles.failedText}>Netrimis · atinge pentru opțiuni</Text>
+              </View>
+            ) : isSending ? (
+              <View style={styles.mineStatusRow}>
+                <Feather name="clock" size={10} color={tc("#9aa5b1", 'fg')} />
+                <Text style={styles.mineStatusText}>Se trimite…</Text>
+              </View>
+            ) : isLastInGroup ? (
+              <Text style={styles.mineTime}>{formatMessageTime(item.createdAt)}</Text>
+            ) : null}
           </View>
         );
       }
 
       return (
-        <View style={styles.otherRow}>
-          {item.avatar ? (
+        <View style={[styles.otherRow, isLastInGroup ? styles.groupEnd : styles.groupInner]}>
+          {!isFirstInGroup ? (
+            <View style={styles.otherAvatarSpacer} />
+          ) : item.avatar ? (
             <Image source={{ uri: item.avatar }} style={styles.otherAvatar} />
           ) : (
             <View style={styles.otherAvatarFallback}>
@@ -475,23 +689,25 @@ export default function CommunityChatScreen({ navigation }) {
             </View>
           )}
           <View style={styles.otherContent}>
-            <Text style={styles.otherName}>
-              {item.displayName}
-              <Text style={styles.otherTime}>  {formatMessageDate(item.createdAt)}</Text>
-            </Text>
-            <View style={styles.otherBubble}>
+            {isFirstInGroup ? (
+              <Text style={styles.otherName}>
+                {item.displayName}
+                <Text style={styles.otherTime}>  {formatMessageTime(item.createdAt)}</Text>
+              </Text>
+            ) : null}
+            <View style={[styles.otherBubble, isFirstInGroup && styles.otherBubbleTail]}>
               <Text style={styles.otherText}>{item.content}</Text>
             </View>
           </View>
         </View>
       );
     },
-    [currentUserId]
+    [currentUserId, handleFailedPress, styles, tc]
   );
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.gradient}>
+      <LinearGradient colors={[tc('#f6f7f8', 'bg'), tc('#f3f4f6', 'bg'), tc('#eef0f2', 'bg')]} style={styles.gradient}>
         {/* ── Header ── */}
         <View style={styles.headerRow}>
           <PressableScale
@@ -500,7 +716,7 @@ export default function CommunityChatScreen({ navigation }) {
             scaleTo={0.9}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Feather name="chevron-left" size={22} color="#24384e" />
+            <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
           </PressableScale>
           <View style={styles.headerTextWrap}>
             <Text style={styles.title}>Comunitatea</Text>
@@ -520,13 +736,13 @@ export default function CommunityChatScreen({ navigation }) {
             scaleTo={0.9}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Feather name="refresh-cw" size={17} color="#24384e" />
+            <Feather name="refresh-cw" size={17} color={tc("#24384e", 'fg')} />
           </PressableScale>
         </View>
 
         {loading ? (
           <View style={styles.loaderWrap}>
-            <ActivityIndicator size="large" color="#24384e" />
+            <ActivityIndicator size="large" color={tc("#24384e", 'fg')} />
             <Text style={styles.loaderText}>Se încarcă mesajele...</Text>
           </View>
         ) : (
@@ -537,14 +753,14 @@ export default function CommunityChatScreen({ navigation }) {
           >
             {historyError ? (
               <View style={styles.errorBanner}>
-                <Feather name="alert-circle" size={13} color="#a8544c" />
+                <Feather name="alert-circle" size={13} color={tc("#a8544c", 'fg')} />
                 <Text style={styles.errorBannerText}>{historyError}</Text>
               </View>
             ) : null}
 
             {socketError ? (
               <View style={[styles.errorBanner, styles.warnBanner]}>
-                <Feather name="wifi-off" size={13} color="#9a6a14" />
+                <Feather name="wifi-off" size={13} color={tc("#9a6a14", 'fg')} />
                 <Text style={[styles.errorBannerText, styles.warnBannerText]}>{socketError}</Text>
               </View>
             ) : null}
@@ -556,7 +772,7 @@ export default function CommunityChatScreen({ navigation }) {
                 disabled={loadingOlder}
               >
                 {loadingOlder ? (
-                  <ActivityIndicator size="small" color="#5b6a7a" />
+                  <ActivityIndicator size="small" color={tc("#5b6a7a", 'fg')} />
                 ) : (
                   <Text style={styles.loadOlderText}>Mesaje anterioare</Text>
                 )}
@@ -565,8 +781,8 @@ export default function CommunityChatScreen({ navigation }) {
 
             <FlatList
               ref={listRef}
-              data={messages}
-              keyExtractor={(item) => (item.id ? `id-${item.id}` : `local-${item.localId || getMessageKey(item)}`)}
+              data={listItems}
+              keyExtractor={(item) => item.key}
               renderItem={renderMessageItem}
               contentContainerStyle={styles.listContent}
               keyboardShouldPersistTaps="handled"
@@ -587,7 +803,7 @@ export default function CommunityChatScreen({ navigation }) {
               ListEmptyComponent={
                 <View style={styles.emptyWrap}>
                   <View style={styles.emptyRing}>
-                    <Feather name="message-circle" size={22} color="#8a97a5" />
+                    <Feather name="message-circle" size={22} color={tc("#8a97a5", 'fg')} />
                   </View>
                   <Text style={styles.emptyText}>Liniște deocamdată.{'\n'}Scrie primul mesaj.</Text>
                 </View>
@@ -604,11 +820,11 @@ export default function CommunityChatScreen({ navigation }) {
                   shouldAutoScrollRef.current = true;
                   setShowScrollDown(false);
                   getToken().then((token) => {
-                    if (token) api.markChatAsRead(token).catch(() => {});
+                    if (token) api.markChatAsRead(token).then(syncAppBadge).catch(() => {});
                   });
                 }}
               >
-                <Feather name="chevron-down" size={18} color="#fff" />
+                <Feather name="chevron-down" size={18} color={tc("#fff", 'fg')} />
               </PressableScale>
             ) : null}
 
@@ -626,7 +842,7 @@ export default function CommunityChatScreen({ navigation }) {
                 <TextInput
                   style={styles.input}
                   placeholder="Scrie un mesaj..."
-                  placeholderTextColor="#8a97a5"
+                  placeholderTextColor={tc("#8a97a5", 'fg')}
                   value={draft}
                   onChangeText={setDraft}
                   onFocus={() => {
@@ -645,7 +861,7 @@ export default function CommunityChatScreen({ navigation }) {
                   onPress={handleSend}
                   scaleTo={0.88}
                 >
-                  <Feather name="arrow-up" size={18} color="#fff" />
+                  <Feather name="arrow-up" size={18} color={tc("#fff", 'fg')} />
                 </PressableScale>
               </View>
             </View>
@@ -656,8 +872,8 @@ export default function CommunityChatScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
+const createStyles = (tc) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: tc('#f6f7f8', 'bg') },
   gradient: { flex: 1, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 10 },
 
   // Header
@@ -666,11 +882,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(32,47,62,0.28)',
+    borderColor: tc('rgba(32,47,62,0.28)', 'bg'),
     marginRight: 12,
     zIndex: 10,
   },
@@ -680,26 +896,26 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     fontSize: 21,
     fontWeight: '700',
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
   },
   statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 3 },
   statusDot: { width: 7, height: 7, borderRadius: 4, marginRight: 6 },
-  statusDotOnline: { backgroundColor: '#3d7d5f' },
-  statusDotOffline: { backgroundColor: '#9aa5b1' },
-  statusText: { color: '#5b6a7a', fontSize: 11.5, fontWeight: '500' },
+  statusDotOnline: { backgroundColor: tc('#3d7d5f', 'bg') },
+  statusDotOffline: { backgroundColor: tc('#9aa5b1', 'bg') },
+  statusText: { color: tc('#5b6a7a', 'fg'), fontSize: 11.5, fontWeight: '500' },
   headerAction: {
     width: 40,
     height: 40,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(32,47,62,0.28)',
+    borderColor: tc('rgba(32,47,62,0.28)', 'bg'),
   },
 
   loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loaderText: { marginTop: 8, color: '#5b6a7a' },
+  loaderText: { marginTop: 8, color: tc('#5b6a7a', 'fg') },
 
   chatContainer: { flex: 1 },
 
@@ -710,32 +926,32 @@ const styles = StyleSheet.create({
     gap: 6,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(168,84,76,0.35)',
-    backgroundColor: 'rgba(168,84,76,0.07)',
+    borderColor: tc('rgba(168,84,76,0.35)', 'bg'),
+    backgroundColor: tc('rgba(168,84,76,0.07)', 'bg'),
     paddingHorizontal: 10,
     paddingVertical: 8,
     marginBottom: 8,
   },
-  errorBannerText: { color: '#a8544c', fontSize: 12, flex: 1 },
+  errorBannerText: { color: tc('#a8544c', 'fg'), fontSize: 12, flex: 1 },
   warnBanner: {
-    borderColor: 'rgba(179,146,79,0.4)',
-    backgroundColor: 'rgba(179,146,79,0.07)',
+    borderColor: tc('rgba(179,146,79,0.4)', 'bg'),
+    backgroundColor: tc('rgba(179,146,79,0.07)', 'bg'),
   },
-  warnBannerText: { color: '#9a6a14' },
+  warnBannerText: { color: tc('#9a6a14', 'fg') },
 
   loadOlderBtn: {
     alignSelf: 'center',
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(32,47,62,0.25)',
-    backgroundColor: 'rgba(255,255,255,0.45)',
+    borderColor: tc('rgba(32,47,62,0.25)', 'bg'),
+    backgroundColor: tc('rgba(255,255,255,0.45)', 'bg'),
     paddingHorizontal: 16,
     paddingVertical: 7,
     marginBottom: 10,
   },
   loadOlderBtnDisabled: { opacity: 0.7 },
   loadOlderText: {
-    color: '#5b6a7a',
+    color: tc('#5b6a7a', 'fg'),
     fontWeight: '600',
     fontSize: 11,
     letterSpacing: 1.2,
@@ -752,12 +968,12 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.5)',
+    backgroundColor: tc('rgba(255,255,255,0.5)', 'bg'),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(32,47,62,0.24)',
+    borderColor: tc('rgba(32,47,62,0.24)', 'bg'),
     marginBottom: 12,
   },
-  emptyText: { textAlign: 'center', color: '#8a97a5', fontSize: 13, lineHeight: 20 },
+  emptyText: { textAlign: 'center', color: tc('#8a97a5', 'fg'), fontSize: 13, lineHeight: 20 },
 
   // Mesaje de sistem
   systemRow: {
@@ -771,40 +987,66 @@ const styles = StyleSheet.create({
   systemLine: {
     flex: 1,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(32,47,62,0.22)',
+    backgroundColor: tc('rgba(32,47,62,0.22)', 'bg'),
     minWidth: 18,
   },
   systemText: {
-    color: '#8a97a5',
+    color: tc('#8a97a5', 'fg'),
     fontSize: 11,
     textAlign: 'center',
     flexShrink: 1,
   },
+
+  // Separator de zi
+  dayRow: { alignItems: 'center', marginTop: 8, marginBottom: 12 },
+  dayText: {
+    color: tc('#5b6a7a', 'fg'),
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.4,
+    overflow: 'hidden',
+    backgroundColor: tc('rgba(255,255,255,0.62)', 'bg'),
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+
+  // Grupare: mesajele consecutive ale aceleiași persoane stau mai aproape
+  groupInner: { marginBottom: 3 },
+  groupEnd: { marginBottom: 12 },
 
   // Mesajele mele
   mineRow: {
     alignSelf: 'flex-end',
     maxWidth: '82%',
     alignItems: 'flex-end',
-    marginBottom: 10,
   },
   mineBubble: {
-    backgroundColor: 'rgba(28,43,58,0.92)',
+    backgroundColor: tc('rgba(28,43,58,0.92)', 'bg'),
     borderRadius: 20,
-    borderBottomRightRadius: 6,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  mineText: { color: '#f6f7f8', fontSize: 14.5, lineHeight: 20 },
-  mineTime: { color: '#9aa5b1', fontSize: 10, marginTop: 4, marginRight: 4 },
+  mineBubbleTail: { borderBottomRightRadius: 6 },
+  mineBubbleSending: { opacity: 0.6 },
+  mineBubbleFailed: {
+    backgroundColor: tc('rgba(168,84,76,0.9)', 'bg'),
+  },
+  mineText: { color: tc('#f6f7f8', 'fg'), fontSize: 14.5, lineHeight: 20 },
+  mineTime: { color: tc('#9aa5b1', 'fg'), fontSize: 10, marginTop: 4, marginRight: 4 },
+  mineStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, marginRight: 4 },
+  mineStatusText: { color: tc('#9aa5b1', 'fg'), fontSize: 10 },
+  failedText: { color: tc('#a8544c', 'fg'), fontSize: 10.5, fontWeight: '600' },
 
   // Mesajele altora
   otherRow: {
     flexDirection: 'row',
     alignSelf: 'flex-start',
     maxWidth: '86%',
-    marginBottom: 10,
   },
+  otherAvatarSpacer: { width: 36 },
   otherAvatar: {
     width: 28,
     height: 28,
@@ -812,7 +1054,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginTop: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(32,47,62,0.3)',
+    borderColor: tc('rgba(32,47,62,0.3)', 'bg'),
   },
   otherAvatarFallback: {
     width: 28,
@@ -822,30 +1064,30 @@ const styles = StyleSheet.create({
     marginTop: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: tc('rgba(255,255,255,0.6)', 'bg'),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(32,47,62,0.3)',
+    borderColor: tc('rgba(32,47,62,0.3)', 'bg'),
   },
-  otherAvatarInitial: { fontSize: 11, color: '#24384e', fontWeight: '700' },
+  otherAvatarInitial: { fontSize: 11, color: tc('#24384e', 'fg'), fontWeight: '700' },
   otherContent: { flexShrink: 1 },
   otherName: {
-    color: '#8a97a5',
+    color: tc('#8a97a5', 'fg'),
     fontSize: 11,
     fontWeight: '600',
     marginBottom: 3,
     marginLeft: 4,
   },
-  otherTime: { color: '#b6bfc9', fontWeight: '400', fontSize: 10 },
+  otherTime: { color: tc('#b6bfc9', 'fg'), fontWeight: '400', fontSize: 10 },
+  otherBubbleTail: { borderTopLeftRadius: 6 },
   otherBubble: {
-    backgroundColor: 'rgba(255,255,255,0.62)',
+    backgroundColor: tc('rgba(255,255,255,0.62)', 'bg'),
     borderRadius: 20,
-    borderTopLeftRadius: 6,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(32,47,62,0.24)',
+    borderColor: tc('rgba(32,47,62,0.24)', 'bg'),
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  otherText: { color: '#1c2b3a', fontSize: 14.5, lineHeight: 20 },
+  otherText: { color: tc('#1c2b3a', 'fg'), fontSize: 14.5, lineHeight: 20 },
 
   // Composer
   composerWrap: {
@@ -855,10 +1097,10 @@ const styles = StyleSheet.create({
   composerPill: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: tc('rgba(255,255,255,0.6)', 'bg'),
     borderRadius: 26,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(32,47,62,0.3)',
+    borderColor: tc('rgba(32,47,62,0.3)', 'bg'),
     paddingLeft: 16,
     paddingRight: 6,
     paddingVertical: 6,
@@ -867,7 +1109,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 36,
     maxHeight: 110,
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
     fontSize: 14.5,
     textAlignVertical: 'center',
     paddingTop: Platform.OS === 'ios' ? 8 : 6,
@@ -875,7 +1117,7 @@ const styles = StyleSheet.create({
   },
   counterText: {
     alignSelf: 'center',
-    color: '#8a97a5',
+    color: tc('#8a97a5', 'fg'),
     fontSize: 10,
     marginHorizontal: 6,
   },
@@ -883,7 +1125,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(28,43,58,0.92)',
+    backgroundColor: tc('rgba(28,43,58,0.92)', 'bg'),
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 6,
@@ -896,7 +1138,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(28,43,58,0.92)',
+    backgroundColor: tc('rgba(28,43,58,0.92)', 'bg'),
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',

@@ -19,11 +19,14 @@ import { clearSubscription } from "../utils/subscriptionStorage";
 import { clearEntries } from "../utils/progressStorage";
 import { replaceAllRuns } from "../utils/challengeStorage";
 import { logoutRevenueCatUser } from "../utils/revenuecat";
+import { useTheme, useThemedStyles } from "./ui/themeContext";
 
 const { width } = Dimensions.get("window");
 const EXCLUDED_ROUTES = new Set(["Login", "Register", "Subscriptions", "Onboarding", "Profile"]);
 
 export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRoute, onLogout }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const {
     subscription,
     status,
@@ -178,7 +181,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
       <Modal visible transparent animationType="fade">
         <View style={styles.backdrop}>
           <View style={styles.loadingCard}>
-            <ActivityIndicator size="large" color="#24384e" />
+            <ActivityIndicator size="large" color={tc("#24384e", 'fg')} />
             <Text style={styles.loadingTitle}>Verificăm abonamentul</Text>
             <Text style={styles.loadingSubtitle}>Sincronizăm statusul din RevenueCat</Text>
           </View>
@@ -223,10 +226,10 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
               onPress={handleClose}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Feather name="x" size={20} color="#5b6a7a" />
+              <Feather name="x" size={20} color={tc("#5b6a7a", 'fg')} />
             </TouchableOpacity>
             <View style={styles.headerIcon}>
-              <Feather name="star" size={32} color="#24384e" />
+              <Feather name="star" size={32} color={tc("#24384e", 'fg')} />
             </View>
             <Text style={styles.title}>Conținut cu abonament</Text>
             <Text style={styles.subtitle}>
@@ -246,7 +249,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
             >
               <View style={styles.primaryGradient}>
                 {pendingAction === "paywall" ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={tc("#fff", 'fg')} />
                 ) : (
                   <Text style={styles.primaryText}>Vezi opțiunile</Text>
                 )}
@@ -266,7 +269,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
                 disabled={pendingAction === "trial"}
               >
                 {pendingAction === "trial" ? (
-                  <ActivityIndicator color="#24384e" />
+                  <ActivityIndicator color={tc("#24384e", 'fg')} />
                 ) : (
                   <Text style={styles.secondaryText}>
                     {trialEligible
@@ -291,7 +294,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
               disabled={Boolean(pendingAction)}
             >
               {pendingAction === "logout" ? (
-                <ActivityIndicator color="#a8544c" />
+                <ActivityIndicator color={tc("#a8544c", 'fg')} />
               ) : (
                 <Text style={styles.logoutText}>Schimbă contul</Text>
               )}
@@ -303,7 +306,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
               disabled={pendingAction === "restore"}
             >
               {pendingAction === "restore" ? (
-                <ActivityIndicator color="#24384e" />
+                <ActivityIndicator color={tc("#24384e", 'fg')} />
               ) : (
                 <Text style={styles.refreshText}>Restaurează achizițiile</Text>
               )}
@@ -315,7 +318,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
               disabled={pendingAction === "refresh"}
             >
               {pendingAction === "refresh" ? (
-                <ActivityIndicator color="#24384e" />
+                <ActivityIndicator color={tc("#24384e", 'fg')} />
               ) : (
                 <Text style={styles.refreshText}>Reverifică abonamentul</Text>
               )}
@@ -327,10 +330,10 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (tc) => StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(16, 25, 35, 0.65)",
+    backgroundColor: tc("rgba(16, 25, 35, 0.65)", 'bg'),
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
@@ -348,9 +351,9 @@ const styles = StyleSheet.create({
   gradient: {
     padding: 24,
     alignItems: "center",
-    backgroundColor: "rgba(246,247,248,0.9)",
+    backgroundColor: tc("rgba(246,247,248,0.9)", 'bg'),
     borderWidth: 1,
-    borderColor: "rgba(32,47,62,0.18)",
+    borderColor: tc("rgba(32,47,62,0.18)", 'bg'),
   },
   closeButton: {
     position: "absolute",
@@ -361,14 +364,14 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(36,56,78,0.08)",
+    backgroundColor: tc("rgba(36,56,78,0.08)", 'bg'),
     zIndex: 10,
   },
   headerIcon: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: "rgba(36,56,78,0.1)",
+    backgroundColor: tc("rgba(36,56,78,0.1)", 'bg'),
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
@@ -378,28 +381,28 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     fontSize: 22,
     fontWeight: "700",
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
     textAlign: "center",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 14,
-    color: "#5b6a7a",
+    color: tc("#5b6a7a", 'fg'),
     textAlign: "center",
     marginBottom: 16,
     lineHeight: 20,
   },
   statusPill: {
-    backgroundColor: "rgba(36,56,78,0.1)",
+    backgroundColor: tc("rgba(36,56,78,0.1)", 'bg'),
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 999,
     marginBottom: 22,
     borderWidth: 1,
-    borderColor: "rgba(36,56,78,0.18)",
+    borderColor: tc("rgba(36,56,78,0.18)", 'bg'),
   },
   statusText: {
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
     fontSize: 13,
     fontWeight: "600",
   },
@@ -412,11 +415,11 @@ const styles = StyleSheet.create({
   primaryGradient: {
     paddingVertical: 14,
     alignItems: "center",
-    backgroundColor: "rgba(28,43,58,0.92)",
+    backgroundColor: tc("rgba(28,43,58,0.92)", 'bg'),
     borderRadius: 999,
   },
   primaryText: {
-    color: "#ffffff",
+    color: tc("#ffffff", 'fg'),
     fontSize: 13,
     fontWeight: "700",
     letterSpacing: 1.6,
@@ -426,14 +429,14 @@ const styles = StyleSheet.create({
     width: "100%",
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "rgba(36,56,78,0.24)",
+    borderColor: tc("rgba(36,56,78,0.24)", 'bg'),
     paddingVertical: 14,
     alignItems: "center",
     marginBottom: 12,
-    backgroundColor: "rgba(255,255,255,0.65)",
+    backgroundColor: tc("rgba(255,255,255,0.65)", 'bg'),
   },
   secondaryText: {
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
     fontSize: 16,
     fontWeight: "600",
   },
@@ -441,27 +444,27 @@ const styles = StyleSheet.create({
     width: "100%",
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "rgba(168, 84, 76, 0.35)",
+    borderColor: tc("rgba(168, 84, 76, 0.35)", 'bg'),
     paddingVertical: 14,
     alignItems: "center",
     marginBottom: 10,
-    backgroundColor: "rgba(255, 237, 237, 0.8)",
+    backgroundColor: tc("rgba(255, 237, 237, 0.8)", 'bg'),
   },
   logoutText: {
-    color: "#a8544c",
+    color: tc("#a8544c", 'fg'),
     fontSize: 15,
     fontWeight: "600",
   },
   infoBox: {
-    backgroundColor: "rgba(36,56,78,0.08)",
+    backgroundColor: tc("rgba(36,56,78,0.08)", 'bg'),
     borderRadius: 14,
     padding: 12,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: "rgba(32,47,62,0.18)",
+    borderColor: tc("rgba(32,47,62,0.18)", 'bg'),
   },
   infoText: {
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
     fontSize: 13,
     textAlign: "center",
   },
@@ -470,7 +473,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   refreshText: {
-    color: "#5b6a7a",
+    color: tc("#5b6a7a", 'fg'),
     fontSize: 13,
     fontWeight: "500",
     textDecorationLine: "underline",
@@ -484,21 +487,21 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     paddingHorizontal: 20,
     alignItems: "center",
-    backgroundColor: "rgba(246,247,248,0.98)",
+    backgroundColor: tc("rgba(246,247,248,0.98)", 'bg'),
     borderWidth: 1,
-    borderColor: "rgba(32,47,62,0.18)",
+    borderColor: tc("rgba(32,47,62,0.18)", 'bg'),
   },
   loadingTitle: {
     marginTop: 14,
     fontSize: 16,
     fontWeight: "700",
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
     textAlign: "center",
   },
   loadingSubtitle: {
     marginTop: 6,
     fontSize: 13,
-    color: "#5b6a7a",
+    color: tc("#5b6a7a", 'fg'),
     textAlign: "center",
   },
 });

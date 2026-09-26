@@ -17,10 +17,14 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { addEntry, getUnsyncedEntries, markEntrySynced, setBackendReady } from '../utils/progressStorage';
 import { getToken } from '../utils/authStorage';
 import { api } from '../utils/api';
+import { useTheme, useThemedStyles } from './ui/themeContext';
+import { hapticNotify } from '../utils/haptics';
 
 const { width } = Dimensions.get('window');
 
 export default function ProgressScreen({ navigation }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [anxietyLevel, setAnxietyLevel] = useState(0);
   const [feelings, setFeelings] = useState('');
   const [recentActions, setRecentActions] = useState('');
@@ -68,6 +72,7 @@ export default function ProgressScreen({ navigation }) {
       }
       // Always keep local copy too
       await addEntry(entry);
+      hapticNotify('success');
       Alert.alert('Jurnal trimis', 'Jurnalul a fost trimis către Dan.');
     } catch (e) {
       Alert.alert('Eroare', e?.message || 'Nu am reușit să trimit progresul.');
@@ -80,9 +85,9 @@ export default function ProgressScreen({ navigation }) {
   };
 
   const getAnxietyColor = (level) => {
-    if (level <= 3) return '#3d7d5f'; // Green
-    if (level <= 6) return '#b07e3e'; // Orange
-    return '#a8544c'; // Red
+    if (level <= 3) return tc('#3d7d5f', 'bg'); // Green
+    if (level <= 6) return tc('#b07e3e', 'bg'); // Orange
+    return tc('#a8544c', 'bg'); // Red
   };
 
   const getAnxietyLabel = (level) => {
@@ -94,7 +99,7 @@ export default function ProgressScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={['#f6f7f8', '#f3f4f6', '#eef0f2']}
+        colors={[tc('#f6f7f8', 'bg'), tc('#f3f4f6', 'bg'), tc('#eef0f2', 'bg')]}
         style={styles.gradient}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled" onScrollBeginDrag={Keyboard.dismiss}>
@@ -104,12 +109,12 @@ export default function ProgressScreen({ navigation }) {
               onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))}
               style={styles.backButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Feather name="chevron-left" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
             </TouchableOpacity>
 
             <View style={styles.headerContent}>
               <View style={styles.headerIcon}>
-                <Feather name="bar-chart-2" size={36} color="#24384e" />
+                <Feather name="bar-chart-2" size={36} color={tc("#24384e", 'fg')} />
               </View>
               <Text style={styles.title}>Progresul Meu</Text>
               <Text style={styles.subtitle}>Urmărește-ți evoluția zilnică</Text>
@@ -117,7 +122,7 @@ export default function ProgressScreen({ navigation }) {
 
             <TouchableOpacity style={styles.headerAction} onPress={() => navigation.navigate('ProgressHistory')}>
               <View style={styles.headerActionInner}>
-                <Feather name="clock" size={16} color="#24384e" style={{ marginRight: 6 }} />
+                <Feather name="clock" size={16} color={tc("#24384e", 'fg')} style={{ marginRight: 6 }} />
                 <Text style={styles.headerActionText}>Vezi istoric</Text>
               </View>
             </TouchableOpacity>
@@ -189,7 +194,7 @@ export default function ProgressScreen({ navigation }) {
               <TextInput
                 style={styles.feelingsInput}
                 placeholder="Ex: M-am simțit mai calm după exercițiile de respirație..."
-                placeholderTextColor="#8a97a5"
+                placeholderTextColor={tc("#8a97a5", 'fg')}
                 value={feelings}
                 onChangeText={setFeelings}
                 multiline
@@ -209,7 +214,7 @@ export default function ProgressScreen({ navigation }) {
               <TextInput
                 style={styles.actionsInput}
                 placeholder="Ex: Am practicat tehnici de respirație, am făcut o plimbare, am meditat 10 minute..."
-                placeholderTextColor="#8a97a5"
+                placeholderTextColor={tc("#8a97a5", 'fg')}
                 value={recentActions}
                 onChangeText={setRecentActions}
                 multiline
@@ -223,7 +228,7 @@ export default function ProgressScreen({ navigation }) {
           {/* Progress Insights */}
           <View style={styles.insightsSection}>
             <View style={styles.insightsCard}>
-              <Feather name="zap" size={28} color="#b07e3e" style={{ marginBottom: 8 }} />
+              <Feather name="zap" size={28} color={tc("#b07e3e", 'fg')} style={{ marginBottom: 8 }} />
               <Text style={styles.insightsTitle}>Sfat pentru astăzi</Text>
               <Text style={styles.insightsText}>
                 {anxietyLevel <= 3 
@@ -242,10 +247,10 @@ export default function ProgressScreen({ navigation }) {
             onPress={handleSendJournal}
           >
             <LinearGradient
-              colors={['rgba(28,43,58,0.94)', 'rgba(22,34,47,0.96)']}
+              colors={[tc('rgba(28,43,58,0.94)', 'bg'), tc('rgba(22,34,47,0.96)', 'bg')]}
               style={styles.sendButtonGradient}
             >
-              <Feather name="edit-2" size={20} color="#fff" style={{ marginRight: 8 }} />
+              <Feather name="edit-2" size={20} color={tc("#fff", 'fg')} style={{ marginRight: 8 }} />
               <Text style={styles.sendButtonText}>Trimite jurnal către Dan</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -255,10 +260,10 @@ export default function ProgressScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (tc) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f6f7f8',
+    backgroundColor: tc('#f6f7f8', 'bg'),
   },
   gradient: {
     flex: 1,
@@ -282,9 +287,9 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
     borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#24384e',
@@ -295,7 +300,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 18,
-    color: '#24384e',
+    color: tc('#24384e', 'fg'),
   },
   headerAction: {
     position: 'absolute',
@@ -309,11 +314,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
   },
   headerActionText: {
-    color: '#24384e',
+    color: tc('#24384e', 'fg'),
     fontWeight: '600',
     fontSize: 13,
   },
@@ -325,13 +330,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     fontSize: 28,
     fontWeight: '700',
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#5b6a7a',
+    color: tc('#5b6a7a', 'fg'),
     textAlign: 'center',
     fontWeight: '400',
   },
@@ -341,12 +346,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
     marginBottom: 6,
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: '#5b6a7a',
+    color: tc('#5b6a7a', 'fg'),
     marginBottom: 14,
   },
   anxietyLevels: {
@@ -361,7 +366,7 @@ const styles = StyleSheet.create({
     width: (width - 80) / 5 - 4,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.58)',
+    backgroundColor: tc('rgba(255,255,255,0.58)', 'bg'),
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#24384e',
@@ -370,7 +375,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
     borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
   },
   anxietyButtonSelected: {
     shadowOpacity: 0.2,
@@ -380,10 +385,10 @@ const styles = StyleSheet.create({
   anxietyButtonText: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
   },
   anxietyButtonTextSelected: {
-    color: '#ffffff',
+    color: tc('#ffffff', 'fg'),
   },
   anxietyFeedback: {
     alignItems: 'center',
@@ -394,7 +399,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   inputContainer: {
-    backgroundColor: 'rgba(255,255,255,0.58)',
+    backgroundColor: tc('rgba(255,255,255,0.58)', 'bg'),
     borderRadius: 18,
     padding: 16,
     shadowColor: '#24384e',
@@ -403,23 +408,23 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
     borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
   },
   feelingsInput: {
     fontSize: 15,
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
     minHeight: 80,
     textAlignVertical: 'top',
   },
   actionsInput: {
     fontSize: 15,
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
     minHeight: 100,
     textAlignVertical: 'top',
   },
   characterCount: {
     fontSize: 12,
-    color: '#5b6a7a',
+    color: tc('#5b6a7a', 'fg'),
     textAlign: 'right',
     marginTop: 8,
   },
@@ -435,9 +440,9 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 5,
     borderWidth: 1,
-    borderColor: 'rgba(32,47,62,0.18)',
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.58)',
+    backgroundColor: tc('rgba(255,255,255,0.58)', 'bg'),
   },
   insightsIcon: {
     fontSize: 30,
@@ -446,13 +451,13 @@ const styles = StyleSheet.create({
   insightsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1c2b3a',
+    color: tc('#1c2b3a', 'fg'),
     marginBottom: 8,
     textAlign: 'center',
   },
   insightsText: {
     fontSize: 14,
-    color: '#5b6a7a',
+    color: tc('#5b6a7a', 'fg'),
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -481,7 +486,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   sendButtonText: {
-    color: '#ffffff',
+    color: tc('#ffffff', 'fg'),
     fontSize: 18,
     fontWeight: '600',
   },

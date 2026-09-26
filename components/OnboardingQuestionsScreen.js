@@ -5,8 +5,11 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, Ionicons } from '@expo/vector-icons';
+import { useTheme, useThemedStyles } from './ui/themeContext';
 
 export default function OnboardingQuestionsScreen({ navigation }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const questions = useMemo(() => ([
     {
       id: 1,
@@ -124,12 +127,12 @@ export default function OnboardingQuestionsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#f6f7f8', '#f3f4f6', '#eef0f2']} style={styles.background}>
+      <LinearGradient colors={[tc('#f6f7f8', 'bg'), tc('#f3f4f6', 'bg'), tc('#eef0f2', 'bg')]} style={styles.background}>
         <ScrollView contentContainerStyle={styles.scroll}>
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Feather name="chevron-left" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
             </TouchableOpacity>
             <Text style={styles.title}>Întrebări inițiale</Text>
             <Text style={styles.subtitle}>Răspunde pentru a-ți personaliza experiența</Text>
@@ -153,7 +156,7 @@ export default function OnboardingQuestionsScreen({ navigation }) {
                       <Ionicons
                         name={isMulti ? (selected ? 'checkbox-outline' : 'square-outline') : (selected ? 'radio-button-on' : 'radio-button-off')}
                         size={20}
-                        color={selected ? '#24384e' : '#9aa5b1'}
+                        color={selected ? tc('#24384e', 'fg') : tc('#9aa5b1', 'fg')}
                         style={{ marginRight: 8, marginTop: 1 }}
                       />
                       <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>{opt}</Text>
@@ -171,7 +174,7 @@ export default function OnboardingQuestionsScreen({ navigation }) {
           >
             <View style={styles.continueInner}>
               <Text style={styles.continueText}>Continuă</Text>
-              <Feather name="arrow-right" size={18} color="#fff" style={{ marginLeft: 8 }} />
+              <Feather name="arrow-right" size={18} color={tc("#fff", 'fg')} style={{ marginLeft: 8 }} />
             </View>
           </TouchableOpacity>
         </ScrollView>
@@ -180,42 +183,42 @@ export default function OnboardingQuestionsScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f6f7f8' },
+const createStyles = (tc) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: tc('#f6f7f8', 'bg') },
   background: { flex: 1 },
   scroll: { padding: 20 },
   header: { marginBottom: 14, alignItems: 'center' },
   backButton: {
     position: 'absolute', left: 0, top: 0, zIndex: 10,
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.55)',
-    borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
+    backgroundColor: tc('rgba(255,255,255,0.55)', 'bg'),
+    borderWidth: 1, borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
   },
-  title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 22, fontWeight: '700', color: '#1c2b3a', marginTop: 10, textAlign: 'center' },
-  subtitle: { fontSize: 14, color: '#5b6a7a', marginTop: 6, marginBottom: 8, textAlign: 'center' },
+  title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", letterSpacing: 0.2, fontSize: 22, fontWeight: '700', color: tc('#1c2b3a', 'fg'), marginTop: 10, textAlign: 'center' },
+  subtitle: { fontSize: 14, color: tc('#5b6a7a', 'fg'), marginTop: 6, marginBottom: 8, textAlign: 'center' },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.58)', borderRadius: 18, padding: 18, marginVertical: 10,
+    backgroundColor: tc('rgba(255,255,255,0.58)', 'bg'), borderRadius: 18, padding: 18, marginVertical: 10,
     shadowColor: '#24384e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
-    borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
+    borderWidth: 1, borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
   },
-  question: { fontSize: 15, color: '#1c2b3a', marginBottom: 12, lineHeight: 22, fontWeight: '600' },
+  question: { fontSize: 15, color: tc('#1c2b3a', 'fg'), marginBottom: 12, lineHeight: 22, fontWeight: '600' },
   optionsCol: { marginTop: 6 },
   choice: {
     flexDirection: 'row', alignItems: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.58)', borderRadius: 12,
-    borderWidth: 1, borderColor: 'rgba(32,47,62,0.18)',
+    backgroundColor: tc('rgba(255,255,255,0.58)', 'bg'), borderRadius: 12,
+    borderWidth: 1, borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
     paddingVertical: 10, paddingHorizontal: 12, marginVertical: 5,
   },
-  choiceSelected: { backgroundColor: 'rgba(36,56,78,0.1)', borderColor: 'rgba(36,56,78,0.24)' },
-  choiceText: { flex: 1, color: '#1c2b3a', fontSize: 14, lineHeight: 20 },
-  choiceTextSelected: { color: '#1c2b3a', fontWeight: '500' },
+  choiceSelected: { backgroundColor: tc('rgba(36,56,78,0.1)', 'bg'), borderColor: tc('rgba(36,56,78,0.24)', 'bg') },
+  choiceText: { flex: 1, color: tc('#1c2b3a', 'fg'), fontSize: 14, lineHeight: 20 },
+  choiceTextSelected: { color: tc('#1c2b3a', 'fg'), fontWeight: '500' },
   continueBtn: { marginTop: 12, borderRadius: 16 },
   continueBtnDisabled: { opacity: 0.5 },
   continueInner: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#24384e', borderRadius: 16, paddingVertical: 16,
+    backgroundColor: tc('#24384e', 'bg'), borderRadius: 16, paddingVertical: 16,
   },
-  continueText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  continueText: { color: tc('#fff', 'fg'), fontSize: 16, fontWeight: '600' },
 });

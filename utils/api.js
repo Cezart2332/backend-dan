@@ -85,6 +85,8 @@ export const api = {
     body: Array.isArray(ids) && ids.length ? { ids } : {},
     token,
   }),
+  getNotificationPreferences: (token) => request('/api/notifications/preferences', { method: 'GET', token }),
+  updateNotificationPreferences: (payload, token) => request('/api/notifications/preferences', { method: 'PUT', body: payload, token }),
   // Meetings
   createMeeting: (payload, token) => request('/api/meetings', { method: 'POST', body: payload, token }),
   listMyMeetings: (token) => request('/api/meetings', { method: 'GET', token }),
@@ -98,6 +100,7 @@ export const api = {
     { method: 'GET', token }
   ),
   markChatAsRead: (token) => request('/chat/read', { method: 'POST', token }),
+  getChatUnreadCount: (token) => request('/chat/unread-count', { method: 'GET', token }),
   // Challenges
   createChallengeRun: (payload, token) => request('/api/challenges/run', { method: 'POST', body: payload, token }),
   listChallengeRuns: (token) => request('/api/challenges/run', { method: 'GET', token }),

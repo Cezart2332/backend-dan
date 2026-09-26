@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Keyboard,
   ActivityIndicator,
   Platform,
+  Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -22,14 +23,59 @@ import { clearSubscription } from "../utils/subscriptionStorage";
 import { clearEntries } from "../utils/progressStorage";
 import { replaceAllRuns } from "../utils/challengeStorage";
 import { logoutRevenueCatUser } from "../utils/revenuecat";
+import { clearAppBadge } from "../utils/appBadge";
+import { hapticNotify, hapticSelection } from "../utils/haptics";
+import { useTheme, useThemedStyles } from "./ui/themeContext";
+
+const THEME_OPTIONS = [
+  { value: "system", label: "Sistem", icon: "smartphone" },
+  { value: "light", label: "Luminos", icon: "sun" },
+  { value: "dark", label: "Întunecat", icon: "moon" },
+];
 
 export default function SettingsScreen({ navigation, onLogout }) {
+  const { tc } = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const { preference, setPreference } = useTheme();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showBugModal, setShowBugModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [bugDescription, setBugDescription] = useState("");
   const [bugEmail, setBugEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [chatPush, setChatPush] = useState(null);
+  const [savingChatPush, setSavingChatPush] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    getToken()
+      .then((token) => (token ? api.getNotificationPreferences(token) : null))
+      .then((prefs) => {
+        if (mounted && prefs) setChatPush(prefs.chatPush !== false);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleToggleChatPush = useCallback(async (value) => {
+    const previous = chatPush;
+    setChatPush(value);
+    setSavingChatPush(true);
+    hapticSelection();
+
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("Nu ești autentificat.");
+      await api.updateNotificationPreferences({ chatPush: value }, token);
+    } catch (error) {
+      setChatPush(previous);
+      Alert.alert("Eroare", error?.message || "Nu am putut salva preferința.");
+    } finally {
+      setSavingChatPush(false);
+    }
+  }, [chatPush]);
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== "STERGE") {
@@ -55,7 +101,9 @@ export default function SettingsScreen({ navigation, onLogout }) {
         await clearSubscription();
         await clearEntries();
         await replaceAllRuns([]);
-        
+        clearAppBadge();
+        hapticNotify("success");
+
         Alert.alert(
           "Cont șters",
           "Contul tău a fost șters cu succes.",
@@ -99,6 +147,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
       }, token);
       
       if (response.success) {
+        hapticNotify("success");
         Alert.alert(
           "Mulțumim!",
           "Raportul tău a fost trimis. Vom analiza problema cât mai curând.",
@@ -120,7 +169,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={["#f6f7f8", "#f3f4f6", "#eef0f2"]}
+        colors={[tc("#f6f7f8", 'bg'), tc("#f3f4f6", 'bg'), tc("#eef0f2", 'bg')]}
         style={styles.background}
       >
         <ScrollView
@@ -136,9 +185,59 @@ export default function SettingsScreen({ navigation, onLogout }) {
               style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               activeOpacity={0.75}
             >
-              <Feather name="chevron-left" size={22} color="#24384e" />
+              <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Setări</Text>
+          </View>
+
+          {/* Section: Notificări */}
+          <Text style={styles.sectionLabel}>NOTIFICĂRI</Text>
+          <View style={styles.group}>
+            <View style={styles.row}>
+              <View style={[styles.iconWrap, { backgroundColor: tc("#e9f0ec", 'bg') }]}>
+                <Feather name="message-square" size={20} color={tc("#3d7d5f", 'fg')} />
+              </View>
+              <View style={styles.rowTextWrap}>
+                <Text style={styles.rowTitle}>Mesaje din comunitate</Text>
+                <Text style={styles.rowSubtitle}>O notificare pentru fiecare mesaj nou din chat</Text>
+              </View>
+              <Switch
+                value={chatPush === true}
+                onValueChange={handleToggleChatPush}
+                disabled={chatPush === null || savingChatPush}
+                trackColor={{ false: tc("rgba(32,47,62,0.18)", 'bg'), true: tc("#3d7d5f", 'bg') }}
+                ios_backgroundColor={tc("rgba(32,47,62,0.18)", 'bg')}
+                thumbColor="#ffffff"
+              />
+            </View>
+          </View>
+
+          {/* Section: Aspect */}
+          <Text style={styles.sectionLabel}>ASPECT</Text>
+          <View style={styles.group}>
+            <View style={styles.themeRow}>
+              {THEME_OPTIONS.map((option) => {
+                const active = preference === option.value;
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[styles.themeOption, active && styles.themeOptionActive]}
+                    onPress={() => {
+                      hapticSelection();
+                      setPreference(option.value);
+                    }}
+                    activeOpacity={0.75}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                  >
+                    <Feather name={option.icon} size={18} color={active ? tc("#1c2b3a", 'fg') : tc("#8a97a5", 'fg')} />
+                    <Text style={[styles.themeOptionText, active && styles.themeOptionTextActive]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
 
           {/* Section: Siguranță medicală */}
@@ -149,14 +248,14 @@ export default function SettingsScreen({ navigation, onLogout }) {
               onPress={() => navigation.navigate("MedicalInfo")}
               activeOpacity={0.7}
             >
-              <View style={[styles.iconWrap, { backgroundColor: "#eef5ff" }]}>
-                <Feather name="activity" size={20} color="#16222f" />
+              <View style={[styles.iconWrap, { backgroundColor: tc("#eef5ff", 'bg') }]}>
+                <Feather name="activity" size={20} color={tc("#16222f", 'fg')} />
               </View>
               <View style={styles.rowTextWrap}>
                 <Text style={styles.rowTitle}>Informații medicale și surse</Text>
                 <Text style={styles.rowSubtitle}>Conținut informativ. Vezi sursele rapid.</Text>
               </View>
-              <Feather name="chevron-right" size={18} color="#9aa5b1" />
+              <Feather name="chevron-right" size={18} color={tc("#9aa5b1", 'fg')} />
             </TouchableOpacity>
           </View>
 
@@ -168,14 +267,14 @@ export default function SettingsScreen({ navigation, onLogout }) {
               onPress={() => setShowBugModal(true)}
               activeOpacity={0.7}
             >
-              <View style={[styles.iconWrap, { backgroundColor: "#f7f2e7" }]}>
-                <Ionicons name="bug-outline" size={20} color="#b3924f" />
+              <View style={[styles.iconWrap, { backgroundColor: tc("#f7f2e7", 'bg') }]}>
+                <Ionicons name="bug-outline" size={20} color={tc("#b3924f", 'fg')} />
               </View>
               <View style={styles.rowTextWrap}>
                 <Text style={styles.rowTitle}>Raportează un bug</Text>
                 <Text style={styles.rowSubtitle}>Ajută-ne să îmbunătățim aplicația</Text>
               </View>
-              <Feather name="chevron-right" size={18} color="#9aa5b1" />
+              <Feather name="chevron-right" size={18} color={tc("#9aa5b1", 'fg')} />
             </TouchableOpacity>
           </View>
 
@@ -187,14 +286,14 @@ export default function SettingsScreen({ navigation, onLogout }) {
               onPress={() => setShowDeleteModal(true)}
               activeOpacity={0.7}
             >
-              <View style={[styles.iconWrap, { backgroundColor: "#f6ecea" }]}>
-                <Feather name="trash-2" size={20} color="#a8544c" />
+              <View style={[styles.iconWrap, { backgroundColor: tc("#f6ecea", 'bg') }]}>
+                <Feather name="trash-2" size={20} color={tc("#a8544c", 'fg')} />
               </View>
               <View style={styles.rowTextWrap}>
-                <Text style={[styles.rowTitle, { color: "#a8544c" }]}>Șterge contul</Text>
+                <Text style={[styles.rowTitle, { color: tc("#a8544c", 'fg') }]}>Șterge contul</Text>
                 <Text style={styles.rowSubtitle}>Această acțiune este permanentă</Text>
               </View>
-              <Feather name="chevron-right" size={18} color="#e8c8c8" />
+              <Feather name="chevron-right" size={18} color={tc("#e8c8c8", 'fg')} />
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -210,8 +309,8 @@ export default function SettingsScreen({ navigation, onLogout }) {
         <View style={styles.overlay}>
           <View style={styles.sheet}>
             <View style={styles.sheetIconRow}>
-              <View style={[styles.sheetIconWrap, { backgroundColor: "#f6ecea" }]}>
-                <Feather name="trash-2" size={26} color="#a8544c" />
+              <View style={[styles.sheetIconWrap, { backgroundColor: tc("#f6ecea", 'bg') }]}>
+                <Feather name="trash-2" size={26} color={tc("#a8544c", 'fg')} />
               </View>
             </View>
             <Text style={styles.sheetTitle}>Șterge contul</Text>
@@ -229,7 +328,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
               value={deleteConfirmText}
               onChangeText={setDeleteConfirmText}
               placeholder="STERGE"
-              placeholderTextColor="#c3cad2"
+              placeholderTextColor={tc("#c3cad2", 'fg')}
               autoCapitalize="characters"
             />
             <View style={styles.sheetActions}>
@@ -254,7 +353,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
                 activeOpacity={0.8}
               >
                 {loading ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                  <ActivityIndicator color={tc("#fff", 'fg')} size="small" />
                 ) : (
                   <Text style={styles.destructiveBtnText}>Șterge contul</Text>
                 )}
@@ -274,8 +373,8 @@ export default function SettingsScreen({ navigation, onLogout }) {
         <View style={styles.overlay}>
           <View style={styles.sheet}>
             <View style={styles.sheetIconRow}>
-              <View style={[styles.sheetIconWrap, { backgroundColor: "#f7f2e7" }]}>
-                <Ionicons name="bug-outline" size={26} color="#b3924f" />
+              <View style={[styles.sheetIconWrap, { backgroundColor: tc("#f7f2e7", 'bg') }]}>
+                <Ionicons name="bug-outline" size={26} color={tc("#b3924f", 'fg')} />
               </View>
             </View>
             <Text style={styles.sheetTitle}>Raportează un bug</Text>
@@ -287,7 +386,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
               value={bugDescription}
               onChangeText={setBugDescription}
               placeholder="Descrie problema..."
-              placeholderTextColor="#c3cad2"
+              placeholderTextColor={tc("#c3cad2", 'fg')}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -297,7 +396,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
               value={bugEmail}
               onChangeText={setBugEmail}
               placeholder="Email de contact (opțional)"
-              placeholderTextColor="#c3cad2"
+              placeholderTextColor={tc("#c3cad2", 'fg')}
               keyboardType="email-address"
               autoCapitalize="none"
             />
@@ -324,7 +423,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
                 activeOpacity={0.8}
               >
                 {loading ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                  <ActivityIndicator color={tc("#fff", 'fg')} size="small" />
                 ) : (
                   <Text style={styles.primaryBtnText}>Trimite</Text>
                 )}
@@ -337,10 +436,10 @@ export default function SettingsScreen({ navigation, onLogout }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (tc) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#f6f7f8",
+    backgroundColor: tc("#f6f7f8", 'bg'),
   },
   background: {
     flex: 1,
@@ -362,11 +461,11 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.55)",
+    backgroundColor: tc("rgba(255,255,255,0.55)", 'bg'),
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(32,47,62,0.18)",
+    borderColor: tc("rgba(32,47,62,0.18)", 'bg'),
     shadowColor: "#24384e",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
@@ -377,7 +476,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 26,
     fontWeight: "700",
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
     letterSpacing: -0.4,
   },
 
@@ -385,7 +484,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#8a97a5",
+    color: tc("#8a97a5", 'fg'),
     letterSpacing: 1.2,
     marginBottom: 8,
     marginLeft: 4,
@@ -393,10 +492,10 @@ const styles = StyleSheet.create({
 
   // Grouped rows
   group: {
-    backgroundColor: "rgba(255,255,255,0.58)",
+    backgroundColor: tc("rgba(255,255,255,0.58)", 'bg'),
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "rgba(32,47,62,0.18)",
+    borderColor: tc("rgba(32,47,62,0.18)", 'bg'),
     overflow: "hidden",
     shadowColor: "#24384e",
     shadowOffset: { width: 0, height: 4 },
@@ -425,19 +524,48 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
     marginBottom: 2,
   },
   rowSubtitle: {
     fontSize: 12,
-    color: "#8a97a5",
+    color: tc("#8a97a5", 'fg'),
     fontWeight: "400",
+  },
+
+  // Theme picker
+  themeRow: {
+    flexDirection: "row",
+    gap: 8,
+    padding: 8,
+  },
+  themeOption: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  themeOptionActive: {
+    backgroundColor: tc("rgba(255,255,255,0.85)", 'bg'),
+    borderColor: tc("rgba(32,47,62,0.18)", 'bg'),
+  },
+  themeOptionText: {
+    fontSize: 12.5,
+    fontWeight: "600",
+    color: tc("#8a97a5", 'fg'),
+  },
+  themeOptionTextActive: {
+    color: tc("#1c2b3a", 'fg'),
   },
 
   // Modal overlay
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(10, 30, 60, 0.45)",
+    backgroundColor: tc("rgba(10, 30, 60, 0.45)", 'bg'),
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
@@ -447,11 +575,11 @@ const styles = StyleSheet.create({
   sheet: {
     width: "100%",
     maxWidth: 400,
-    backgroundColor: "rgba(246,247,248,0.97)",
+    backgroundColor: tc("rgba(246,247,248,0.97)", 'bg'),
     borderRadius: 26,
     padding: 28,
     borderWidth: 1,
-    borderColor: "rgba(200,220,242,0.6)",
+    borderColor: tc("rgba(200,220,242,0.6)", 'bg'),
     shadowColor: "#24384e",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.18,
@@ -472,34 +600,34 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
     textAlign: "center",
     marginBottom: 8,
     letterSpacing: -0.3,
   },
   sheetBody: {
     fontSize: 14,
-    color: "#5b6a7a",
+    color: tc("#5b6a7a", 'fg'),
     lineHeight: 21,
     textAlign: "center",
     marginBottom: 8,
   },
   confirmWord: {
     fontWeight: "700",
-    color: "#a8544c",
+    color: tc("#a8544c", 'fg'),
     letterSpacing: 0.5,
   },
 
   // Input
   input: {
-    backgroundColor: "rgba(255,255,255,0.68)",
+    backgroundColor: tc("rgba(255,255,255,0.68)", 'bg'),
     borderRadius: 13,
     paddingHorizontal: 16,
     paddingVertical: 13,
     fontSize: 15,
-    color: "#1c2b3a",
+    color: tc("#1c2b3a", 'fg'),
     borderWidth: 1,
-    borderColor: "rgba(32,47,62,0.22)",
+    borderColor: tc("rgba(32,47,62,0.22)", 'bg'),
     marginBottom: 12,
     shadowColor: "#24384e",
     shadowOffset: { width: 0, height: 1 },
@@ -521,21 +649,21 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: "rgba(201,208,215,0.35)",
+    backgroundColor: tc("rgba(201,208,215,0.35)", 'bg'),
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(201,208,215,0.5)",
+    borderColor: tc("rgba(201,208,215,0.5)", 'bg'),
   },
   cancelBtnText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#5a7a95",
+    color: tc("#5a7a95", 'fg'),
   },
   destructiveBtn: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: "#a8544c",
+    backgroundColor: tc("#a8544c", 'bg'),
     alignItems: "center",
     shadowColor: "#a8544c",
     shadowOffset: { width: 0, height: 4 },
@@ -546,13 +674,13 @@ const styles = StyleSheet.create({
   destructiveBtnText: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#fff",
+    color: tc("#fff", 'fg'),
   },
   primaryBtn: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: "#24384e",
+    backgroundColor: tc("#24384e", 'bg'),
     alignItems: "center",
     shadowColor: "#24384e",
     shadowOffset: { width: 0, height: 4 },
@@ -563,7 +691,7 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#fff",
+    color: tc("#fff", 'fg'),
   },
   btnDisabled: {
     opacity: 0.45,

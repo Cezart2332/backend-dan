@@ -1,8 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
-import { NavigationContainer } from "@react-navigation/native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AppState } from "react-native";
+import { DarkTheme, DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { StatusBar } from "expo-status-bar";
 import * as Notifications from "expo-notifications";
+import * as SystemUI from "expo-system-ui";
 import LoginScreen from "./components/LoginScreen";
 import RegisterScreen from "./components/RegisterScreen";
 import ForgotPasswordScreen from "./components/ForgotPasswordScreen";
@@ -59,6 +61,9 @@ import { replaceAllRuns } from "./utils/challengeStorage";
 import { api } from "./utils/api";
 import AppSplashScreen from "./components/AppSplashScreen";
 import metaEvents from "./utils/metaEvents";
+import { clearAppBadge, syncAppBadge } from "./utils/appBadge";
+import { syncDailyQuoteSchedule } from "./utils/dailyQuote";
+import { ThemeProvider, useTheme } from "./components/ui/themeContext";
 
 const Stack = createStackNavigator();
 const MIN_SPLASH_MS = 1400;
@@ -66,16 +71,66 @@ const MIN_SPLASH_MS = 1400;
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
-    shouldSetBadge: false,
+    shouldSetBadge: true,
   }),
 });
 
 export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
+  );
+}
+
+function AppContent() {
+  const { isDark, tc } = useTheme();
+  const screenBackground = tc("#f6f7f8", "bg");
+  const navigationTheme = useMemo(() => {
+    const base = isDark ? DarkTheme : DefaultTheme;
+    return {
+      ...base,
+      colors: { ...base.colors, background: screenBackground, card: screenBackground },
+    };
+  }, [isDark, screenBackground]);
+
+  // Fundalul nativ de sub ecrane (vizibil la tranziții și la tastatură).
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(screenBackground).catch(() => {});
+  }, [screenBackground]);
+
   const [booting, setBooting] = useState(true);
   const [isAuthed, setIsAuthed] = useState(false);
   const navigationRef = useRef(null);
   const [currentRoute, setCurrentRoute] = useState(null);
+  const isAuthedRef = useRef(false);
+  const pendingNavigationRef = useRef(null);
+
+  // Un tap pe notificare care pornește aplicația sosește în timpul splash-ului,
+  // când navigatorul nu există încă: ținem destinația până e gata.
+  const flushPendingNavigation = useCallback(() => {
+    const pending = pendingNavigationRef.current;
+    if (!pending || !isAuthedRef.current || !navigationRef.current?.isReady?.()) return;
+    pendingNavigationRef.current = null;
+    navigationRef.current.navigate(pending.name, pending.params);
+  }, []);
+
+  const navigateFromNotification = useCallback((name, params) => {
+    pendingNavigationRef.current = { name, params };
+    flushPendingNavigation();
+  }, [flushPendingNavigation]);
+
+  useEffect(() => {
+    isAuthedRef.current = isAuthed;
+    flushPendingNavigation();
+  }, [isAuthed, flushPendingNavigation]);
+
+  useEffect(() => {
+    syncDailyQuoteSchedule().catch(() => {});
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -118,6 +173,7 @@ export default function App() {
               clearEntries(),
               replaceAllRuns([]),
             ]);
+            clearAppBadge();
             if (mounted) setIsAuthed(false);
           } else {
             // Network error / server down → let user in with cached data
@@ -146,6 +202,17 @@ export default function App() {
     registerForPushNotifications().catch(() => {});
   }, [isAuthed]);
 
+  // Badge-ul de pe iconiță se reface la revenirea în aplicație și la ieșire,
+  // ca să reflecte ce s-a citit în sesiune și ce a sosit între timp.
+  useEffect(() => {
+    if (!isAuthed) return undefined;
+    syncAppBadge().catch(() => {});
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active" || state === "background") syncAppBadge().catch(() => {});
+    });
+    return () => subscription.remove();
+  }, [isAuthed]);
+
   useEffect(() => {
     let active = true;
     const handledNotificationIds = new Set();
@@ -161,14 +228,19 @@ export default function App() {
       const data = notification?.request?.content?.data || {};
       const type = String(data?.type || '').toLowerCase();
 
-      // Mesajele de chat duc direct în conversație (stil WhatsApp) — restul
-      // notificărilor/anunțurilor merg în secțiunea dedicată de Notificări.
+      // Mesajele de chat duc direct în conversație (stil WhatsApp), gândul zilei
+      // în ecranul lui — restul notificărilor în secțiunea dedicată de Notificări.
       if (type === 'chat_message' || type === 'chat_unread') {
-        navigationRef.current?.navigate?.('CommunityChat');
+        navigateFromNotification('CommunityChat');
         return;
       }
 
-      navigationRef.current?.navigate?.('Notifications');
+      if (type === 'daily_quote') {
+        navigateFromNotification('QuoteOfTheDay', data?.quote ? { quote: String(data.quote) } : undefined);
+        return;
+      }
+
+      navigateFromNotification('Notifications');
     };
 
     Notifications.getLastNotificationResponseAsync()
@@ -183,7 +255,7 @@ export default function App() {
       active = false;
       responseSubscription.remove();
     };
-  }, []);
+  }, [navigateFromNotification]);
 
   if (booting) {
     return <AppSplashScreen />;
@@ -197,10 +269,14 @@ export default function App() {
     <SubscriptionProvider isAuthed={isAuthed}>
       <NavigationContainer
         ref={navigationRef}
-        onReady={handleNavUpdate}
+        theme={navigationTheme}
+        onReady={() => {
+          handleNavUpdate();
+          flushPendingNavigation();
+        }}
         onStateChange={handleNavUpdate}
       >
-          <StatusBar style="dark" backgroundColor="#f6f7f8" />
+          <StatusBar style={isDark ? "light" : "dark"} backgroundColor={screenBackground} />
           <Stack.Navigator
             initialRouteName={isAuthed ? "Dashboard" : "Login"}
             screenOptions={{
