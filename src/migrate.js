@@ -461,4 +461,13 @@ export async function runMigrations() {
       CONSTRAINT fk_app_notification_reads_notification FOREIGN KEY (notification_id) REFERENCES app_notifications(id) ON DELETE CASCADE
     )
   `);
+
+  await mysqlPool.query(`
+    CREATE TABLE IF NOT EXISTS user_notification_prefs (
+      user_id BIGINT PRIMARY KEY,
+      chat_push TINYINT(1) NOT NULL DEFAULT 1,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT fk_user_notification_prefs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
 }

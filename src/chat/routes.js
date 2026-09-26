@@ -1,7 +1,8 @@
 import { requireChatUser } from './middleware.js';
 import {
-  broadcastSystemEvent,
+  broadcastPresence,
   getChatHistoryPage,
+  getChatUnreadCount,
   handleChatSocketMessage,
   markChatAsRead,
   registerChatConnection,
@@ -74,6 +75,24 @@ export async function registerChatRoutes(app) {
   );
 
   app.get(
+    '/chat/unread-count',
+    {
+      preHandler: async (request, reply) => {
+        await requireChatUser(request, reply);
+      },
+    },
+    async (request, reply) => {
+      try {
+        const unreadCount = await getChatUnreadCount(request.chatUser?.id);
+        return reply.send({ unreadCount });
+      } catch (error) {
+        request.log.error({ err: error }, 'Chat unread count failed');
+        return reply.code(500).send({ error: 'Eroare server' });
+      }
+    }
+  );
+
+  app.get(
     '/chat/connect',
     {
       websocket: true,
@@ -88,16 +107,16 @@ export async function registerChatRoutes(app) {
         return;
       }
 
-      const firstConnection = registerChatConnection(chatUser, socket);
-      if (firstConnection) {
-        broadcastSystemEvent({ event: 'join', chatUser });
-      }
+      registerChatConnection(chatUser, socket);
+      // Si o conexiune in plus a aceluiasi utilizator primeste numarul curent.
+      broadcastPresence();
 
       socket.on('message', async (rawData) => {
         try {
           await handleChatSocketMessage({ socket, rawData, chatUser });
         } catch (error) {
           request.log.error({ err: error, userId: chatUser.id }, 'Chat websocket message failed');
+          if (error?.clientNotified) return;
           try {
             socket.send(JSON.stringify({
               type: 'error',
@@ -112,7 +131,7 @@ export async function registerChatRoutes(app) {
       socket.on('close', () => {
         const userWentOffline = unregisterChatConnection(chatUser, socket);
         if (userWentOffline) {
-          broadcastSystemEvent({ event: 'leave', chatUser });
+          broadcastPresence();
         }
       });
 

@@ -190,28 +190,18 @@ export function unregisterChatConnection(chatUser, socket) {
 }
 
 /**
- * Broadcasts a join/leave system notification to connected chat users.
+ * Trimite tuturor numarul de utilizatori cu chatul deschis.
  *
- * @param {{ event: 'join'|'leave', chatUser: { id: number, displayName: string } }} params
  * @returns {void}
  */
-export function broadcastSystemEvent({ event, chatUser }) {
-  const normalizedEvent = event === 'leave' ? 'leave' : 'join';
-  const displayName = normalizeDisplayName(chatUser?.displayName);
+export function broadcastPresence() {
+  broadcastPayload({ type: 'presence', online: socketsByUserId.size });
+}
 
-  const content =
-    normalizedEvent === 'join'
-      ? `${displayName} s-a alaturat comunitatii.`
-      : `${displayName} a parasit comunitatea.`;
-
-  broadcastPayload({
-    type: 'system',
-    userId: String(chatUser?.id || ''),
-    displayName,
-    avatar: chatUser?.avatar || null,
-    content,
-    createdAt: new Date().toISOString(),
-  });
+function normalizeClientId(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim().slice(0, 64);
+  return trimmed.length ? trimmed : null;
 }
 
 /**
@@ -263,43 +253,50 @@ export async function handleChatSocketMessage({ socket, rawData, chatUser }) {
     return;
   }
 
+  // Clientul trimite un id propriu ca sa poata confirma (sau marca esuat)
+  // mesajul afisat deja local, inainte de raspunsul serverului.
+  const clientId = normalizeClientId(parsedPayload?.clientId);
+  const sendError = (error, extra = {}) => {
+    safeSend(socket, { type: 'error', error, ...(clientId ? { clientId } : {}), ...extra });
+  };
+
   if (typeof parsedPayload?.content !== 'string') {
-    safeSend(socket, {
-      type: 'error',
-      error: 'Continutul mesajului este invalid.',
-    });
+    sendError('Continutul mesajului este invalid.');
     return;
   }
 
   const content = parsedPayload.content.trim();
   if (!content.length) {
-    safeSend(socket, {
-      type: 'error',
-      error: 'Mesajul nu poate fi gol.',
-    });
+    sendError('Mesajul nu poate fi gol.');
     return;
   }
 
   if (content.length > MAX_MESSAGE_LENGTH) {
-    safeSend(socket, {
-      type: 'error',
-      error: `Mesajul depaseste limita de ${MAX_MESSAGE_LENGTH} de caractere.`,
-    });
+    sendError(`Mesajul depaseste limita de ${MAX_MESSAGE_LENGTH} de caractere.`);
     return;
   }
 
   const limitResult = consumeRateLimitSlot(Number(chatUser.id));
   if (!limitResult.allowed) {
-    safeSend(socket, {
-      type: 'error',
-      error: 'Trimiti mesaje prea rapid. Incearca din nou in cateva secunde.',
+    sendError('Trimiti mesaje prea rapid. Incearca din nou in cateva secunde.', {
       retryAfterMs: limitResult.retryAfterMs,
     });
     return;
   }
 
-  const savedMessage = await insertChatMessage(chatUser.id, content);
-  const payload = buildMessagePayload(savedMessage, chatUser);
+  let savedMessage;
+  try {
+    savedMessage = await insertChatMessage(chatUser.id, content);
+  } catch (error) {
+    sendError('Mesajul nu a putut fi salvat. Incearca din nou.');
+    if (error && typeof error === 'object') error.clientNotified = true;
+    throw error;
+  }
+
+  const payload = {
+    ...buildMessagePayload(savedMessage, chatUser),
+    ...(clientId ? { clientId } : {}),
+  };
   broadcastPayload(payload);
 
   // Notificare push imediata pentru fiecare mesaj nou (stil WhatsApp).
@@ -336,7 +333,8 @@ export async function sendChatMessagePush({ message, senderUserId }) {
     `SELECT DISTINCT expo_push_token
      FROM user_push_tokens
      WHERE enabled = 1
-       AND user_id NOT IN (${placeholders})`,
+       AND user_id NOT IN (${placeholders})
+       AND user_id NOT IN (SELECT user_id FROM user_notification_prefs WHERE chat_push = 0)`,
     excludedUserIds
   );
 
@@ -412,6 +410,37 @@ export async function getChatHistoryPage(params = {}) {
   const nextBefore = items.length ? Number(items[0].id) : null;
 
   return { items, hasMore, nextBefore };
+}
+
+/**
+ * Numarul de mesaje necitite (de la altii), plafonat la 100. Utilizatorii
+ * care n-au deschis niciodata chatul nu primesc tot istoricul ca "necitit".
+ *
+ * @param {number} userId
+ * @returns {Promise<number>}
+ */
+export async function getChatUnreadCount(userId) {
+  const normalizedUserId = Number(userId);
+  if (!Number.isFinite(normalizedUserId) || normalizedUserId <= 0) return 0;
+
+  const [readRows] = await mysqlPool.query(
+    'SELECT last_read_message_id FROM chat_user_reads WHERE user_id = ? LIMIT 1',
+    [normalizedUserId]
+  );
+  if (!Array.isArray(readRows) || !readRows.length) return 0;
+
+  const lastReadId = Number(readRows[0].last_read_message_id || 0);
+  const [rows] = await mysqlPool.query(
+    `SELECT COUNT(*) AS unread_count
+     FROM (
+       SELECT 1 FROM chat_messages
+       WHERE id > ? AND user_id <> ?
+       LIMIT 100
+     ) unread`,
+    [lastReadId, normalizedUserId]
+  );
+
+  return Array.isArray(rows) && rows.length ? Number(rows[0].unread_count || 0) : 0;
 }
 
 /**

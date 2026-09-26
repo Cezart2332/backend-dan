@@ -91,6 +91,46 @@ export async function registerNotificationRoutes(app) {
     }
   });
 
+  app.get('/api/notifications/preferences', async (request, reply) => {
+    const user = authMiddleware(request);
+    if (!user) return reply.code(401).send({ error: 'Neautorizat' });
+
+    try {
+      const [rows] = await mysqlPool.query(
+        'SELECT chat_push FROM user_notification_prefs WHERE user_id = ? LIMIT 1',
+        [Number(user.sub)]
+      );
+      const chatPush = Array.isArray(rows) && rows.length ? Boolean(Number(rows[0].chat_push)) : true;
+      return reply.send({ chatPush });
+    } catch (error) {
+      request.log.error({ err: error }, 'Get notification preferences failed');
+      return reply.code(500).send({ error: 'Eroare server' });
+    }
+  });
+
+  app.put('/api/notifications/preferences', async (request, reply) => {
+    const user = authMiddleware(request);
+    if (!user) return reply.code(401).send({ error: 'Neautorizat' });
+
+    if (typeof request.body?.chatPush !== 'boolean') {
+      return reply.code(400).send({ error: 'Parametrul chatPush este invalid.' });
+    }
+    const chatPush = request.body.chatPush;
+
+    try {
+      await mysqlPool.query(
+        `INSERT INTO user_notification_prefs (user_id, chat_push)
+         VALUES (?, ?)
+         ON DUPLICATE KEY UPDATE chat_push = VALUES(chat_push)`,
+        [Number(user.sub), chatPush ? 1 : 0]
+      );
+      return reply.send({ chatPush });
+    } catch (error) {
+      request.log.error({ err: error }, 'Update notification preferences failed');
+      return reply.code(500).send({ error: 'Eroare server' });
+    }
+  });
+
   // ─── Feed notificari / anunturi ───
   app.get('/api/notifications', async (request, reply) => {
     const user = authMiddleware(request);
