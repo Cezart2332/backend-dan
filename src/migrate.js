@@ -470,4 +470,23 @@ export async function runMigrations() {
       CONSTRAINT fk_user_notification_prefs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
+
+  // Cartile PDF cadou: un singur rand per cont, ca fiecare sa le primeasca o data.
+  await mysqlPool.query(`
+    CREATE TABLE IF NOT EXISTS book_deliveries (
+      user_id BIGINT PRIMARY KEY,
+      status ENUM('sending','sent','failed') NOT NULL DEFAULT 'sending',
+      source ENUM('bulk','new_subscription') NOT NULL,
+      email VARCHAR(255) NULL,
+      resend_id VARCHAR(128) NULL,
+      error TEXT NULL,
+      attempts INT NOT NULL DEFAULT 1,
+      claim_token CHAR(36) NULL,
+      sent_at TIMESTAMP NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT fk_book_deliveries_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      INDEX idx_book_deliveries_status (status)
+    )
+  `);
 }

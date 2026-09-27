@@ -3,6 +3,13 @@ import { createHash, timingSafeEqual } from 'crypto';
 import { mysqlPool } from './mysql.js';
 import { isExpoPushToken, sendPushToExpoTokens } from './push.js';
 import { recordNotificationSafe } from './notifications-feed.js';
+import {
+  getBooksDeliveryStats,
+  getBooksFilesStatus,
+  getBulkJob,
+  listRecentBookDeliveries,
+  startBulkDelivery,
+} from './books.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
 if (!JWT_SECRET) throw new Error('CRITICAL: JWT_SECRET is required');
@@ -1075,6 +1082,38 @@ export async function registerAdminRoutes(app) {
   });
 
   // ─── Announcements ───
+  // ─── Carti PDF cadou pentru abonatii Premium/VIP ───
+  app.get('/api/admin/books', async (request, reply) => {
+    const auth = await adminAuth(request);
+    if (!auth) return reply.code(403).send({ error: 'Forbidden' });
+
+    try {
+      const [files, stats, recent] = await Promise.all([
+        getBooksFilesStatus(),
+        getBooksDeliveryStats(),
+        listRecentBookDeliveries(25),
+      ]);
+      return reply.send({ files, stats, job: getBulkJob(), recent });
+    } catch (e) {
+      request.log.error({ err: e }, 'Books status failed');
+      return reply.code(500).send({ error: 'Eroare server' });
+    }
+  });
+
+  app.post('/api/admin/books/send', async (request, reply) => {
+    const auth = await adminAuth(request);
+    if (!auth) return reply.code(403).send({ error: 'Forbidden' });
+
+    try {
+      const result = await startBulkDelivery(request.log);
+      return reply.send(result);
+    } catch (e) {
+      // Fisiere lipsa sau prea mari: mesajul e explicit si il afisam in panou.
+      request.log.warn({ err: e }, 'Books bulk send not started');
+      return reply.code(400).send({ error: e?.message || 'Trimiterea nu a putut porni' });
+    }
+  });
+
   app.post('/api/admin/announcements', async (request, reply) => {
     const auth = await adminAuth(request);
     if (!auth) return reply.code(403).send({ error: 'Forbidden' });

@@ -48,6 +48,59 @@ async function compileTemplate(templateName, variables = {}) {
   return html;
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+/**
+ * Trimite email-ul cu cartile PDF cadou.
+ *
+ * @param {{ email: string, name?: string, attachments: Array<{ filename: string, content: Buffer }> }} params
+ * @returns {Promise<{ id: string }>}
+ */
+export async function sendBooksEmail({ email, name, attachments }) {
+  const firstName = String(name || '').trim().split(' ')[0] || '';
+  const greeting = firstName ? `Salut, ${firstName}!` : 'Salut!';
+
+  const html = await compileTemplate('books-gift', {
+    greeting: escapeHtml(greeting),
+    currentYear: String(new Date().getFullYear()),
+  });
+
+  const text = [
+    greeting,
+    '',
+    'Iti multumesc ca ai ales sa mergi mai departe impreuna cu mine.',
+    'Ca semn de bun venit, iti daruiesc doua dintre cartile mele, in format PDF.',
+    'Le gasesti atasate la acest email.',
+    '',
+    'Cu calm,',
+    'Dan - Fost anxios',
+  ].join('\n');
+
+  const { data, error } = await getResend().emails.send({
+    from: getFromEmail(),
+    to: [email],
+    subject: 'Un cadou pentru tine: 2 carti de la Dan',
+    html,
+    text,
+    attachments,
+  });
+
+  if (error) {
+    const wrapped = new Error(`Resend API error: ${error.message}`);
+    wrapped.resendErrorName = error.name;
+    throw wrapped;
+  }
+
+  return data;
+}
+
 /**
  * Sends the password reset email to a user.
  *

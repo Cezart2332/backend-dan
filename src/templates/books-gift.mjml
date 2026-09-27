@@ -1,0 +1,138 @@
+<mjml>
+  <mj-head>
+    <mj-title>Un cadou pentru tine - Dan fost anxios</mj-title>
+    <mj-preview>Doua carti de la Dan, atasate la acest email. Citeste-le in ritmul tau.</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" />
+    </mj-attributes>
+    <mj-style>
+      .serif div {
+        font-family: Georgia, 'Times New Roman', serif !important;
+      }
+    </mj-style>
+  </mj-head>
+
+  <mj-body background-color="#e9ecef" width="600px">
+
+    <mj-section padding="36px 0 0"><mj-column><mj-spacer height="1px" /></mj-column></mj-section>
+
+    <!-- Banda champagne sus, ca un semn de carte -->
+    <mj-section
+      background-color="#b3924f"
+      border-radius="26px 26px 0 0"
+      padding="4px 0 0"
+    >
+      <mj-column><mj-spacer height="1px" /></mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" padding="44px 0 8px">
+      <mj-column>
+        <mj-image
+          width="168px"
+          src="https://api.danfostanxios.ro/assets/email-logo.png"
+          alt="Dan - Fost anxios - App"
+          padding="0"
+          href="https://danfostanxios.ro"
+        />
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" padding="20px 44px 0">
+      <mj-column>
+        <mj-text
+          css-class="serif"
+          align="center"
+          font-size="30px"
+          font-weight="700"
+          color="#1c2b3a"
+          line-height="1.25"
+          letter-spacing="0.3px"
+          padding="0 0 14px"
+        >
+          Un cadou pentru tine
+        </mj-text>
+
+        <mj-text align="center" font-size="15px" color="#5b6a7a" line-height="1.7" padding="0 8px 30px">
+          {{greeting}} Iti multumesc ca ai ales sa mergi mai departe impreuna cu mine.
+          Ca semn de bun venit, iti daruiesc doua dintre cartile mele.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Blocul cadoului: navy inchis, ca butoanele din aplicatie -->
+    <mj-section background-color="#ffffff" padding="0 44px">
+      <mj-column
+        background-color="#1c2b3a"
+        border-radius="20px"
+        padding="26px 22px 24px"
+      >
+        <mj-text
+          align="center"
+          font-size="11px"
+          font-weight="700"
+          letter-spacing="3px"
+          text-transform="uppercase"
+          color="#c9ad72"
+          padding="0 0 12px"
+        >
+          Cadoul tau
+        </mj-text>
+
+        <mj-text
+          css-class="serif"
+          align="center"
+          font-size="24px"
+          font-weight="700"
+          color="#ffffff"
+          padding="0 0 10px"
+        >
+          2 carti in format PDF
+        </mj-text>
+
+        <mj-text align="center" font-size="13px" color="#8fa0b3" line-height="1.6" padding="0">
+          &#128206; Le gasesti <span style="color:#d5dce4; font-weight:700;">atasate la acest email</span>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" padding="32px 44px 40px" border-radius="0 0 26px 26px">
+      <mj-column
+        background-color="#f4f5f6"
+        border-radius="16px"
+        padding="16px 20px"
+      >
+        <mj-text align="center" font-size="13px" color="#8a97a5" line-height="1.65" padding="0">
+          Descarca-le pe telefon sau pe calculator si citeste-le in ritmul tau.
+          Nu e nicio graba &mdash; fiecare pagina e un pas.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Semnatura, ca in aplicatie -->
+    <mj-section padding="30px 24px 8px">
+      <mj-column>
+        <mj-text css-class="serif" align="center" font-size="17px" font-style="italic" color="#5b6a7a" padding="0 0 6px">
+          Cu calm,
+        </mj-text>
+        <mj-text css-class="serif" align="center" font-size="19px" font-weight="700" color="#24384e" letter-spacing="0.3px" padding="0 0 4px">
+          Dan
+        </mj-text>
+        <mj-text align="center" font-size="10px" font-weight="700" letter-spacing="3.2px" text-transform="uppercase" color="#8a97a5" padding="0">
+          Fost anxios
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="14px 24px 40px">
+      <mj-column>
+        <mj-divider border-width="1px" border-color="#d8dde2" width="60px" padding="0 0 16px" />
+        <mj-text align="center" font-size="12px" color="#8a97a5" line-height="1.8" padding="0">
+          Ai nevoie de ajutor? Scrie-ne la
+          <a href="mailto:support@danfostanxios.ro" style="color:#24384e; font-weight:600; text-decoration:none;">support@danfostanxios.ro</a><br />
+          &copy; {{currentYear}} Dan fost anxios. Toate drepturile rezervate.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

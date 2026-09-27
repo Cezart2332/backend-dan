@@ -1,5 +1,10 @@
 import jwt from "jsonwebtoken";
 import { mysqlPool } from "./mysql.js";
+import {
+  BOOK_SUBSCRIPTION_TYPES,
+  deliverBooksForNewSubscription,
+  hasHadBookEligibleSubscription,
+} from "./books.js";
 
 const PRODUCT_IDS = {
   basic: "dan_basic",
@@ -396,6 +401,13 @@ async function persistRevenueCatSnapshot({
     await closeActiveTrialRows(userId);
   }
 
+  // Cartile PDF cadou merg doar la primul abonament Premium/VIP al contului;
+  // verificat inainte de salvare, ca reinnoirile si reactivarile sa nu conteze.
+  const isFirstBookEligibleSubscription =
+    Boolean(normalizedProductId) &&
+    BOOK_SUBSCRIPTION_TYPES.includes(normalizedType) &&
+    !(await hasHadBookEligibleSubscription(userId));
+
   const [existingRows] = await mysqlPool.query(
     `SELECT id, starts_at, ends_at
      FROM subscriptions
@@ -433,6 +445,7 @@ async function persistRevenueCatSnapshot({
         existing.id,
       ]
     );
+    if (isFirstBookEligibleSubscription) deliverBooksForNewSubscription(userId);
     return;
   }
 
@@ -464,6 +477,7 @@ async function persistRevenueCatSnapshot({
       normalizedProductId,
     ]
   );
+  if (isFirstBookEligibleSubscription) deliverBooksForNewSubscription(userId);
 }
 
 function formatCurrentResponse(row, trialEligible) {
