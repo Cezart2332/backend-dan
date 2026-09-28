@@ -42,6 +42,7 @@ export async function registerChatRoutes(app) {
         const history = await getChatHistoryPage({
           beforeMessageId,
           limit: CHAT_HISTORY_LIMIT,
+          viewerUserId: request.chatUser?.id,
         });
 
         return reply.send(history);

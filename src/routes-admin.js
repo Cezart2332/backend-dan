@@ -1118,15 +1118,27 @@ export async function registerAdminRoutes(app) {
     const auth = await adminAuth(request);
     if (!auth) return reply.code(403).send({ error: 'Forbidden' });
 
-    const { title, body, target } = request.body || {};
+    const { title, body, target, url } = request.body || {};
     const normalizedTitle = String(title || '').trim();
     const normalizedBody = String(body || '').trim();
     const normalizedTarget = String(target || '').toLowerCase();
+    const normalizedUrl = String(url || '').trim();
 
     if (!normalizedTitle) return reply.code(400).send({ error: 'Titlul anuntului este necesar' });
     if (!normalizedBody) return reply.code(400).send({ error: 'Mesajul anuntului este necesar' });
     if (normalizedTitle.length > 100) return reply.code(400).send({ error: 'Titlul este prea lung (maxim 100 caractere)' });
     if (normalizedBody.length > 500) return reply.code(400).send({ error: 'Mesajul este prea lung (maxim 500 caractere)' });
+    if (normalizedUrl) {
+      let parsedUrl = null;
+      try {
+        parsedUrl = new URL(normalizedUrl);
+      } catch {
+        parsedUrl = null;
+      }
+      if (!parsedUrl || !['http:', 'https:'].includes(parsedUrl.protocol) || normalizedUrl.length > 500) {
+        return reply.code(400).send({ error: 'Linkul trebuie sa inceapa cu https:// (maxim 500 caractere)' });
+      }
+    }
 
     try {
       // Anuntul e salvat mai intai in feed, ca sa fie regasit in sectiunea
@@ -1136,6 +1148,7 @@ export async function registerAdminRoutes(app) {
         type: 'announcement',
         title: normalizedTitle,
         body: normalizedBody,
+        data: normalizedUrl ? { url: normalizedUrl } : null,
         logger: request.log,
       });
 
@@ -1167,7 +1180,7 @@ export async function registerAdminRoutes(app) {
         tokens: pushTokens,
         title: normalizedTitle,
         body: normalizedBody,
-        data: { type: 'announcement', notificationId },
+        data: { type: 'announcement', notificationId, ...(normalizedUrl ? { url: normalizedUrl } : {}) },
         logger: request.log,
       });
 

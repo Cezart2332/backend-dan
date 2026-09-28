@@ -6,9 +6,12 @@ const MESSAGE_RATE_LIMIT_WINDOW_MS = 10_000;
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_HISTORY_LIMIT = 50;
 const PUSH_PREVIEW_LENGTH = 140;
+const REPLY_PREVIEW_LENGTH = 200;
+const LIKE_RATE_LIMIT_COUNT = 30;
 
 const socketsByUserId = new Map();
 const messageTimestampsByUserId = new Map();
+const likeTimestampsByUserId = new Map();
 
 function isSocketOpen(socket) {
   return Boolean(socket) && socket.readyState === 1;
@@ -30,25 +33,25 @@ function normalizeDisplayName(value) {
   return normalized.length ? normalized : 'Utilizator';
 }
 
-function pruneStaleMessageTimestamps(userId, nowMs) {
-  const timestamps = messageTimestampsByUserId.get(userId) || [];
-  const validTimestamps = timestamps.filter((ts) => nowMs - ts < MESSAGE_RATE_LIMIT_WINDOW_MS);
-  messageTimestampsByUserId.set(userId, validTimestamps);
-  return validTimestamps;
-}
-
-function consumeRateLimitSlot(userId) {
+function consumeRateLimitSlot(
+  userId,
+  timestampsByUserId = messageTimestampsByUserId,
+  maxCount = MESSAGE_RATE_LIMIT_COUNT
+) {
   const nowMs = Date.now();
-  const validTimestamps = pruneStaleMessageTimestamps(userId, nowMs);
+  const validTimestamps = (timestampsByUserId.get(userId) || []).filter(
+    (ts) => nowMs - ts < MESSAGE_RATE_LIMIT_WINDOW_MS
+  );
 
-  if (validTimestamps.length >= MESSAGE_RATE_LIMIT_COUNT) {
+  if (validTimestamps.length >= maxCount) {
+    timestampsByUserId.set(userId, validTimestamps);
     const oldestMs = validTimestamps[0] || nowMs;
     const retryAfterMs = Math.max(0, MESSAGE_RATE_LIMIT_WINDOW_MS - (nowMs - oldestMs));
     return { allowed: false, retryAfterMs };
   }
 
   validTimestamps.push(nowMs);
-  messageTimestampsByUserId.set(userId, validTimestamps);
+  timestampsByUserId.set(userId, validTimestamps);
   return { allowed: true, retryAfterMs: 0 };
 }
 
@@ -68,40 +71,46 @@ function broadcastPayload(payload) {
     if (!userSockets.size) {
       socketsByUserId.delete(userId);
       messageTimestampsByUserId.delete(userId);
+      likeTimestampsByUserId.delete(userId);
     }
   }
 }
 
-async function insertChatMessage(userId, content) {
+// Primul parametru al interogarii e utilizatorul care citeste (pentru likedByMe).
+const MESSAGE_SELECT_SQL = `
+  SELECT cm.id, cm.user_id, cm.content, cm.created_at, cm.reply_to_id,
+         u.name AS display_name, u.avatar_url,
+         r.content AS reply_content, r.user_id AS reply_user_id, ru.name AS reply_display_name,
+         (SELECT COUNT(*) FROM chat_message_likes l WHERE l.message_id = cm.id) AS like_count,
+         EXISTS (
+           SELECT 1 FROM chat_message_likes lm WHERE lm.message_id = cm.id AND lm.user_id = ?
+         ) AS liked_by_me
+  FROM chat_messages cm
+  INNER JOIN users u ON u.id = cm.user_id
+  LEFT JOIN chat_messages r ON r.id = cm.reply_to_id
+  LEFT JOIN users ru ON ru.id = r.user_id`;
+
+async function resolveReplyTargetId(rawReplyToId) {
+  const replyToId = Number(rawReplyToId);
+  if (!Number.isFinite(replyToId) || replyToId <= 0) return null;
+  const [rows] = await mysqlPool.query('SELECT id FROM chat_messages WHERE id = ? LIMIT 1', [replyToId]);
+  return Array.isArray(rows) && rows.length ? replyToId : null;
+}
+
+async function insertChatMessage(userId, content, replyToId = null) {
   const [insertResult] = await mysqlPool.query(
-    'INSERT INTO chat_messages (user_id, content) VALUES (?, ?)',
-    [Number(userId), content]
+    'INSERT INTO chat_messages (user_id, content, reply_to_id) VALUES (?, ?, ?)',
+    [Number(userId), content, replyToId]
   );
 
   const messageId = Number(insertResult?.insertId || 0);
-  if (!messageId) {
-    return {
-      id: null,
-      user_id: Number(userId),
-      display_name: null,
-      avatar_url: null,
-      content,
-      created_at: new Date().toISOString(),
-    };
-  }
-
-  const [rows] = await mysqlPool.query(
-    `SELECT cm.id, cm.user_id, cm.content, cm.created_at, u.name AS display_name, u.avatar_url
-     FROM chat_messages cm
-     INNER JOIN users u ON u.id = cm.user_id
-     WHERE cm.id = ?
-     LIMIT 1`,
-    [messageId]
-  );
+  const [rows] = messageId
+    ? await mysqlPool.query(`${MESSAGE_SELECT_SQL} WHERE cm.id = ? LIMIT 1`, [Number(userId), messageId])
+    : [[]];
 
   if (!Array.isArray(rows) || !rows.length) {
     return {
-      id: messageId,
+      id: messageId || null,
       user_id: Number(userId),
       display_name: null,
       avatar_url: null,
@@ -119,6 +128,23 @@ function formatIsoDate(value) {
   return parsed.toISOString();
 }
 
+function previewText(content, maxLength) {
+  const normalized = String(content || '').replace(/\s+/g, ' ').trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+function buildReplyTo(messageRow) {
+  const replyToId = Number(messageRow?.reply_to_id);
+  if (!Number.isFinite(replyToId) || replyToId <= 0 || messageRow?.reply_content == null) return null;
+  return {
+    id: replyToId,
+    userId: String(messageRow.reply_user_id || ''),
+    displayName: normalizeDisplayName(messageRow.reply_display_name),
+    content: previewText(messageRow.reply_content, REPLY_PREVIEW_LENGTH),
+  };
+}
+
 function buildMessagePayload(messageRow, fallbackUser) {
   const messageId = Number(messageRow?.id);
   return {
@@ -129,18 +155,9 @@ function buildMessagePayload(messageRow, fallbackUser) {
     avatar: messageRow?.avatar_url || fallbackUser?.avatar || null,
     content: String(messageRow?.content || ''),
     createdAt: formatIsoDate(messageRow?.created_at),
-  };
-}
-
-function buildHistoryItem(messageRow) {
-  return {
-    id: Number(messageRow.id),
-    type: 'message',
-    userId: String(messageRow.user_id),
-    displayName: normalizeDisplayName(messageRow.display_name),
-    avatar: messageRow.avatar_url || null,
-    content: String(messageRow.content || ''),
-    createdAt: formatIsoDate(messageRow.created_at),
+    replyTo: buildReplyTo(messageRow),
+    likeCount: Number(messageRow?.like_count || 0),
+    likedByMe: Boolean(Number(messageRow?.liked_by_me || 0)),
   };
 }
 
@@ -186,6 +203,7 @@ export function unregisterChatConnection(chatUser, socket) {
 
   socketsByUserId.delete(userId);
   messageTimestampsByUserId.delete(userId);
+  likeTimestampsByUserId.delete(userId);
   return true;
 }
 
@@ -245,6 +263,11 @@ export async function handleChatSocketMessage({ socket, rawData, chatUser }) {
     return;
   }
 
+  if (payloadType === 'like') {
+    await handleLike({ socket, chatUser, payload: parsedPayload });
+    return;
+  }
+
   if (payloadType !== 'message') {
     safeSend(socket, {
       type: 'error',
@@ -286,7 +309,8 @@ export async function handleChatSocketMessage({ socket, rawData, chatUser }) {
 
   let savedMessage;
   try {
-    savedMessage = await insertChatMessage(chatUser.id, content);
+    const replyToId = await resolveReplyTargetId(parsedPayload?.replyToId);
+    savedMessage = await insertChatMessage(chatUser.id, content, replyToId);
   } catch (error) {
     sendError('Mesajul nu a putut fi salvat. Incearca din nou.');
     if (error && typeof error === 'object') error.clientNotified = true;
@@ -305,6 +329,55 @@ export async function handleChatSocketMessage({ socket, rawData, chatUser }) {
   // Cine scrie în chat este în conversație, deci a citit tot ce e până acum —
   // evită notificări de "mesaje necitite" pentru participanții activi.
   markChatAsRead(chatUser.id).catch(() => {});
+}
+
+/**
+ * Like / unlike pe un mesaj. Clientul trimite starea dorita (`liked`), ca o
+ * apasare repetata sa nu inverseze de doua ori; toti primesc noul total.
+ */
+async function handleLike({ socket, chatUser, payload }) {
+  const messageId = Number(payload?.messageId);
+  if (!Number.isFinite(messageId) || messageId <= 0 || typeof payload?.liked !== 'boolean') {
+    safeSend(socket, { type: 'error', error: 'Like invalid.' });
+    return;
+  }
+
+  const limitResult = consumeRateLimitSlot(Number(chatUser.id), likeTimestampsByUserId, LIKE_RATE_LIMIT_COUNT);
+  if (!limitResult.allowed) {
+    safeSend(socket, { type: 'error', error: 'Prea multe aprecieri. Incearca din nou in cateva secunde.' });
+    return;
+  }
+
+  const [existsRows] = await mysqlPool.query('SELECT id FROM chat_messages WHERE id = ? LIMIT 1', [messageId]);
+  if (!Array.isArray(existsRows) || !existsRows.length) {
+    safeSend(socket, { type: 'error', error: 'Mesajul nu mai exista.' });
+    return;
+  }
+
+  if (payload.liked) {
+    await mysqlPool.query(
+      'INSERT IGNORE INTO chat_message_likes (message_id, user_id) VALUES (?, ?)',
+      [messageId, Number(chatUser.id)]
+    );
+  } else {
+    await mysqlPool.query(
+      'DELETE FROM chat_message_likes WHERE message_id = ? AND user_id = ?',
+      [messageId, Number(chatUser.id)]
+    );
+  }
+
+  const [countRows] = await mysqlPool.query(
+    'SELECT COUNT(*) AS like_count FROM chat_message_likes WHERE message_id = ?',
+    [messageId]
+  );
+
+  broadcastPayload({
+    type: 'likes',
+    messageId,
+    likeCount: Number(countRows?.[0]?.like_count || 0),
+    userId: String(chatUser.id),
+    liked: payload.liked,
+  });
 }
 
 function buildChatPushPreview(content) {
@@ -330,7 +403,7 @@ export async function sendChatMessagePush({ message, senderUserId }) {
   const placeholders = excludedUserIds.map(() => '?').join(', ');
 
   const [rows] = await mysqlPool.query(
-    `SELECT DISTINCT expo_push_token
+    `SELECT DISTINCT user_id, expo_push_token
      FROM user_push_tokens
      WHERE enabled = 1
        AND user_id NOT IN (${placeholders})
@@ -338,16 +411,20 @@ export async function sendChatMessagePush({ message, senderUserId }) {
     excludedUserIds
   );
 
-  const tokens = (Array.isArray(rows) ? rows : [])
-    .map((row) => row.expo_push_token)
-    .filter((token) => isExpoPushToken(token));
+  const validRows = (Array.isArray(rows) ? rows : []).filter((row) => isExpoPushToken(row.expo_push_token));
+  if (!validRows.length) return { sentCount: 0 };
 
-  if (!tokens.length) return { sentCount: 0 };
+  // Cel caruia i se raspunde afla asta direct din titlul notificarii.
+  const repliedUserId = message?.replyTo?.userId ? Number(message.replyTo.userId) : null;
+  const repliedTokens = [];
+  const otherTokens = [];
+  for (const row of validRows) {
+    if (repliedUserId && Number(row.user_id) === repliedUserId) repliedTokens.push(row.expo_push_token);
+    else otherTokens.push(row.expo_push_token);
+  }
 
   const senderName = normalizeDisplayName(message?.displayName);
-  const result = await sendPushToExpoTokens({
-    tokens,
-    title: `${senderName} · Comunitate`,
+  const common = {
     body: buildChatPushPreview(message?.content),
     data: {
       type: 'chat_message',
@@ -355,19 +432,28 @@ export async function sendChatMessagePush({ message, senderUserId }) {
       senderId: String(senderId),
     },
     channelId: 'chat',
-  });
+  };
+  const results = await Promise.all([
+    otherTokens.length
+      ? sendPushToExpoTokens({ ...common, tokens: otherTokens, title: `${senderName} · Comunitate` })
+      : { sentCount: 0, invalidTokens: [] },
+    repliedTokens.length
+      ? sendPushToExpoTokens({ ...common, tokens: repliedTokens, title: `${senderName} ți-a răspuns · Comunitate` })
+      : { sentCount: 0, invalidTokens: [] },
+  ]);
 
-  if (result.invalidTokens?.length) {
-    const invalidPlaceholders = result.invalidTokens.map(() => '?').join(', ');
+  const invalidTokens = results.flatMap((result) => result.invalidTokens || []);
+  if (invalidTokens.length) {
+    const invalidPlaceholders = invalidTokens.map(() => '?').join(', ');
     await mysqlPool.query(
       `UPDATE user_push_tokens
        SET enabled = 0, updated_at = CURRENT_TIMESTAMP
        WHERE expo_push_token IN (${invalidPlaceholders})`,
-      result.invalidTokens
+      invalidTokens
     );
   }
 
-  return { sentCount: result.sentCount };
+  return { sentCount: results.reduce((sum, result) => sum + (result.sentCount || 0), 0) };
 }
 
 /**
@@ -393,20 +479,19 @@ export async function getChatHistoryPage(params = {}) {
 
   const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
+  const viewerUserId = Number(params.viewerUserId) || 0;
   const [rows] = await mysqlPool.query(
-    `SELECT cm.id, cm.user_id, cm.content, cm.created_at, u.name AS display_name, u.avatar_url
-     FROM chat_messages cm
-     INNER JOIN users u ON u.id = cm.user_id
+    `${MESSAGE_SELECT_SQL}
      ${whereSql}
      ORDER BY cm.id DESC
      LIMIT ?`,
-    [...queryParams, limit + 1]
+    [viewerUserId, ...queryParams, limit + 1]
   );
 
   const normalizedRows = Array.isArray(rows) ? rows : [];
   const hasMore = normalizedRows.length > limit;
   const pageRows = hasMore ? normalizedRows.slice(0, limit) : normalizedRows;
-  const items = pageRows.reverse().map(buildHistoryItem);
+  const items = pageRows.reverse().map((row) => buildMessagePayload(row));
   const nextBefore = items.length ? Number(items[0].id) : null;
 
   return { items, hasMore, nextBefore };

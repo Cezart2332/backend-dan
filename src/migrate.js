@@ -115,6 +115,30 @@ export async function runMigrations() {
   try {
     await mysqlPool.query(`ALTER TABLE chat_messages MODIFY COLUMN content TEXT NOT NULL`);
   } catch {}
+  // Raspuns la un mesaj; daca originalul e sters, raspunsul ramane fara citat.
+  try {
+    await mysqlPool.query(`ALTER TABLE chat_messages ADD COLUMN reply_to_id BIGINT NULL`);
+  } catch {}
+  try {
+    await mysqlPool.query(`ALTER TABLE chat_messages ADD INDEX idx_chat_messages_reply_to (reply_to_id)`);
+  } catch {}
+  try {
+    await mysqlPool.query(
+      `ALTER TABLE chat_messages ADD CONSTRAINT fk_chat_messages_reply_to
+       FOREIGN KEY (reply_to_id) REFERENCES chat_messages(id) ON DELETE SET NULL`
+    );
+  } catch {}
+
+  await mysqlPool.query(`
+    CREATE TABLE IF NOT EXISTS chat_message_likes (
+      message_id BIGINT NOT NULL,
+      user_id BIGINT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (message_id, user_id),
+      CONSTRAINT fk_chat_message_likes_message FOREIGN KEY (message_id) REFERENCES chat_messages(id) ON DELETE CASCADE,
+      CONSTRAINT fk_chat_message_likes_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
 
   // chat user read tracking
   await mysqlPool.query(`
