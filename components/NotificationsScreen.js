@@ -17,6 +17,7 @@ import { PressableScale } from './ui';
 import { api } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { syncAppBadge } from '../utils/appBadge';
+import LinkifiedText, { openExternalLink } from './LinkifiedText';
 import { useTheme, useThemedStyles } from './ui/themeContext';
 
 const TYPE_META = {
@@ -160,7 +161,10 @@ export default function NotificationsScreen({ navigation }) {
   const handleItemPress = useCallback(
     (item) => {
       const route = ROUTE_BY_TYPE[String(item?.type || '').toLowerCase()];
-      if (!route) return;
+      if (!route) {
+        if (item?.data?.url) openExternalLink(item.data.url);
+        return;
+      }
 
       if (route === 'Webinarii') {
         const webinarId = Number(item?.data?.webinarId);
@@ -178,7 +182,9 @@ export default function NotificationsScreen({ navigation }) {
   const renderItem = useCallback(
     ({ item }) => {
       const meta = metaForType(item?.type);
-      const isActionable = Boolean(ROUTE_BY_TYPE[String(item?.type || '').toLowerCase()]);
+      const hasRoute = Boolean(ROUTE_BY_TYPE[String(item?.type || '').toLowerCase()]);
+      const linkUrl = !hasRoute && item?.data?.url ? String(item.data.url) : null;
+      const isActionable = hasRoute || Boolean(linkUrl);
 
       return (
         <PressableScale
@@ -196,13 +202,19 @@ export default function NotificationsScreen({ navigation }) {
               {!item.read ? <View style={styles.unreadDot} /> : null}
             </View>
             <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={styles.cardText}>{item.body}</Text>
+            <LinkifiedText style={styles.cardText} linkStyle={styles.inlineLink}>
+              {item.body}
+            </LinkifiedText>
             <View style={styles.cardFooter}>
               <Text style={styles.cardTime}>{formatNotificationDate(item.createdAt)}</Text>
               {isActionable ? (
                 <View style={styles.cardLinkWrap}>
-                  <Text style={styles.cardLink}>Deschide</Text>
-                  <Feather name="chevron-right" size={13} color={tc("#24384e", 'fg')} />
+                  <Text style={styles.cardLink}>{linkUrl ? 'Deschide linkul' : 'Deschide'}</Text>
+                  <Feather
+                    name={linkUrl ? 'external-link' : 'chevron-right'}
+                    size={13}
+                    color={tc("#24384e", 'fg')}
+                  />
                 </View>
               ) : null}
             </View>
@@ -377,6 +389,7 @@ const createStyles = (tc) => StyleSheet.create({
   unreadDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: tc('#3d7d5f', 'bg') },
   cardTitle: { fontSize: 15, fontWeight: '700', color: tc('#1c2b3a', 'fg'), marginBottom: 3 },
   cardText: { fontSize: 13.5, lineHeight: 19, color: tc('#41505f', 'fg') },
+  inlineLink: { color: tc('#2c5282', 'fg'), textDecorationLine: 'underline', fontWeight: '600' },
   cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',

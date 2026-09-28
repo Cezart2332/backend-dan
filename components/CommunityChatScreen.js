@@ -6,7 +6,9 @@ import {
   Image,
   Keyboard,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -15,7 +17,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
 import { PressableScale } from './ui';
@@ -23,7 +25,8 @@ import { api, buildWebSocketUrl, toAbsoluteApiUrl } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { getUser } from '../utils/userStorage';
 import { syncAppBadge } from '../utils/appBadge';
-import { hapticImpact, hapticNotify } from '../utils/haptics';
+import { hapticImpact, hapticNotify, hapticSelection } from '../utils/haptics';
+import LinkifiedText from './LinkifiedText';
 import { useTheme, useThemedStyles } from './ui/themeContext';
 
 const MAX_MESSAGE_LENGTH = 2000;
@@ -60,16 +63,33 @@ function normalizeIncomingMessage(item) {
   if (!content.length) return null;
 
   const id = Number(item?.id);
+  const replyToId = Number(item?.replyTo?.id);
   return {
     id: Number.isFinite(id) && id > 0 ? id : null,
-    localId: `${Date.now()}-${Math.random()}`,
+    localId: item?.localId || `${Date.now()}-${Math.random()}`,
     type,
     userId: String(item?.userId || ''),
     displayName: String(item?.displayName || 'Comunitate').trim() || 'Comunitate',
     avatar: toAbsoluteApiUrl(item?.avatar),
     content,
     createdAt: toIsoDate(item?.createdAt),
+    replyTo:
+      Number.isFinite(replyToId) && replyToId > 0
+        ? {
+            id: replyToId,
+            userId: String(item.replyTo.userId || ''),
+            displayName: String(item.replyTo.displayName || 'Comunitate'),
+            content: String(item.replyTo.content || ''),
+          }
+        : null,
+    likeCount: Math.max(0, Number(item?.likeCount) || 0),
+    likedByMe: Boolean(item?.likedByMe),
   };
+}
+
+function previewForReply(content) {
+  const normalized = String(content || '').replace(/\s+/g, ' ').trim();
+  return normalized.length > 200 ? `${normalized.slice(0, 199).trimEnd()}…` : normalized;
 }
 
 function mergeMessages(first, second) {
@@ -189,7 +209,14 @@ export default function CommunityChatScreen({ navigation }) {
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [onlineCount, setOnlineCount] = useState(null);
   const [pending, setPending] = useState([]);
+  const [replyTarget, setReplyTarget] = useState(null);
+  const [actionMessage, setActionMessage] = useState(null);
+  const [highlightedId, setHighlightedId] = useState(null);
 
+  const currentUserIdRef = useRef('');
+  const inputRef = useRef(null);
+  const lastTapRef = useRef({ id: null, at: 0 });
+  const highlightTimerRef = useRef(null);
   const pendingTimersRef = useRef(new Map());
   const wsRef = useRef(null);
   const listRef = useRef(null);
@@ -205,7 +232,9 @@ export default function CommunityChatScreen({ navigation }) {
     getUser()
       .then((user) => {
         if (!mounted) return;
-        setCurrentUserId(user?.id ? String(user.id) : '');
+        const id = user?.id ? String(user.id) : '';
+        currentUserIdRef.current = id;
+        setCurrentUserId(id);
       })
       .catch(() => {
         if (mounted) setCurrentUserId('');
@@ -334,6 +363,24 @@ export default function CommunityChatScreen({ navigation }) {
       if (payloadType === 'presence') {
         const online = Number(payload?.online);
         setOnlineCount(Number.isFinite(online) && online >= 0 ? online : null);
+        return;
+      }
+
+      // Serverul trimite totalul exact; „likedByMe” se schimbă doar pentru cine a apăsat.
+      if (payloadType === 'likes') {
+        const messageId = Number(payload?.messageId);
+        const isMine = String(payload?.userId || '') === currentUserIdRef.current;
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.id === messageId
+              ? {
+                  ...message,
+                  likeCount: Math.max(0, Number(payload?.likeCount) || 0),
+                  ...(isMine ? { likedByMe: Boolean(payload?.liked) } : {}),
+                }
+              : message
+          )
+        );
         return;
       }
 
@@ -483,6 +530,9 @@ export default function CommunityChatScreen({ navigation }) {
       userId: currentUserId,
       content: item.content,
       createdAt: item.createdAt,
+      replyTo: item.replyTo || null,
+      likeCount: 0,
+      likedByMe: false,
     }));
     return buildListItems([...messages, ...pendingMessages]);
   }, [messages, pending, currentUserId]);
@@ -549,8 +599,9 @@ export default function CommunityChatScreen({ navigation }) {
     }
 
     const clientId = createClientId();
+    const replyTo = replyTarget;
     try {
-      ws.send(JSON.stringify({ type: 'message', content, clientId }));
+      ws.send(JSON.stringify({ type: 'message', content, clientId, replyToId: replyTo?.id || null }));
     } catch {
       Alert.alert('Eroare', 'Nu am putut trimite mesajul.');
       return;
@@ -560,13 +611,14 @@ export default function CommunityChatScreen({ navigation }) {
     // cu același clientId, altfel devine „netrimis” și poate fi reîncercat.
     setPending((prev) => [
       ...prev,
-      { clientId, content, createdAt: new Date().toISOString(), status: 'sending' },
+      { clientId, content, replyTo, createdAt: new Date().toISOString(), status: 'sending' },
     ]);
     startPendingTimer(clientId);
     shouldAutoScrollRef.current = true;
     setDraft('');
+    setReplyTarget(null);
     hapticImpact('light');
-  }, [draft, startPendingTimer]);
+  }, [draft, replyTarget, startPendingTimer]);
 
   const retryPending = useCallback((item) => {
     const ws = wsRef.current;
@@ -576,7 +628,14 @@ export default function CommunityChatScreen({ navigation }) {
     }
 
     try {
-      ws.send(JSON.stringify({ type: 'message', content: item.content, clientId: item.clientId }));
+      ws.send(
+        JSON.stringify({
+          type: 'message',
+          content: item.content,
+          clientId: item.clientId,
+          replyToId: item.replyTo?.id || null,
+        })
+      );
     } catch {
       Alert.alert('Eroare', 'Nu am putut trimite mesajul.');
       return;
@@ -596,6 +655,78 @@ export default function CommunityChatScreen({ navigation }) {
       { text: 'Reîncearcă', onPress: () => retryPending(item) },
     ]);
   }, [resolvePending, retryPending]);
+
+  const toggleLike = useCallback((message) => {
+    if (!message?.id) return;
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== 1) {
+      setSocketError('Chatul se reconectează. Încearcă din nou în câteva secunde.');
+      return;
+    }
+
+    const liked = !message.likedByMe;
+    try {
+      ws.send(JSON.stringify({ type: 'like', messageId: message.id, liked }));
+    } catch {
+      return;
+    }
+    // Răspuns instant; totalul exact vine de la server imediat după.
+    setMessages((prev) =>
+      prev.map((entry) =>
+        entry.id === message.id
+          ? { ...entry, likedByMe: liked, likeCount: Math.max(0, entry.likeCount + (liked ? 1 : -1)) }
+          : entry
+      )
+    );
+    hapticImpact(liked ? 'medium' : 'light');
+  }, []);
+
+  const startReply = useCallback((message) => {
+    if (!message?.id) return;
+    setReplyTarget({
+      id: message.id,
+      userId: message.userId,
+      displayName: message.displayName,
+      content: previewForReply(message.content),
+    });
+    hapticSelection();
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }, []);
+
+  const openMessageActions = useCallback((message) => {
+    if (!message?.id) return;
+    hapticImpact('medium');
+    setActionMessage(message);
+  }, []);
+
+  // Dublu-tap pe un mesaj = like, ca în aplicațiile de mesagerie.
+  const handleMessagePress = useCallback((message) => {
+    if (!message?.id) return;
+    const now = Date.now();
+    const last = lastTapRef.current;
+    if (last.id === message.id && now - last.at < 300) {
+      lastTapRef.current = { id: null, at: 0 };
+      toggleLike(message);
+      return;
+    }
+    lastTapRef.current = { id: message.id, at: now };
+  }, [toggleLike]);
+
+  const jumpToMessage = useCallback((messageId) => {
+    const index = listItems.findIndex((row) => row.kind === 'message' && row.message.id === messageId);
+    if (index < 0) {
+      setSocketError('Mesajul citat e mai vechi — apasă „Mesaje anterioare” ca să-l încarci.');
+      return;
+    }
+    listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.4 });
+    setHighlightedId(messageId);
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    highlightTimerRef.current = setTimeout(() => setHighlightedId(null), 1600);
+  }, [listItems]);
+
+  useEffect(() => () => {
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+  }, []);
 
   const connectionLabel = useMemo(() => {
     if (socketStatus === 'connected') {
@@ -634,6 +765,57 @@ export default function CommunityChatScreen({ navigation }) {
 
       const isMine =
         item.pending || (currentUserId && String(item.userId || '') === String(currentUserId));
+      const isHighlighted = Boolean(item.id) && item.id === highlightedId;
+      const isInteractive = !item.pending && Boolean(item.id);
+
+      const quote = item.replyTo ? (
+        <Pressable
+          onPress={() => jumpToMessage(item.replyTo.id)}
+          style={[styles.quote, isMine ? styles.quoteMine : styles.quoteOther]}
+          accessibilityRole="button"
+          accessibilityLabel={`Răspuns la mesajul lui ${item.replyTo.displayName}. Atinge ca să mergi la el.`}
+        >
+          <Text style={[styles.quoteName, isMine && styles.quoteNameMine]} numberOfLines={1}>
+            {String(item.replyTo.userId) === String(currentUserId) ? 'Tu' : item.replyTo.displayName}
+          </Text>
+          <Text style={[styles.quoteText, isMine && styles.quoteTextMine]} numberOfLines={2}>
+            {item.replyTo.content}
+          </Text>
+        </Pressable>
+      ) : null;
+
+      const likePill = item.likeCount > 0 ? (
+        <Pressable
+          onPress={() => toggleLike(item)}
+          hitSlop={8}
+          style={[styles.likePill, item.likedByMe && styles.likePillActive]}
+          accessibilityRole="button"
+          accessibilityLabel={`${item.likeCount} ${item.likeCount === 1 ? 'apreciere' : 'aprecieri'}${
+            item.likedByMe ? ', inclusiv a ta. Atinge ca s-o retragi.' : '. Atinge ca să apreciezi.'
+          }`}
+        >
+          <Ionicons
+            name={item.likedByMe ? 'heart' : 'heart-outline'}
+            size={12}
+            color={item.likedByMe ? tc('#a8544c', 'fg') : tc('#8a97a5', 'fg')}
+          />
+          <Text style={[styles.likeCount, item.likedByMe && styles.likeCountActive]}>{item.likeCount}</Text>
+        </Pressable>
+      ) : null;
+
+      const withGestures = (bubble) =>
+        isInteractive ? (
+          <Pressable
+            onPress={() => handleMessagePress(item)}
+            onLongPress={() => openMessageActions(item)}
+            delayLongPress={320}
+            accessibilityHint="Atinge de două ori pentru apreciere, ține apăsat pentru a răspunde"
+          >
+            {bubble}
+          </Pressable>
+        ) : (
+          bubble
+        );
 
       if (isMine) {
         const isFailed = item.pending && item.status === 'failed';
@@ -645,9 +827,13 @@ export default function CommunityChatScreen({ navigation }) {
               isLastInGroup && styles.mineBubbleTail,
               isSending && styles.mineBubbleSending,
               isFailed && styles.mineBubbleFailed,
+              isHighlighted && styles.bubbleHighlighted,
             ]}
           >
-            <Text style={styles.mineText}>{item.content}</Text>
+            {quote}
+            <LinkifiedText style={styles.mineText} linkStyle={styles.mineLink}>
+              {item.content}
+            </LinkifiedText>
           </View>
         );
 
@@ -658,7 +844,7 @@ export default function CommunityChatScreen({ navigation }) {
                 {bubble}
               </PressableScale>
             ) : (
-              bubble
+              withGestures(bubble)
             )}
             {isFailed ? (
               <View style={styles.mineStatusRow}>
@@ -670,8 +856,11 @@ export default function CommunityChatScreen({ navigation }) {
                 <Feather name="clock" size={10} color={tc("#9aa5b1", 'fg')} />
                 <Text style={styles.mineStatusText}>Se trimite…</Text>
               </View>
-            ) : isLastInGroup ? (
-              <Text style={styles.mineTime}>{formatMessageTime(item.createdAt)}</Text>
+            ) : likePill || isLastInGroup ? (
+              <View style={styles.mineMetaRow}>
+                {likePill}
+                {isLastInGroup ? <Text style={styles.mineTime}>{formatMessageTime(item.createdAt)}</Text> : null}
+              </View>
             ) : null}
           </View>
         );
@@ -695,14 +884,36 @@ export default function CommunityChatScreen({ navigation }) {
                 <Text style={styles.otherTime}>  {formatMessageTime(item.createdAt)}</Text>
               </Text>
             ) : null}
-            <View style={[styles.otherBubble, isFirstInGroup && styles.otherBubbleTail]}>
-              <Text style={styles.otherText}>{item.content}</Text>
-            </View>
+            {withGestures(
+              <View
+                style={[
+                  styles.otherBubble,
+                  isFirstInGroup && styles.otherBubbleTail,
+                  isHighlighted && styles.bubbleHighlighted,
+                ]}
+              >
+                {quote}
+                <LinkifiedText style={styles.otherText} linkStyle={styles.otherLink}>
+                  {item.content}
+                </LinkifiedText>
+              </View>
+            )}
+            {likePill ? <View style={styles.otherMetaRow}>{likePill}</View> : null}
           </View>
         </View>
       );
     },
-    [currentUserId, handleFailedPress, styles, tc]
+    [
+      currentUserId,
+      handleFailedPress,
+      handleMessagePress,
+      highlightedId,
+      jumpToMessage,
+      openMessageActions,
+      styles,
+      tc,
+      toggleLike,
+    ]
   );
 
   return (
@@ -784,6 +995,13 @@ export default function CommunityChatScreen({ navigation }) {
               data={listItems}
               keyExtractor={(item) => item.key}
               renderItem={renderMessageItem}
+              onScrollToIndexFailed={({ index, averageItemLength }) => {
+                // Rândul nu e încă măsurat: aproximăm poziția, apoi reîncercăm precis.
+                listRef.current?.scrollToOffset({ offset: index * averageItemLength, animated: true });
+                setTimeout(() => {
+                  listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.4 });
+                }, 250);
+              }}
               contentContainerStyle={styles.listContent}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
@@ -838,8 +1056,30 @@ export default function CommunityChatScreen({ navigation }) {
                 },
               ]}
             >
+              {replyTarget ? (
+                <View style={styles.replyBar}>
+                  <Feather name="corner-up-left" size={15} color={tc('#b3924f', 'fg')} />
+                  <View style={styles.replyBarText}>
+                    <Text style={styles.replyBarName} numberOfLines={1}>
+                      Răspunzi {String(replyTarget.userId) === String(currentUserId) ? 'mesajului tău' : `lui ${replyTarget.displayName}`}
+                    </Text>
+                    <Text style={styles.replyBarPreview} numberOfLines={1}>
+                      {replyTarget.content}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={() => setReplyTarget(null)}
+                    hitSlop={10}
+                    accessibilityRole="button"
+                    accessibilityLabel="Anulează răspunsul"
+                  >
+                    <Feather name="x" size={17} color={tc('#8a97a5', 'fg')} />
+                  </Pressable>
+                </View>
+              ) : null}
               <View style={styles.composerPill}>
                 <TextInput
+                  ref={inputRef}
                   style={styles.input}
                   placeholder="Scrie un mesaj..."
                   placeholderTextColor={tc("#8a97a5", 'fg')}
@@ -868,6 +1108,67 @@ export default function CommunityChatScreen({ navigation }) {
           </KeyboardAvoidingView>
         )}
       </LinearGradient>
+
+      {/* ── Acțiuni pe mesaj (apăsare lungă) ── */}
+      <Modal
+        visible={Boolean(actionMessage)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActionMessage(null)}
+      >
+        <Pressable style={styles.sheetOverlay} onPress={() => setActionMessage(null)}>
+          <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
+            {actionMessage ? (
+              <>
+                <View style={styles.sheetPreview}>
+                  <Text style={styles.sheetPreviewName} numberOfLines={1}>
+                    {String(actionMessage.userId) === String(currentUserId) ? 'Tu' : actionMessage.displayName}
+                  </Text>
+                  <Text style={styles.sheetPreviewText} numberOfLines={3}>
+                    {actionMessage.content}
+                  </Text>
+                </View>
+                <Pressable
+                  style={styles.sheetAction}
+                  onPress={() => {
+                    toggleLike(actionMessage);
+                    setActionMessage(null);
+                  }}
+                  accessibilityRole="button"
+                >
+                  <Ionicons
+                    name={actionMessage.likedByMe ? 'heart-dislike-outline' : 'heart-outline'}
+                    size={20}
+                    color={tc('#a8544c', 'fg')}
+                  />
+                  <Text style={styles.sheetActionText}>
+                    {actionMessage.likedByMe ? 'Retrage aprecierea' : 'Apreciază'}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={styles.sheetAction}
+                  onPress={() => {
+                    const message = actionMessage;
+                    setActionMessage(null);
+                    startReply(message);
+                  }}
+                  accessibilityRole="button"
+                >
+                  <Feather name="corner-up-left" size={19} color={tc('#24384e', 'fg')} />
+                  <Text style={styles.sheetActionText}>Răspunde</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.sheetAction, styles.sheetCancel]}
+                  onPress={() => setActionMessage(null)}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.sheetCancelText}>Anulează</Text>
+                </Pressable>
+              </>
+            ) : null}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1035,7 +1336,47 @@ const createStyles = (tc) => StyleSheet.create({
     backgroundColor: tc('rgba(168,84,76,0.9)', 'bg'),
   },
   mineText: { color: tc('#f6f7f8', 'fg'), fontSize: 14.5, lineHeight: 20 },
+  mineLink: { color: tc('#e3cf9f', 'fg'), textDecorationLine: 'underline', fontWeight: '600' },
   mineTime: { color: tc('#9aa5b1', 'fg'), fontSize: 10, marginTop: 4, marginRight: 4 },
+  mineMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  otherMetaRow: { flexDirection: 'row', marginTop: 4, marginLeft: 4 },
+
+  // Citat (răspuns la un mesaj)
+  quote: {
+    borderLeftWidth: 3,
+    borderLeftColor: tc('#b3924f', 'bg'),
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 9,
+    marginBottom: 7,
+  },
+  quoteMine: { backgroundColor: tc('rgba(255,255,255,0.12)', 'bg') },
+  quoteOther: { backgroundColor: tc('rgba(32,47,62,0.06)', 'bg') },
+  quoteName: { fontSize: 12, fontWeight: '700', color: tc('#24384e', 'fg'), marginBottom: 1 },
+  quoteNameMine: { color: tc('#e3cf9f', 'fg') },
+  quoteText: { fontSize: 12.5, lineHeight: 17, color: tc('#5b6a7a', 'fg') },
+  quoteTextMine: { color: tc('rgba(246,247,248,0.78)', 'fg') },
+  bubbleHighlighted: { borderWidth: 2, borderColor: tc('#b3924f', 'bg') },
+
+  // Aprecieri
+  likePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: tc('rgba(255,255,255,0.75)', 'bg'),
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: tc('rgba(32,47,62,0.18)', 'bg'),
+  },
+  likePillActive: {
+    backgroundColor: tc('rgba(168,84,76,0.1)', 'bg'),
+    borderColor: tc('rgba(168,84,76,0.35)', 'bg'),
+  },
+  likeCount: { fontSize: 11, fontWeight: '700', color: tc('#8a97a5', 'fg') },
+  likeCountActive: { color: tc('#a8544c', 'fg') },
   mineStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, marginRight: 4 },
   mineStatusText: { color: tc('#9aa5b1', 'fg'), fontSize: 10 },
   failedText: { color: tc('#a8544c', 'fg'), fontSize: 10.5, fontWeight: '600' },
@@ -1088,6 +1429,7 @@ const createStyles = (tc) => StyleSheet.create({
     paddingVertical: 10,
   },
   otherText: { color: tc('#1c2b3a', 'fg'), fontSize: 14.5, lineHeight: 20 },
+  otherLink: { color: tc('#2c5282', 'fg'), textDecorationLine: 'underline', fontWeight: '600' },
 
   // Composer
   composerWrap: {
@@ -1131,6 +1473,57 @@ const createStyles = (tc) => StyleSheet.create({
     marginLeft: 6,
   },
   sendBtnIdle: { opacity: 0.45 },
+
+  // Bara „Răspunzi lui …” de deasupra compozitorului
+  replyBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: tc('#b3924f', 'bg'),
+    backgroundColor: tc('rgba(255,255,255,0.7)', 'bg'),
+  },
+  replyBarText: { flex: 1 },
+  replyBarName: { fontSize: 12, fontWeight: '700', color: tc('#24384e', 'fg') },
+  replyBarPreview: { fontSize: 12.5, color: tc('#5b6a7a', 'fg'), marginTop: 1 },
+
+  // Meniul de acțiuni pe mesaj
+  sheetOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(10, 20, 30, 0.45)',
+  },
+  sheet: {
+    backgroundColor: tc('#f6f7f8', 'bg'),
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 18,
+    paddingHorizontal: 16,
+  },
+  sheetPreview: {
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
+    backgroundColor: tc('rgba(32,47,62,0.05)', 'bg'),
+  },
+  sheetPreviewName: { fontSize: 12, fontWeight: '700', color: tc('#8a97a5', 'fg'), marginBottom: 3 },
+  sheetPreviewText: { fontSize: 14, lineHeight: 20, color: tc('#1c2b3a', 'fg') },
+  sheetAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: tc('rgba(32,47,62,0.12)', 'bg'),
+  },
+  sheetActionText: { fontSize: 15.5, fontWeight: '600', color: tc('#1c2b3a', 'fg') },
+  sheetCancel: { justifyContent: 'center', borderBottomWidth: 0 },
+  sheetCancelText: { fontSize: 15, fontWeight: '600', color: tc('#8a97a5', 'fg'), textAlign: 'center', flex: 1 },
   scrollDownBtn: {
     position: 'absolute',
     bottom: 92,
