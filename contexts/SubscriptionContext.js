@@ -108,7 +108,8 @@ export function SubscriptionProvider({ children, isAuthed }) {
       nextStatus: getRevenueCatSubscriptionStatus(info), hasEntitlement,
       ownershipMismatch: hasEntitlement && Boolean(originalAppUserId) && originalAppUserId !== owner,
       expectedAppUserId: owner, originalAppUserId,
-      subscription: hasEntitlement ? { type: 'pro', product_id: entitlement?.productIdentifier || null,
+      subscription: hasEntitlement ? { type: entitlement?.periodType === 'TRIAL' ? 'trial' : 'pro', product_id: entitlement?.productIdentifier || null,
+        period_type: entitlement?.periodType || 'NORMAL',
         starts_at: entitlement?.latestPurchaseDate || null, ends_at: entitlement?.expirationDate || null,
         store: entitlement?.store || null, will_renew: entitlement?.willRenew } : null,
     };
@@ -118,6 +119,7 @@ export function SubscriptionProvider({ children, isAuthed }) {
     const sub = result.subscription;
     // Server synchronization does not hold the dashboard or the billing UI open.
     api.syncRevenueCatSubscription({ status: result.nextStatus, productId: sub?.product_id || null,
+      periodType: sub?.period_type || 'NORMAL',
       startsAt: sub?.starts_at || null, endsAt: sub?.ends_at || null, store: sub?.store || null,
       willRenew: typeof sub?.will_renew === 'boolean' ? sub.will_renew : null,
       entitlementId: PRO_ENTITLEMENT_ID, appUserId: result.expectedAppUserId }, token).catch(() => {});

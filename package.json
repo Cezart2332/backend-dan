@@ -3,6 +3,7 @@
   "version": "2.5.0",
   "main": "index.js",
   "scripts": {
+    "test:panel-activity": "node --test tests/panel-activity.test.mjs",
     "test:wellbeing": "node --test tests/wellbeing.test.mjs",
     "start": "expo start",
     "android": "expo start --android",

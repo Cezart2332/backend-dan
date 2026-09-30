@@ -24,6 +24,7 @@ import { useTheme, useThemedStyles } from "./ui/themeContext";
 import { AppButton } from './ui';
 import { getUser } from '../utils/userStorage';
 import { wellbeingRepository, stopWellbeingAccount } from '../utils/wellbeingRuntime';
+import { removePanelActivity } from '../utils/panelActivity';
 import { deleteAudioActivity } from '../utils/audioActivity';
 
 const THEME_OPTIONS = [
@@ -97,6 +98,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
         await stopWellbeingAccount();
         if (user?.id) await wellbeingRepository.remove(String(user.id));
         if (user?.id) await deleteAudioActivity(user.id);
+        if (user?.id) await removePanelActivity(user.id);
         // Clear all local storage
         await signOutCleanup();
         hapticNotify("success");

@@ -62,6 +62,7 @@ async function request(path, { method = 'GET', body, token, timeoutMs = 15000 } 
 }
 
 export const api = {
+  savePanelActivity: (kind,payload,token) => request(`/api/activity/${kind}`, { method:'POST',body:payload,token }),
   saveAudioActivity: (payload, token) => request('/api/activity/audio', { method: 'POST', body: payload, token }),
   getActivityStats: (token) => request('/api/activity/stats', { token }),
   getSocialProfile: (id, token) => request(`/api/social/profiles/${encodeURIComponent(id)}`, { token }),

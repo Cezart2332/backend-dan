@@ -20,6 +20,7 @@ import { WellbeingProvider } from "./contexts/WellbeingContext";
 import { getUser } from "./utils/userStorage";
 import { stopWellbeingAccount } from "./utils/wellbeingRuntime";
 import { startAudioSync } from "./utils/audioActivity";
+import { startPanelActivity } from './utils/panelActivity';
 import OnboardingQuestionsScreen from "./components/OnboardingQuestionsScreen";
 import QuoteOfTheDayScreen from "./components/QuoteOfTheDayScreen";
 import TehniciScreen from "./components/TehniciScreen";
@@ -124,6 +125,7 @@ function AppContent() {
   const [booting, setBooting] = useState(true);
   const [isAuthed, setIsAuthed] = useState(false);
   useEffect(() => { if (isAuthed) return startAudioSync(); }, [isAuthed]);
+  useEffect(() => { if (isAuthed) return startPanelActivity(); }, [isAuthed]);
   const navigationRef = useRef(null);
   const [currentRoute, setCurrentRoute] = useState(null);
   const isAuthedRef = useRef(false);

@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import * as Crypto from 'expo-crypto';
+import { activityIdentity, queuePanelActivity } from '../utils/panelActivity';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Keyboard,
   Platform,
 } from 'react-native';
@@ -19,11 +21,21 @@ export default function ChallengeRunScreen({ route, navigation }) {
   const [finished, setFinished] = useState(false);
   const [difficulty, setDifficulty] = useState(null);
   const [notes, setNotes] = useState('');
+  const attempt = useRef(null);
 
   const diffScale = [1,2,3,4,5];
 
-  const handleStart = () => setStarted(true);
-  const handleFinish = () => setFinished(true);
+  const handleStart = () => {
+    setStarted(true);
+    const value = { clientId:Crypto.randomUUID(),challengeId:String(challenge?.id || ''),startedAt:new Date().toISOString() };
+    attempt.current = { value,identity:activityIdentity() };
+    attempt.current.identity.then(identity => queuePanelActivity(identity,'challenge',value)).catch(() => {});
+  };
+  const handleFinish = () => {
+    setFinished(true);
+    const current = attempt.current;
+    if (current) current.identity.then(identity => queuePanelActivity(identity,'challenge',{...current.value,completedAt:new Date().toISOString()})).catch(() => {});
+  };
   const canSubmit = finished && difficulty !== null;
 
   const handleSubmit = async () => {
