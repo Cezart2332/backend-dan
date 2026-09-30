@@ -26,6 +26,7 @@ import { registerAdminCmsRoutes } from "./routes-admin-cms.js";
 import { registerCmsRoutes } from "./routes-cms.js";
 import { registerProfileRoutes } from "./routes-profile.js";
 import { registerSocialRoutes } from "./social.js";
+import { registerAnalyticsRoutes } from './analytics.js';
 
 const logLevel = process.env.LOG_LEVEL || "info";
 const app = Fastify({ logger: { level: logLevel }, bodyLimit: 5 * 1024 * 1024 }); // 5MB max body
@@ -200,6 +201,7 @@ app.route({
 await registerAuthRoutes(app);
 await registerProfileRoutes(app);
 await registerSocialRoutes(app, { pool: mysqlPool, jwtSecret: process.env.JWT_SECRET || process.env.CORE_JWT_SECRET });
+await registerAnalyticsRoutes(app, { pool: mysqlPool, jwtSecret: process.env.JWT_SECRET || process.env.CORE_JWT_SECRET, adminAuth });
 await registerProgressRoutes(app);
 await registerWellbeingRoutes(app, { pool: mysqlPool, jwtSecret: process.env.JWT_SECRET || process.env.CORE_JWT_SECRET, adminAuth });
 await registerQuestionRoutes(app);

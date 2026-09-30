@@ -371,6 +371,8 @@ export async function registerAuthRoutes(app) {
       await deleteByUserId("progress_entries");
       await deleteByUserId("wellbeing_checkins");
       await deleteByUserId("wellbeing_sessions");
+      await deleteByUserId("app_activity_days");
+      await deleteByUserId("challenge_attempts");
       await deleteByUserId("meetings");
       await deleteByUserId("subscriptions");
       await deleteByUserId("bug_reports");

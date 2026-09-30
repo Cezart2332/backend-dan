@@ -231,7 +231,8 @@ export const effectiveDbConfig = {
   keepAliveInitialDelay: _resolvedOptions.keepAliveInitialDelay,
 };
 
-export const mysqlPool = mysql.createPool(_resolvedOptions);
+export const mysqlPool = mysql.createPool({ ..._resolvedOptions, timezone:'Z' });
+mysqlPool.on('connection', connection => { connection.query("SET time_zone = '+00:00'"); });
 
 // Lightweight query helper
 export async function query(sql, params = [], options = {}) {

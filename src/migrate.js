@@ -1,6 +1,7 @@
 import { mysqlPool } from "./mysql.js";
 import { migrateWellbeing } from "./wellbeing.js";
 import { migrateSocial } from "./social.js";
+import { migrateAnalytics } from "./revenue-ledger.js";
 
 export async function runMigrations() {
   // Ensure tables
@@ -498,6 +499,8 @@ export async function runMigrations() {
       CONSTRAINT fk_user_notification_prefs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
+
+  await migrateAnalytics(mysqlPool);
 
   // Cartile PDF cadou: un singur rand per cont, ca fiecare sa le primeasca o data.
   await mysqlPool.query(`

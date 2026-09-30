@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { mysqlPool } from "./mysql.js";
+import { productPlan, recordRevenueEvent } from "./revenue-ledger.js";
 import {
   BOOK_SUBSCRIPTION_TYPES,
   deliverBooksForNewSubscription,
@@ -18,10 +19,17 @@ const KNOWN_PRODUCT_ALIASES = {
   vip: ["dan_vip", "vip"],
 };
 
-const PRO_ENTITLEMENT_ID = process.env.REVENUECAT_ENTITLEMENT_ID || "Dan Fost Anxios Pro";
+const PRO_ENTITLEMENT_ID =
+  process.env.REVENUECAT_ENTITLEMENT_ID || "Dan Fost Anxios Pro";
 const REVENUECAT_SECRET_API_KEY = process.env.REVENUECAT_SECRET_API_KEY || "";
-const REVENUECAT_CURRENT_CACHE_TTL_MS = Math.max(0, Number(process.env.REVENUECAT_CURRENT_CACHE_TTL_MS || 30000));
-const REVENUECAT_CACHE_MAX_ENTRIES = Math.max(100, Number(process.env.REVENUECAT_CACHE_MAX_ENTRIES || 5000));
+const REVENUECAT_CURRENT_CACHE_TTL_MS = Math.max(
+  0,
+  Number(process.env.REVENUECAT_CURRENT_CACHE_TTL_MS || 30000),
+);
+const REVENUECAT_CACHE_MAX_ENTRIES = Math.max(
+  100,
+  Number(process.env.REVENUECAT_CACHE_MAX_ENTRIES || 5000),
+);
 
 const revenueCatSubscriberCache = new Map();
 
@@ -56,18 +64,24 @@ function requireAuth(request) {
 }
 
 async function getUserById(userId) {
-  const [rows] = await mysqlPool.query(`SELECT id, email FROM users WHERE id = ? LIMIT 1`, [userId]);
+  const [rows] = await mysqlPool.query(
+    `SELECT id, email FROM users WHERE id = ? LIMIT 1`,
+    [userId],
+  );
   return Array.isArray(rows) && rows.length ? rows[0] : null;
 }
 
 function normalizeProductType(productId) {
-  const normalized = String(productId || "").toLowerCase().trim();
+  const normalized = String(productId || "")
+    .toLowerCase()
+    .trim();
   if (!normalized) return "premium";
   if (KNOWN_PRODUCT_ALIASES.basic.includes(normalized)) return "basic";
   if (KNOWN_PRODUCT_ALIASES.vip.includes(normalized)) return "vip";
   if (KNOWN_PRODUCT_ALIASES.premium.includes(normalized)) return "premium";
   if (normalized.includes("basic")) return "basic";
   if (normalized.includes("vip")) return "vip";
+  if (productPlan(productId) === "pro") return "pro";
   return "premium";
 }
 
@@ -158,13 +172,16 @@ async function fetchRevenueCatSubscriber(appUserId) {
   const safeUserId = encodeURIComponent(String(appUserId || "").trim());
   if (!safeUserId) return null;
 
-  const response = await fetch(`https://api.revenuecat.com/v1/subscribers/${safeUserId}`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${REVENUECAT_SECRET_API_KEY}`,
-      "Content-Type": "application/json",
+  const response = await fetch(
+    `https://api.revenuecat.com/v1/subscribers/${safeUserId}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${REVENUECAT_SECRET_API_KEY}`,
+        "Content-Type": "application/json",
+      },
     },
-  });
+  );
 
   if (response.status === 404) return null;
   if (!response.ok) {
@@ -255,7 +272,7 @@ async function getLatestSubscriptionRow(userId) {
      WHERE user_id = ?
      ORDER BY starts_at DESC, id DESC
      LIMIT 1`,
-    [userId]
+    [userId],
   );
   return Array.isArray(rows) && rows.length ? rows[0] : null;
 }
@@ -280,7 +297,7 @@ async function getActiveTrialRow(userId) {
        AND (ends_at IS NULL OR ends_at > NOW())
      ORDER BY starts_at DESC, id DESC
      LIMIT 1`,
-    [userId]
+    [userId],
   );
   return Array.isArray(rows) && rows.length ? rows[0] : null;
 }
@@ -305,65 +322,128 @@ async function getActivePaidRow(userId) {
        AND (ends_at IS NULL OR ends_at > NOW())
      ORDER BY starts_at DESC, id DESC
      LIMIT 1`,
-    [userId]
+    [userId],
   );
   return Array.isArray(rows) && rows.length ? rows[0] : null;
 }
 
-async function closeActiveTrialRows(userId) {
-  await mysqlPool.query(
+async function closeActiveTrialRows(userId, db = mysqlPool) {
+  await db.query(
     `UPDATE subscriptions
      SET ends_at = NOW()
      WHERE user_id = ?
        AND type = 'trial'
        AND (ends_at IS NULL OR ends_at > NOW())`,
-    [userId]
+    [userId],
   );
 }
 
 async function getTrialEligible(userId) {
   const [rows] = await mysqlPool.query(
     `SELECT id FROM subscriptions WHERE user_id = ? AND type IN ('trial','basic','premium','vip','pro') LIMIT 1`,
-    [userId]
+    [userId],
   );
   return !Array.isArray(rows) || rows.length === 0;
 }
 
-async function persistRevenueCatSnapshot({
-  userId,
-  appUserId,
-  entitlementId,
-  productId,
-  status,
-  startsAt,
-  endsAt,
-  store,
-  willRenew,
-  eventType,
-}) {
-  const nextStatus = ["active", "expired", "none"].includes(status) ? status : "none";
+async function persistRevenueCatSnapshot(options) {
+  const db = await mysqlPool.getConnection();
+  let sendBooks = false;
+  try {
+    await db.beginTransaction();
+    const [users] = await db.query(
+      "SELECT id FROM users WHERE id=? FOR UPDATE",
+      [options.userId],
+    );
+    if (!users.length) {
+      await db.commit();
+      return;
+    }
+    if (options.eventId) {
+      const [events] = await db.query(
+        "SELECT snapshot_applied FROM revenue_events WHERE event_id=? FOR UPDATE",
+        [options.eventId],
+      );
+      if (events[0]?.snapshot_applied) {
+        await db.commit();
+        return;
+      }
+      const [[latest]] = await db.query(
+        "SELECT MAX(occurred_at) AS latest FROM revenue_events WHERE user_id=? AND environment='PRODUCTION' AND event_type IN ('INITIAL_PURCHASE','RENEWAL','NON_RENEWING_PURCHASE','PRODUCT_CHANGE','UNCANCELLATION','CANCELLATION','EXPIRATION','BILLING_ISSUE','SUBSCRIPTION_EXTENDED','SUBSCRIPTION_PAUSED','REFUND')",
+        [options.userId],
+      );
+      if (
+        latest.latest &&
+        +new Date(latest.latest) > +options.eventOccurredAt
+      ) {
+        await db.query(
+          "UPDATE revenue_events SET snapshot_applied=1 WHERE event_id=?",
+          [options.eventId],
+        );
+        await db.commit();
+        return;
+      }
+    }
+    sendBooks = await persistRevenueCatSnapshotData(options, db);
+    if (options.eventId)
+      await db.query(
+        "UPDATE revenue_events SET snapshot_applied=1 WHERE event_id=?",
+        [options.eventId],
+      );
+    await db.commit();
+  } catch (error) {
+    await db.rollback();
+    throw error;
+  } finally {
+    db.release();
+  }
+  if (sendBooks) deliverBooksForNewSubscription(options.userId);
+}
+
+async function persistRevenueCatSnapshotData(
+  {
+    userId,
+    appUserId,
+    entitlementId,
+    productId,
+    status,
+    startsAt,
+    endsAt,
+    store,
+    willRenew,
+    eventType,
+    periodType = "NORMAL",
+  },
+  db,
+) {
+  const nextStatus = ["active", "expired", "none"].includes(status)
+    ? status
+    : "none";
   const normalizedProductId = productId ? String(productId).trim() : null;
-  const normalizedType = normalizedProductId ? normalizeProductType(normalizedProductId) : "premium";
+  const normalizedType =
+    periodType === "TRIAL"
+      ? "trial"
+      : normalizedProductId
+        ? normalizeProductType(normalizedProductId)
+        : "premium";
 
   const startDate = parseNullableDate(startsAt) || new Date();
   const parsedEndsAt = parseNullableDate(endsAt);
   const endDate =
-    nextStatus === "active"
-      ? parsedEndsAt
-      : parsedEndsAt || new Date();
+    nextStatus === "active" ? parsedEndsAt : parsedEndsAt || new Date();
 
   if (nextStatus !== "active") {
-    await mysqlPool.query(
+    await db.query(
       `UPDATE subscriptions
-       SET ends_at = IFNULL(ends_at, NOW())
+       SET ends_at = LEAST(COALESCE(ends_at, UTC_TIMESTAMP()), UTC_TIMESTAMP())
        WHERE user_id = ?
          AND type <> 'trial'
          AND (ends_at IS NULL OR ends_at > NOW())`,
-      [userId]
+      [userId],
     );
 
     if (normalizedProductId) {
-      await mysqlPool.query(
+      await db.query(
         `INSERT INTO subscriptions (
           user_id,
           type,
@@ -375,8 +455,9 @@ async function persistRevenueCatSnapshot({
           revenuecat_store,
           revenuecat_will_renew,
           revenuecat_event_type,
+          revenuecat_period_type,
           stripe_price_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
           normalizedType,
@@ -388,8 +469,9 @@ async function persistRevenueCatSnapshot({
           store || null,
           typeof willRenew === "boolean" ? Number(willRenew) : null,
           eventType || null,
+          periodType,
           normalizedProductId,
-        ]
+        ],
       );
     }
 
@@ -397,8 +479,8 @@ async function persistRevenueCatSnapshot({
   }
 
   // A paid RevenueCat entitlement should supersede and end any active backend trial.
-  if (normalizedProductId) {
-    await closeActiveTrialRows(userId);
+  if (normalizedProductId && periodType !== "TRIAL") {
+    await closeActiveTrialRows(userId, db);
   }
 
   // Cartile PDF cadou merg doar la primul abonament Premium/VIP al contului;
@@ -406,9 +488,9 @@ async function persistRevenueCatSnapshot({
   const isFirstBookEligibleSubscription =
     Boolean(normalizedProductId) &&
     BOOK_SUBSCRIPTION_TYPES.includes(normalizedType) &&
-    !(await hasHadBookEligibleSubscription(userId));
+    !(await hasHadBookEligibleSubscription(userId, db));
 
-  const [existingRows] = await mysqlPool.query(
+  const [existingRows] = await db.query(
     `SELECT id, starts_at, ends_at
      FROM subscriptions
      WHERE user_id = ?
@@ -416,12 +498,13 @@ async function persistRevenueCatSnapshot({
        AND revenuecat_entitlement_id <=> ?
      ORDER BY id DESC
      LIMIT 1`,
-    [userId, normalizedProductId, entitlementId || null]
+    [userId, normalizedProductId, entitlementId || null],
   );
 
-  const existing = Array.isArray(existingRows) && existingRows.length ? existingRows[0] : null;
+  const existing =
+    Array.isArray(existingRows) && existingRows.length ? existingRows[0] : null;
   if (existing) {
-    await mysqlPool.query(
+    await db.query(
       `UPDATE subscriptions
        SET
          type = ?,
@@ -431,6 +514,7 @@ async function persistRevenueCatSnapshot({
          revenuecat_store = ?,
          revenuecat_will_renew = ?,
          revenuecat_event_type = ?,
+         revenuecat_period_type = ?,
          stripe_price_id = ?
        WHERE id = ?`,
       [
@@ -441,15 +525,15 @@ async function persistRevenueCatSnapshot({
         store || null,
         typeof willRenew === "boolean" ? Number(willRenew) : null,
         eventType || null,
+        periodType,
         normalizedProductId,
         existing.id,
-      ]
+      ],
     );
-    if (isFirstBookEligibleSubscription) deliverBooksForNewSubscription(userId);
-    return;
+    return isFirstBookEligibleSubscription;
   }
 
-  await mysqlPool.query(
+  await db.query(
     `INSERT INTO subscriptions (
       user_id,
       type,
@@ -461,8 +545,9 @@ async function persistRevenueCatSnapshot({
       revenuecat_store,
       revenuecat_will_renew,
       revenuecat_event_type,
+      revenuecat_period_type,
       stripe_price_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       userId,
       normalizedType,
@@ -474,10 +559,11 @@ async function persistRevenueCatSnapshot({
       store || null,
       typeof willRenew === "boolean" ? Number(willRenew) : null,
       eventType || null,
+      periodType,
       normalizedProductId,
-    ]
+    ],
   );
-  if (isFirstBookEligibleSubscription) deliverBooksForNewSubscription(userId);
+  return isFirstBookEligibleSubscription;
 }
 
 function formatCurrentResponse(row, trialEligible) {
@@ -493,7 +579,8 @@ function formatCurrentResponse(row, trialEligible) {
         ends_at: row.ends_at || null,
         store: row.revenuecat_store || null,
         will_renew:
-          row.revenuecat_will_renew === null || row.revenuecat_will_renew === undefined
+          row.revenuecat_will_renew === null ||
+          row.revenuecat_will_renew === undefined
             ? null
             : Boolean(row.revenuecat_will_renew),
       }
@@ -505,7 +592,8 @@ function formatCurrentResponse(row, trialEligible) {
 function getWebhookToken(request) {
   const auth = request.headers.authorization || "";
   if (auth.startsWith("Bearer ")) return auth.slice(7).trim();
-  const xToken = request.headers["x-revenuecat-auth"] || request.headers["x-webhook-auth"];
+  const xToken =
+    request.headers["x-revenuecat-auth"] || request.headers["x-webhook-auth"];
   if (typeof xToken === "string") return xToken.trim();
   return auth.trim();
 }
@@ -516,17 +604,26 @@ export async function registerSubscriptionRoutes(app) {
       const user = requireAuth(request);
       const userRow = await getUserById(user.sub);
       if (!userRow) {
-        return reply.code(401).send({ error: "Neautorizat", code: "USER_NOT_FOUND" });
+        return reply
+          .code(401)
+          .send({ error: "Neautorizat", code: "USER_NOT_FOUND" });
       }
 
       const appUserId = String(user.sub || userRow.email || "").trim();
 
       try {
-        const { subscriber, cacheHit } = await fetchRevenueCatSubscriberCached(appUserId);
+        const { subscriber, cacheHit } =
+          await fetchRevenueCatSubscriberCached(appUserId);
         if (cacheHit) {
-          request.log.debug({ appUserId }, "RevenueCat cache hit for current subscription");
+          request.log.debug(
+            { appUserId },
+            "RevenueCat cache hit for current subscription",
+          );
         }
-        const entitlement = getEntitlementFromRevenueCat(subscriber, PRO_ENTITLEMENT_ID);
+        const entitlement = getEntitlementFromRevenueCat(
+          subscriber,
+          PRO_ENTITLEMENT_ID,
+        );
         const status = entitlement
           ? entitlement.isActive
             ? "active"
@@ -545,6 +642,12 @@ export async function registerSubscriptionRoutes(app) {
             store: entitlement.store,
             willRenew: entitlement.willRenew,
             eventType: "API_SYNC",
+            periodType: String(
+              subscriber?.subscriptions?.[entitlement.productIdentifier]
+                ?.period_type ||
+                entitlement.raw?.periodType ||
+                "NORMAL",
+            ).toUpperCase(),
           });
         } else {
           await persistRevenueCatSnapshot({
@@ -561,19 +664,29 @@ export async function registerSubscriptionRoutes(app) {
           });
         }
       } catch (error) {
-        request.log.warn({ err: error }, "RevenueCat fetch failed, falling back to local subscription snapshot");
+        request.log.warn(
+          { err: error },
+          "RevenueCat fetch failed, falling back to local subscription snapshot",
+        );
       }
 
-      const [latestRow, activePaidRow, activeTrialRow, trialEligible] = await Promise.all([
-        getLatestSubscriptionRow(user.sub),
-        getActivePaidRow(user.sub),
-        getActiveTrialRow(user.sub),
-        getTrialEligible(user.sub),
-      ]);
+      const [latestRow, activePaidRow, activeTrialRow, trialEligible] =
+        await Promise.all([
+          getLatestSubscriptionRow(user.sub),
+          getActivePaidRow(user.sub),
+          getActiveTrialRow(user.sub),
+          getTrialEligible(user.sub),
+        ]);
 
       const rowToSend = activePaidRow || activeTrialRow || latestRow;
-      const hasEffectiveTrial = Boolean(activeTrialRow) && !Boolean(activePaidRow);
-      reply.send(formatCurrentResponse(rowToSend, hasEffectiveTrial ? false : trialEligible));
+      const hasEffectiveTrial =
+        Boolean(activeTrialRow) && !Boolean(activePaidRow);
+      reply.send(
+        formatCurrentResponse(
+          rowToSend,
+          hasEffectiveTrial ? false : trialEligible,
+        ),
+      );
     } catch (e) {
       if (e.message === "NO_AUTH" || e.message === "BAD_TOKEN") {
         return reply.code(401).send({ error: "Neautorizat" });
@@ -588,7 +701,9 @@ export async function registerSubscriptionRoutes(app) {
       const user = requireAuth(request);
       const userRow = await getUserById(user.sub);
       if (!userRow) {
-        return reply.code(401).send({ error: "Neautorizat", code: "USER_NOT_FOUND" });
+        return reply
+          .code(401)
+          .send({ error: "Neautorizat", code: "USER_NOT_FOUND" });
       }
 
       const {
@@ -600,15 +715,22 @@ export async function registerSubscriptionRoutes(app) {
         willRenew = null,
         entitlementId = PRO_ENTITLEMENT_ID,
         appUserId = null,
+        periodType = "NORMAL",
       } = request.body || {};
 
-      const normalizedStatus = ["active", "expired", "none"].includes(String(status || "").toLowerCase())
+      const normalizedStatus = ["active", "expired", "none"].includes(
+        String(status || "").toLowerCase(),
+      )
         ? String(status || "none").toLowerCase()
         : "none";
       const syncAppUserId = String(appUserId || user.sub).trim();
       const authenticatedAppUserId = String(user.sub || "").trim();
 
-      if (normalizedStatus === "active" && syncAppUserId && syncAppUserId !== authenticatedAppUserId) {
+      if (
+        normalizedStatus === "active" &&
+        syncAppUserId &&
+        syncAppUserId !== authenticatedAppUserId
+      ) {
         return reply.code(409).send({
           error:
             "Abonamentul RevenueCat este asociat altui cont din aplicatie. Conecteaza-te cu contul original pentru restore purchases.",
@@ -629,18 +751,27 @@ export async function registerSubscriptionRoutes(app) {
         store,
         willRenew,
         eventType: "APP_SYNC",
+        periodType:
+          String(periodType).toUpperCase() === "TRIAL" ? "TRIAL" : "NORMAL",
       });
 
-      const [latestRow, activePaidRow, activeTrialRow, trialEligible] = await Promise.all([
-        getLatestSubscriptionRow(user.sub),
-        getActivePaidRow(user.sub),
-        getActiveTrialRow(user.sub),
-        getTrialEligible(user.sub),
-      ]);
+      const [latestRow, activePaidRow, activeTrialRow, trialEligible] =
+        await Promise.all([
+          getLatestSubscriptionRow(user.sub),
+          getActivePaidRow(user.sub),
+          getActiveTrialRow(user.sub),
+          getTrialEligible(user.sub),
+        ]);
 
       const rowToSend = activePaidRow || activeTrialRow || latestRow;
-      const hasEffectiveTrial = Boolean(activeTrialRow) && !Boolean(activePaidRow);
-      reply.send(formatCurrentResponse(rowToSend, hasEffectiveTrial ? false : trialEligible));
+      const hasEffectiveTrial =
+        Boolean(activeTrialRow) && !Boolean(activePaidRow);
+      reply.send(
+        formatCurrentResponse(
+          rowToSend,
+          hasEffectiveTrial ? false : trialEligible,
+        ),
+      );
     } catch (e) {
       if (e.message === "NO_AUTH" || e.message === "BAD_TOKEN") {
         return reply.code(401).send({ error: "Neautorizat" });
@@ -672,7 +803,7 @@ export async function registerSubscriptionRoutes(app) {
          WHERE user_id = ?
          ORDER BY starts_at DESC, id DESC
          LIMIT 50`,
-        [user.sub]
+        [user.sub],
       );
       reply.send({ history: rows });
     } catch (e) {
@@ -690,12 +821,19 @@ export async function registerSubscriptionRoutes(app) {
       const user = requireAuth(request);
       const userRow = await getUserById(user.sub);
       if (!userRow) {
-        return reply.code(401).send({ error: "Neautorizat", code: "USER_NOT_FOUND" });
+        return reply
+          .code(401)
+          .send({ error: "Neautorizat", code: "USER_NOT_FOUND" });
       }
 
       const activeTrial = await getActiveTrialRow(user.sub);
       if (activeTrial) {
-        return reply.send({ subscription: activeTrial, status: "active", trialEligible: false, note: "TRIAL_ALREADY_ACTIVE" });
+        return reply.send({
+          subscription: activeTrial,
+          status: "active",
+          trialEligible: false,
+          note: "TRIAL_ALREADY_ACTIVE",
+        });
       }
 
       const [activePaidRows] = await mysqlPool.query(
@@ -705,7 +843,7 @@ export async function registerSubscriptionRoutes(app) {
            AND type IN ('basic','premium','vip','pro')
            AND (ends_at IS NULL OR ends_at > NOW())
          LIMIT 1`,
-        [user.sub]
+        [user.sub],
       );
 
       if (Array.isArray(activePaidRows) && activePaidRows.length) {
@@ -717,7 +855,7 @@ export async function registerSubscriptionRoutes(app) {
 
       const [pastTrialRows] = await mysqlPool.query(
         `SELECT id FROM subscriptions WHERE user_id = ? AND type = 'trial' LIMIT 1`,
-        [user.sub]
+        [user.sub],
       );
       if (Array.isArray(pastTrialRows) && pastTrialRows.length) {
         return reply.code(400).send({
@@ -734,11 +872,16 @@ export async function registerSubscriptionRoutes(app) {
           ends_at,
           revenuecat_event_type
         ) VALUES (?, 'trial', NOW(), DATE_ADD(NOW(), INTERVAL 3 DAY), 'TRIAL_START')`,
-        [user.sub]
+        [user.sub],
       );
 
       const createdTrial = await getActiveTrialRow(user.sub);
-      reply.send({ subscription: createdTrial, status: "active", trialEligible: false, note: "TRIAL_STARTED" });
+      reply.send({
+        subscription: createdTrial,
+        status: "active",
+        trialEligible: false,
+        note: "TRIAL_STARTED",
+      });
     } catch (e) {
       if (e.message === "NO_AUTH" || e.message === "BAD_TOKEN") {
         return reply.code(401).send({ error: "Neautorizat" });
@@ -750,22 +893,31 @@ export async function registerSubscriptionRoutes(app) {
 
   app.post("/api/subscriptions/create-checkout", async (_request, reply) => {
     return reply.code(410).send({
-      error: "Checkout-ul Stripe este dezactivat. Folosește RevenueCat purchases în aplicație.",
+      error:
+        "Checkout-ul Stripe este dezactivat. Folosește RevenueCat purchases în aplicație.",
       code: "REVENUECAT_MANAGED",
     });
   });
 
-  app.post("/api/subscriptions/create-payment-sheet", async (_request, reply) => {
-    return reply.code(410).send({
-      error: "PaymentSheet Stripe este dezactivat. Folosește RevenueCat purchases în aplicație.",
-      code: "REVENUECAT_MANAGED",
-    });
-  });
+  app.post(
+    "/api/subscriptions/create-payment-sheet",
+    async (_request, reply) => {
+      return reply.code(410).send({
+        error:
+          "PaymentSheet Stripe este dezactivat. Folosește RevenueCat purchases în aplicație.",
+        code: "REVENUECAT_MANAGED",
+      });
+    },
+  );
 
   // RevenueCat webhook endpoint.
   app.post("/api/subscriptions/webhook", async (request, reply) => {
     try {
       const expectedToken = process.env.REVENUECAT_WEBHOOK_AUTH || "";
+      if (!expectedToken)
+        return reply
+          .code(503)
+          .send({ error: "Webhook authentication is not configured" });
       if (expectedToken) {
         const provided = getWebhookToken(request);
         if (!provided || provided !== expectedToken) {
@@ -777,7 +929,9 @@ export async function registerSubscriptionRoutes(app) {
       const eventType = String(event?.type || "").toUpperCase();
       const appUserId = String(event?.app_user_id || "").trim();
       const productId = event?.product_id || null;
-      const entitlementIds = Array.isArray(event?.entitlement_ids) ? event.entitlement_ids : [];
+      const entitlementIds = Array.isArray(event?.entitlement_ids)
+        ? event.entitlement_ids
+        : [];
       const entitlementId = entitlementIds[0] || PRO_ENTITLEMENT_ID;
       const store = event?.store || null;
 
@@ -787,21 +941,57 @@ export async function registerSubscriptionRoutes(app) {
 
       const userId = Number(appUserId);
       if (!Number.isFinite(userId) || userId <= 0) {
+        await recordRevenueEvent(mysqlPool, event, null);
         // We identify users by numeric appUserID (user.id). Ignore other aliases safely.
-        return reply.send({ received: true, ignored: true, reason: "NON_NUMERIC_APP_USER_ID" });
+        return reply.send({
+          received: true,
+          ignored: true,
+          reason: "NON_NUMERIC_APP_USER_ID",
+        });
       }
 
       invalidateRevenueCatSubscriberCache(appUserId);
 
       const userRow = await getUserById(userId);
       if (!userRow) {
-        return reply.send({ received: true, ignored: true, reason: "USER_NOT_FOUND" });
+        await recordRevenueEvent(mysqlPool, event, null);
+        return reply.send({
+          received: true,
+          ignored: true,
+          reason: "USER_NOT_FOUND",
+        });
+      }
+
+      const recorded = await recordRevenueEvent(mysqlPool, event, userId);
+      if (recorded.ignored)
+        return reply.send({ received: true, ignored: true });
+      // Sandbox payments and non-lifecycle notifications must not alter access.
+      if (
+        event.environment !== "PRODUCTION" ||
+        ![
+          ...ACTIVE_EVENT_TYPES,
+          ...INACTIVE_EVENT_TYPES,
+          "BILLING_ISSUE",
+          "SUBSCRIPTION_EXTENDED",
+        ].includes(eventType)
+      ) {
+        return reply.send({ received: true });
       }
 
       let status = "none";
       if (ACTIVE_EVENT_TYPES.has(eventType)) status = "active";
       if (INACTIVE_EVENT_TYPES.has(eventType)) status = "expired";
       if (eventType === "BILLING_ISSUE") status = "active";
+      if (
+        [
+          "CANCELLATION",
+          "SUBSCRIPTION_PAUSED",
+          "SUBSCRIPTION_EXTENDED",
+        ].includes(eventType)
+      ) {
+        status =
+          Number(event.expiration_at_ms) > Date.now() ? "active" : "expired";
+      }
 
       const startsAt =
         parseMillisOrDate(event?.purchased_at_ms) ||
@@ -822,8 +1012,13 @@ export async function registerSubscriptionRoutes(app) {
         startsAt,
         endsAt,
         store,
-        willRenew: status === "active" ? true : false,
+        willRenew:
+          status === "active" &&
+          !["CANCELLATION", "SUBSCRIPTION_PAUSED"].includes(eventType),
         eventType: eventType || "WEBHOOK",
+        periodType: String(event.period_type || "NORMAL").toUpperCase(),
+        eventId: String(event.id),
+        eventOccurredAt: parseMillisOrDate(event.event_timestamp_ms),
       });
 
       reply.send({ received: true });

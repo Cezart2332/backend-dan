@@ -194,8 +194,8 @@ async function deliverToUser({ userId, source, attachments, logger }) {
  * Apelat inainte de salvarea unui abonament nou, ca reinnoirile si reactivarile
  * (ex. dupa cateva luni de pauza) sa nu mai primeasca automat cartile.
  */
-export async function hasHadBookEligibleSubscription(userId) {
-  const [rows] = await mysqlPool.query(
+export async function hasHadBookEligibleSubscription(userId, db = mysqlPool) {
+  const [rows] = await db.query(
     `SELECT 1 FROM subscriptions WHERE user_id = ? AND type IN (${TYPE_PLACEHOLDERS}) LIMIT 1`,
     [userId, ...BOOK_SUBSCRIPTION_TYPES]
   );

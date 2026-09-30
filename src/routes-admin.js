@@ -327,7 +327,9 @@ export async function registerAdminRoutes(app) {
           (SELECT COUNT(*) FROM meetings WHERE scheduled_at > NOW()) AS upcomingMeetings,
           (SELECT COUNT(*) FROM webinars) AS totalWebinars,
           (SELECT COUNT(*) FROM webinars WHERE status IN ('scheduled', 'live') AND scheduled_at >= NOW()) AS upcomingWebinars,
-          (SELECT COUNT(*) FROM subscriptions WHERE ends_at IS NULL OR ends_at > NOW()) AS totalSubscriptions,
+          (SELECT COUNT(DISTINCT user_id) FROM subscriptions WHERE type IN ('basic','premium','pro','vip')
+            AND COALESCE(revenuecat_period_type,'NORMAL') <> 'TRIAL' AND starts_at <= UTC_TIMESTAMP()
+            AND (ends_at IS NULL OR ends_at > UTC_TIMESTAMP())) AS totalSubscriptions,
           (SELECT COUNT(*) FROM bug_reports) AS totalBugReports,
           (SELECT COUNT(*) FROM bug_reports WHERE status IN ('new', 'in_progress')) AS openBugReports,
           (SELECT COUNT(*) FROM bug_reports WHERE status = 'new') AS newBugReports`

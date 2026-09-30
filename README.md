@@ -3,7 +3,9 @@
 A Fastify backend for authentication, subscriptions, admin APIs, and media metadata.
 
 ## Prerequisites
-- Node.js 18+
+- Node.js 20.19+ (or a newer supported LTS release)
+
+Dashboard analytics, RevenueCat import and rollout instructions: [ANALYTICS.md](./ANALYTICS.md).
 
 ## Setup
 1. Install deps
