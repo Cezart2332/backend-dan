@@ -24,6 +24,13 @@ export const activePaidSql = (
     AND newer.starts_at <= UTC_TIMESTAMP() AND (newer.ends_at IS NULL OR newer.ends_at > UTC_TIMESTAMP())
     AND (newer.starts_at > ${s}.starts_at OR (newer.starts_at = ${s}.starts_at AND newer.id > ${s}.id)))`;
 
+const subscriptionStoreSql = `CASE
+  WHEN UPPER(TRIM(s.revenuecat_store)) IN ('GOOGLE_PLAY','PLAY_STORE') THEN 'GOOGLE_PLAY'
+  WHEN UPPER(TRIM(s.revenuecat_store)) = 'APP_STORE' THEN 'APP_STORE'
+  ELSE 'OTHER' END`;
+const storeCounts = (rows) =>
+  rows.map((row) => ({ store: row.store, total: n(row.total) }));
+
 export function analyticsPeriod(query = {}, now = new Date()) {
   const parseDay = (value) => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(value || ""))
@@ -154,6 +161,10 @@ export async function loadAnalytics(pool, query, now = new Date()) {
     ],
     paid: [
       `SELECT s.type AS plan, COUNT(*) AS total FROM subscriptions s WHERE ${activePaidSql()} GROUP BY s.type`,
+      [],
+    ],
+    paidByStore: [
+      `SELECT ${subscriptionStoreSql} AS store, COUNT(*) AS total FROM subscriptions s WHERE ${activePaidSql()} GROUP BY store`,
       [],
     ],
     trial: [
@@ -301,6 +312,7 @@ export async function loadAnalytics(pool, query, now = new Date()) {
     },
     subscriptions: {
       active: results.paid.reduce((sum, r) => sum + n(r.total), 0),
+      byStore: storeCounts(results.paidByStore),
       byPlan: PAID_PLANS.map((plan) => ({
         plan,
         total: n(results.paid.find((r) => r.plan === plan)?.total),
@@ -420,7 +432,17 @@ export async function registerAnalyticsRoutes(
         `SELECT s.id,s.user_id,u.email,u.name,s.type,s.starts_at,s.ends_at,s.revenuecat_store AS store,s.revenuecat_will_renew AS willRenew FROM subscriptions s JOIN users u ON u.id=s.user_id WHERE ${where.join(" AND ")} ORDER BY s.starts_at DESC,s.id DESC LIMIT ? OFFSET ?`,
         [...args, limit, (page - 1) * limit],
       );
-      return { items, total: n(count.total), page, limit };
+      const [byStore] = await pool.query(
+        `SELECT ${subscriptionStoreSql} AS store, COUNT(*) AS total FROM subscriptions s JOIN users u ON u.id=s.user_id WHERE ${where.join(" AND ")} GROUP BY store`,
+        args,
+      );
+      return {
+        items,
+        total: n(count.total),
+        byStore: storeCounts(byStore),
+        page,
+        limit,
+      };
     },
   );
   app.post(

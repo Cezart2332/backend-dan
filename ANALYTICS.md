@@ -18,6 +18,8 @@ Admin routes use the existing `X-Admin-Token` authentication:
 
 Dates include the entire final UTC day. Maximum range is 1096 days; future ranges are rejected. Year comparison uses the same dates in the previous year, with leap-day clamping. Active subscriptions are a **current** snapshot, one paid plan per account, excluding trials and future/expired rows; they do not represent a historical count for the selected period.
 
+Both reports return `byStore` counts for paid active subscribers: `APP_STORE`, `GOOGLE_PLAY` (including the `PLAY_STORE` alias), and `OTHER` for manual/unknown/other sources. In the subscription list these totals cover **all filtered results**, independently of pagination. Store identifiers are case-insensitive. Unknown sources are not inferred from the user's phone.
+
 Authenticated mobile routes derive the owner from JWT:
 
 - `POST /api/activity/visit`: `{ day, platform }`, one UTC day per account, up to 90 days old.
@@ -34,6 +36,8 @@ Required columns: `store_transaction_id`, `start_time`, `product_identifier`, `s
 USD aggregates use RevenueCat's USD values across stores/currencies. Selecting RON or another purchased currency includes only matching transactions; the backend never invents an exchange rate. Revenue is gross sales minus known refunds, **before store commissions and taxes**, not the bank payout. Refunds represent the latest known adjustment per store transaction, including reversals, rather than a full cash-movement ledger. Free trials, promotional grants, family shares and sandbox payments are excluded from revenue.
 
 First payments and trial conversion use known transaction history. Renewal/unsubscribe summaries can be backfilled from exports; expiration counts require native lifecycle webhooks. The dashboard shows recording coverage. Import all available history before interpreting first-payment totals or comparisons.
+
+The panel also models estimated Google Play (15%) and App Store (30% by default, optionally 15%) commissions using each store's sales **minus refunds** in the selected currency and UTC period. Refund-only periods can have negative estimated commissions. The estimated revenue after commissions includes only these two stores; manual payments and other/unknown sources are excluded. These figures are before taxes and are not bank payouts. Missing prices show an incomplete-estimate warning. The selected Apple rate applies uniformly; it does not automatically determine Small Business eligibility or individual subscription age. Apple can charge 15% under Small Business or after a paid year, so reconcile with official store financial reports. References: [Google Play service fees](https://support.google.com/googleplay/android-developer/answer/112622?hl=en-GB), [App Store subscriptions](https://developer.apple.com/app-store/subscriptions/).
 
 ## Activity definitions
 

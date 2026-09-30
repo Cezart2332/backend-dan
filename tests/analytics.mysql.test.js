@@ -55,6 +55,9 @@ test(
       ],
     );
     const query = { from: day(-6), to: today, currency: "USD" };
+    await pool.query(
+      "UPDATE subscriptions SET revenuecat_store=IF(type='pro','APP_STORE','PLAY_STORE')",
+    );
     const base = {
       type: "INITIAL_PURCHASE",
       event_timestamp_ms: Date.parse(`${day(-3)}T12:00:00Z`),
@@ -129,6 +132,9 @@ test(
     );
     const d = await loadAnalytics(pool, query);
     assert.equal(d.subscriptions.active, 1);
+    assert.deepEqual(d.subscriptions.byStore, [
+      { store: "APP_STORE", total: 1 },
+    ]);
     assert.deepEqual(
       d.subscriptions.byPlan.find((p) => p.plan === "pro"),
       { plan: "pro", total: 1 },
@@ -182,6 +188,7 @@ test(
       })
     ).json();
     assert.equal(subs.total, 1);
+    assert.deepEqual(subs.byStore, [{ store: "APP_STORE", total: 1 }]);
     assert.equal(subs.items[0].type, "pro");
     assert.equal(
       (
@@ -355,5 +362,67 @@ test(
       "SELECT id FROM subscriptions WHERE user_id=2 AND type='pro'",
     );
     assert.equal(sandbox.length, 0);
+
+    await pool.query(
+      "INSERT INTO users (id,email,name) VALUES (4,'google4@example.invalid','Google alias'),(5,'trial5@example.invalid','Native trial'),(6,'manual6@example.invalid','Manual'),(7,'google7@example.invalid','Google canonical')",
+    );
+    await pool.query(
+      `INSERT INTO subscriptions (user_id,type,starts_at,ends_at,revenuecat_store,revenuecat_period_type) VALUES
+      (4,'basic',?,?,'APP_STORE','NORMAL'),(4,'pro',?,?,' play_store ','NORMAL'),(4,'vip',?,?,'APP_STORE','NORMAL'),
+      (5,'premium',?,?,'APP_STORE','TRIAL'),(6,'vip',?,NULL,NULL,'NORMAL'),(7,'pro',?,?,'GOOGLE_PLAY','NORMAL')`,
+      [
+        sql(-8),
+        sql(4),
+        sql(-4),
+        sql(4),
+        sql(1),
+        sql(9),
+        sql(-3),
+        sql(4),
+        sql(-2),
+        sql(-4),
+        sql(4),
+      ],
+    );
+    const expectedStores = [
+      { store: "APP_STORE", total: 1 },
+      { store: "GOOGLE_PLAY", total: 2 },
+      { store: "OTHER", total: 1 },
+    ];
+    const sortStores = (rows) =>
+      rows.toSorted((a, b) => a.store.localeCompare(b.store));
+    const storeReport = await loadAnalytics(pool, query);
+    assert.equal(storeReport.subscriptions.active, 4);
+    assert.deepEqual(
+      sortStores(storeReport.subscriptions.byStore),
+      expectedStores,
+    );
+    for (const page of [1, 2]) {
+      const list = (
+        await app.inject({
+          url: `/api/admin/subscriptions?limit=1&page=${page}`,
+          headers: admin,
+        })
+      ).json();
+      assert.equal(list.items.length, 1);
+      assert.equal(list.total, 4);
+      assert.deepEqual(sortStores(list.byStore), expectedStores);
+    }
+    const filtered = (
+      await app.inject({
+        url: "/api/admin/subscriptions?limit=1&plan=pro&search=Google",
+        headers: admin,
+      })
+    ).json();
+    assert.equal(filtered.total, 2);
+    assert.deepEqual(filtered.byStore, [{ store: "GOOGLE_PLAY", total: 2 }]);
+    const empty = (
+      await app.inject({
+        url: "/api/admin/subscriptions?search=does-not-exist",
+        headers: admin,
+      })
+    ).json();
+    assert.equal(empty.total, 0);
+    assert.deepEqual(empty.byStore, []);
   },
 );
