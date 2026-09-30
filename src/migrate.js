@@ -1,4 +1,6 @@
 import { mysqlPool } from "./mysql.js";
+import { migrateWellbeing } from "./wellbeing.js";
+import { migrateSocial } from "./social.js";
 
 export async function runMigrations() {
   // Ensure tables
@@ -39,6 +41,8 @@ export async function runMigrations() {
   `);
 
   // progress entries table
+  await migrateWellbeing(mysqlPool);
+  await migrateSocial(mysqlPool);
   await mysqlPool.query(`
     CREATE TABLE IF NOT EXISTS progress_entries (
       id BIGINT PRIMARY KEY AUTO_INCREMENT,

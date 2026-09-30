@@ -20,10 +20,12 @@ import { registerNotificationRoutes } from "./routes-notifications.js";
 import { registerChatRoutes } from "./chat/routes.js";
 import { runMigrations } from "./migrate.js";
 import { registerAuthRoutes } from "./routes-auth.js";
-import { registerAdminRoutes } from "./routes-admin.js";
+import { registerAdminRoutes, adminAuth } from "./routes-admin.js";
+import { registerWellbeingRoutes } from "./wellbeing.js";
 import { registerAdminCmsRoutes } from "./routes-admin-cms.js";
 import { registerCmsRoutes } from "./routes-cms.js";
 import { registerProfileRoutes } from "./routes-profile.js";
+import { registerSocialRoutes } from "./social.js";
 
 const logLevel = process.env.LOG_LEVEL || "info";
 const app = Fastify({ logger: { level: logLevel }, bodyLimit: 5 * 1024 * 1024 }); // 5MB max body
@@ -197,7 +199,9 @@ app.route({
 // Register custom endpoints (email/password + social helpers)
 await registerAuthRoutes(app);
 await registerProfileRoutes(app);
+await registerSocialRoutes(app, { pool: mysqlPool, jwtSecret: process.env.JWT_SECRET || process.env.CORE_JWT_SECRET });
 await registerProgressRoutes(app);
+await registerWellbeingRoutes(app, { pool: mysqlPool, jwtSecret: process.env.JWT_SECRET || process.env.CORE_JWT_SECRET, adminAuth });
 await registerQuestionRoutes(app);
 await registerMeetingRoutes(app);
 await registerChallengeRoutes(app);

@@ -260,7 +260,7 @@ function safeCompare(a, b) {
  *   - X-Admin-Token header matching ADMIN_TOKEN env var
  *   - Bearer JWT where the user has is_admin = 1 in the DB
  */
-async function adminAuth(request) {
+export async function adminAuth(request) {
   // 1) Static token approach
   const staticToken = String(request.headers['x-admin-token'] || '').trim();
   if (ADMIN_TOKEN && staticToken && safeCompare(staticToken, ADMIN_TOKEN)) return { admin: true, method: 'token' };
@@ -399,6 +399,16 @@ export async function registerAdminRoutes(app) {
     const limit = Math.min(100, Math.max(1, Number(request.query.limit) || 50));
     const offset = (page - 1) * limit;
     const userId = request.query.user_id ? Number(request.query.user_id) : null;
+    const clauses = ['1 = 1'];
+    const filterArgs = [];
+    if (userId) { clauses.push('p.user_id = ?'); filterArgs.push(userId); }
+    for (const [key, operator] of [['since', '>='], ['until', '<=']]) {
+      if (!request.query[key]) continue;
+      const date = new Date(request.query[key]);
+      if (Number.isNaN(date.getTime())) return reply.code(400).send({ error: 'Perioadă invalidă.' });
+      clauses.push(`COALESCE(p.client_date, p.created_at) ${operator} ?`);
+      filterArgs.push(date);
+    }
     const subscriptionTypeSql = `
       COALESCE((
         SELECT
@@ -418,26 +428,14 @@ export async function registerAdminRoutes(app) {
       ), 'none')
     `;
     try {
-      let rows, total;
-      if (userId) {
-        [[{ total }]] = await mysqlPool.query('SELECT COUNT(*) AS total FROM progress_entries WHERE user_id = ?', [userId]);
-        [rows] = await mysqlPool.query(
-          `SELECT p.id, p.user_id, u.email, u.name AS user_name, p.level, p.description, p.actions, p.client_date, p.created_at,
-                  ${subscriptionTypeSql} AS subscription_type
-           FROM progress_entries p LEFT JOIN users u ON u.id = p.user_id
-           WHERE p.user_id = ? ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
-          [userId, limit, offset]
-        );
-      } else {
-        [[{ total }]] = await mysqlPool.query('SELECT COUNT(*) AS total FROM progress_entries');
-        [rows] = await mysqlPool.query(
-          `SELECT p.id, p.user_id, u.email, u.name AS user_name, p.level, p.description, p.actions, p.client_date, p.created_at,
-                  ${subscriptionTypeSql} AS subscription_type
-           FROM progress_entries p LEFT JOIN users u ON u.id = p.user_id
-           ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
-          [limit, offset]
-        );
-      }
+      const [[{ total }]] = await mysqlPool.query(`SELECT COUNT(*) AS total FROM progress_entries p WHERE ${clauses.join(' AND ')}`, filterArgs);
+      const [rows] = await mysqlPool.query(
+        `SELECT p.id, p.user_id, u.email, u.name AS user_name, p.level, p.description, p.actions, p.client_date, p.created_at,
+                ${subscriptionTypeSql} AS subscription_type
+         FROM progress_entries p LEFT JOIN users u ON u.id = p.user_id
+         WHERE ${clauses.join(' AND ')} ORDER BY COALESCE(p.client_date, p.created_at) DESC, p.id DESC LIMIT ? OFFSET ?`,
+        [...filterArgs, limit, offset]
+      );
       return reply.send({ items: rows, total, page, limit });
     } catch (e) {
       request.log.error({ err: e }, 'Admin list progress failed');
