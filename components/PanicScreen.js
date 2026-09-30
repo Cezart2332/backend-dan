@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, AppState, Alert, ActivityIndicator, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { AccessibilityInfo, Animated, AppState, Alert, ActivityIndicator, Pressable, StyleSheet, Switch, Text, View, useWindowDimensions } from 'react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
@@ -26,6 +26,8 @@ function PanicSession({ navigation, route, admittedOwner }) {
   const { preferences, metadata, save, data, updatePreferences, owner } = wellbeing;
   const local = useThemedStyles(createPanicStyles);
   const { tc } = useTheme();
+  const { width } = useWindowDimensions();
+  const circleSize = Math.min(232, Math.max(120, width - 48));
   const [initial] = useState(() => ({ ...metadata(), duration: preferences.duration, pattern: preferences.pattern }));
   const [clock] = useState(() => createSessionClock(initial.duration * 1000));
   const techniques = useRef(new Set([route.params?.mode === 'grounding' ? 'grounding' : 'breathing']));
@@ -205,7 +207,7 @@ function PanicSession({ navigation, route, admittedOwner }) {
       {mode === 'breathing' ? <View style={local.stage}>
         <Text style={local.title} accessibilityLiveRegion="polite">{paused ? 'Ia-ți timpul tău.' : PHASE_LABELS[phase.name]}</Text>
         <Text style={local.description}>{paused ? 'Continuă când te simți pregătit.' : 'Urmărește cercul. Respiră fără să forțezi.'}</Text>
-        <View style={local.breathingMark}>
+        <View style={[local.breathingMark, { width: circleSize, height: circleSize }]}>
           <Animated.View accessible={false} pointerEvents="none" style={[local.breathCircle,{transform:[{scale:reduceMotion ? 1 : scale}]}]} />
           <View accessible={false} style={local.breathCount}><Text style={local.count}>{paused ? '–' : phase.remaining}</Text><Text style={local.countUnit}>{paused ? 'în pauză' : phase.remaining === 1 ? 'secundă' : 'secunde'}</Text></View>
         </View>
@@ -248,8 +250,8 @@ const createPanicStyles = tc => StyleSheet.create({
   stage: { alignItems:'center',marginBottom:24 },
   title: { fontFamily:fonts.display,fontSize:30,lineHeight:38,color:tc(colors.text,'fg'),textAlign:'center',marginBottom:12 },
   description: { fontSize:15,lineHeight:24,color:tc(colors.textMuted,'fg'),textAlign:'center',marginBottom:20 },
-  breathingMark: { width:'100%',maxWidth:232,aspectRatio:1,alignItems:'center',justifyContent:'center',marginVertical:10 },
-  breathCircle: { ...StyleSheet.absoluteFillObject,borderRadius:120,backgroundColor:tc(colors.primarySoft,'bg'),borderWidth:1,borderColor:tc(colors.accent,'fg') },
+  breathingMark: { alignItems:'center',justifyContent:'center',marginVertical:10,flexShrink:0 },
+  breathCircle: { ...StyleSheet.absoluteFillObject,borderRadius:120,backgroundColor:tc(colors.primarySoft,'bg'),borderWidth:2,borderColor:tc(colors.primary,'fg') },
   breathCount: { alignItems:'center',justifyContent:'center' },
   count: { fontFamily:fonts.display,fontSize:62,lineHeight:74,color:tc(colors.text,'fg'),fontVariant:['tabular-nums'] },
   countUnit: { fontSize:13,color:tc(colors.textMuted,'fg'),marginTop:2 },

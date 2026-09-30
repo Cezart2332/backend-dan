@@ -172,7 +172,7 @@ export default function DashboardScreen({ navigation, onLogout }) {
       7: "Ajutor",
       8: "AboutDan",
       9: "Subscriptions",
-      10: "IntelegeAnxietate",
+      10: "AudioAnxietateList",
       11: "Webinarii",
       12: "CommunityChat",
     };

@@ -20,7 +20,7 @@ const TABS = [
 const PRACTICE = [
   { id: 6, title: 'Tehnica HAI', subtitle: 'Descoperă metoda, pas cu pas', icon: 'feather' },
   { id: 7, title: 'Conținut de ajutor', subtitle: 'Sprijin pentru momentele dificile', icon: 'heart' },
-  { id: 10, title: 'Înțelege anxietatea', subtitle: 'Audio-uri și video explicative', icon: 'headphones' },
+  { id: 10, title: 'Ascultă lecțiile lui Dan', subtitle: 'Videoclipuri despre anxietate, cu opțiunea Doar sunet', icon: 'headphones' },
 ];
 const WITH_DAN = [
   { id: 8, title: 'Despre Dan', subtitle: 'Intro, cine sunt eu și din experiența mea', icon: 'user' },
@@ -63,7 +63,7 @@ function BreathingMark({ animate }) {
     return () => { loop.stop(); breath.stopAnimation(); };
   }, [animate, breath]);
   return <View accessible={false} pointerEvents="none" style={styles.breathMark}>
-    <Animated.View style={[styles.breathOuter, { opacity: breath.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.7] }), transform: [{ scale: breath.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] }) }] }]} />
+    <Animated.View style={[styles.breathOuter, { opacity: breath.interpolate({ inputRange: [0, 1], outputRange: [0.6, 0.9] }), transform: [{ scale: breath.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] }) }] }]} />
     <Animated.View style={[styles.breathInner, { transform: [{ scale: breath.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1.08] }) }] }]}>
       <Feather name="wind" size={30} color={tc(colors.white, 'fg')} />
     </Animated.View>
@@ -158,7 +158,7 @@ export default function DashboardContent({ navigation, profileName, profileAvata
             </LinearGradient>
           </PressableScale>
 
-          <PressableScale onPress={() => lockStateFor(10).locked ? handleMenuPress({ id: 10 }) : navigation.navigate('IntelegeAnxietate')} scaleTo={pressScale} style={styles.explore} accessibilityRole="button" accessibilityLabel="Ascultă lecțiile lui Dan">
+          <PressableScale onPress={() => handleMenuPress({ id: 10 })} scaleTo={pressScale} style={styles.explore} accessibilityRole="button" accessibilityLabel="Ascultă lecțiile lui Dan">
             <View style={styles.illustratedCopy}><Text style={styles.audioCtaTitle}>Ascultă lecțiile lui Dan</Text><Text style={styles.rowSubtitle}>Înțelege ce simți.{ '\n' }O lecție, în ritmul tău.</Text><View style={styles.audioCtaAction}><Text style={styles.exploreText}>Vezi videoclipurile</Text><Feather name="arrow-right" size={18} color={tc(colors.primary,'fg')} /></View></View><Illustration size={96} />
           </PressableScale>
 
@@ -180,7 +180,6 @@ export default function DashboardContent({ navigation, profileName, profileAvata
 
         {tab === 'practice' ? <>
           {heading('În ritmul tău', 'Tehnici și resurse la care poți reveni oricând.')}
-          {row({ title: 'Ascultă lecțiile lui Dan', subtitle: 'Videoclipurile deja publicate', icon: 'headphones', locked: lockStateFor(10).locked, onPress: () => lockStateFor(10).locked ? handleMenuPress({ id: 10 }) : navigation.navigate('IntelegeAnxietate') })}
           <View style={styles.rows}>{PRACTICE.map(menuRow)}</View>
           {heading('La îndemână')}
           {row({ title: 'Kitul meu offline', subtitle: 'Exerciții, notițe și contacte salvate', icon: 'bookmark', onPress: () => navigation.navigate('OfflineKit') })}
@@ -253,9 +252,9 @@ const createStyles = (tc) => StyleSheet.create({
   heroEyebrow: { fontSize: 11, lineHeight: 17, fontWeight: '500', color: tc(colors.white, 'fg'), opacity: 0.8, marginBottom: 10 },
   heroTitle: { fontFamily: fonts.display, fontSize: 29, lineHeight: 34, fontWeight: '500', color: tc(colors.white, 'fg') },
   heroDescription: { fontSize: 12, lineHeight: 18, color: tc(colors.white, 'fg'), opacity: 0.8, marginTop: 9, maxWidth: 200 },
-  breathMark: { width: 88, height: 100, alignItems: 'center', justifyContent: 'center', marginLeft: 4 },
-  breathOuter: { position: 'absolute', width: 100, height: 100, borderRadius: 50, borderWidth: 1, borderColor: tc(colors.accent, 'fg') },
-  breathInner: { width: 70, height: 70, borderRadius: 35, borderWidth: 1, borderColor: tc(colors.accent, 'fg'), alignItems: 'center', justifyContent: 'center' },
+  breathMark: { width: 100, height: 100, flexShrink: 0, alignItems: 'center', justifyContent: 'center', marginLeft: 4 },
+  breathOuter: { position: 'absolute', width: 100, height: 100, borderRadius: 50, borderWidth: 2, borderColor: tc(colors.white, 'fg') },
+  breathInner: { width: 70, height: 70, borderRadius: 35, borderWidth: 2, borderColor: tc(colors.white, 'fg'), alignItems: 'center', justifyContent: 'center' },
   heroAction: { width: '100%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: tc('rgba(246,247,248,0.35)', 'bg'), paddingTop: 15, marginTop: 20 },
   heroActionText: { flex: 1, fontSize: 13, lineHeight: 20, fontWeight: '600', color: tc(colors.white, 'fg') },
   checkin: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 22, marginBottom: 2 },

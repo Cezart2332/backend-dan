@@ -144,8 +144,7 @@ function LessonPlayerContent({ navigation, title = 'Lecție cu Dan', subtitle = 
     <AppHeader title={subtitle || 'Videoclip cu Dan'} onBack={() => { pauseAndSave(); navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'); }} />
     {!finished ? <View style={styles.heading}><Text style={styles.title}>{title}</Text><Text style={styles.artist}>{nowPlayingArtist}</Text></View> : null}
     <View style={[styles.videoStage,(audioOnly || finished) && styles.hiddenStage]}>
-      <VideoView ref={videoView} player={player} nativeControls={false} fullscreenOptions={{ enable: true }} allowsPictureInPicture contentFit="contain" style={styles.video} accessible={!audioOnly && !finished} pointerEvents={audioOnly || finished ? 'none' : 'auto'} />
-      {!audioOnly && !finished && !failed && !loading ? <PressableScale disabled={disabled} style={styles.fullscreen} onPress={() => openView('enterFullscreen')} accessibilityRole="button" accessibilityLabel="Ecran complet"><Feather name="maximize" size={20} color={colors.white} /></PressableScale> : null}
+      <VideoView ref={videoView} player={player} nativeControls fullscreenOptions={{ enable: true }} requiresLinearPlayback={false} buttonOptions={{ showSeekBackward: true, showSeekForward: true, showPlayPause: true, showBottomBar: true }} allowsPictureInPicture contentFit="contain" style={styles.video} accessible={!audioOnly && !finished} pointerEvents={audioOnly || finished ? 'none' : 'auto'} />
       {!audioOnly && !finished && (failed || loading) ? <View style={styles.videoOverlay}><VideoArtwork size={100} />{loading ? <ActivityIndicator color={tc(colors.primary,'fg')} /> : <Feather name="alert-circle" size={21} color={tc(colors.textMuted,'fg')} />}</View> : null}
     </View>
     {finished ? <View style={styles.completion}>
@@ -184,7 +183,7 @@ const createStyles = tc => StyleSheet.create({
   heading:{paddingTop:10,paddingBottom:22},eyebrow:{fontSize:12,lineHeight:19,color:tc(colors.textMuted,'fg'),marginBottom:10},
   title:{fontFamily:fonts.display,fontSize:29,lineHeight:37,color:tc(colors.text,'fg'),marginBottom:10},artist:{fontSize:12,lineHeight:20,color:tc(colors.textMuted,'fg')},
   videoStage:{width:'100%',aspectRatio:16/9,borderRadius:22,overflow:'hidden',backgroundColor:colors.primaryDark,marginBottom:18},video:{width:'100%',height:'100%'},
-  hiddenStage:{position:'absolute',width:1,height:1,opacity:0,marginBottom:0},fullscreen:{position:'absolute',right:10,bottom:10,width:44,height:44,alignItems:'center',justifyContent:'center',borderRadius:13,backgroundColor:'rgba(16,25,35,0.65)'},
+  hiddenStage:{position:'absolute',width:1,height:1,opacity:0,marginBottom:0},
   videoOverlay:{...StyleSheet.absoluteFillObject,backgroundColor:tc(colors.primarySoft,'bg'),alignItems:'center',justifyContent:'center',gap:12},
   audioStage:{paddingVertical:24,paddingHorizontal:20,borderRadius:22,backgroundColor:tc(colors.primarySoft,'bg'),alignItems:'center',marginBottom:18},audioMark:{width:70,height:70,borderRadius:24,backgroundColor:tc(colors.surfaceStrong,'bg'),alignItems:'center',justifyContent:'center',marginBottom:15},audioTitle:{fontFamily:fonts.display,fontSize:24,lineHeight:30,color:tc(colors.text,'fg')},audioCaption:{fontSize:12,lineHeight:20,color:tc(colors.textMuted,'fg'),textAlign:'center',marginTop:6},
   modeSwitch:{flexDirection:'row',backgroundColor:tc(colors.primarySoft,'bg'),padding:5,borderRadius:18,gap:6,marginBottom:18},modeCell:{flex:1,minWidth:0},modeOption:{minHeight:48,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:9,borderRadius:13},activeMode:{backgroundColor:tc(colors.surfaceStrong,'bg')},modeText:{fontSize:13,lineHeight:20,color:tc(colors.primary,'fg')},activeModeText:{fontWeight:'600'},
