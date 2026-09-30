@@ -42,3 +42,10 @@ Autentificarea verifică existența contului. Proprietarul este derivat din JWT.
 ## SOS simplificat
 
 Instrucțiuni în română, o singură fază centrală și butoane de minimum 58 px cu 14 px între ele. Setările de sunet și vibrații se deschid separat și pun exercițiul în pauză; revenirea cere reluare explicită. „Observă ce te înconjoară” arată un pas din cinci, cu exemple și navigare manuală. Evaluarea se deschide numai la cerere după încheiere. Etichetele tehnicilor sunt traduse și în kit, preferințe și panel. Ceasul, accesul offline și salvarea rămân comune.
+
+## Redesign pentru videoclipuri
+
+- `VideoLibraryContent` unifică prezentarea listelor din Înțelege anxietatea, Despre Dan, Din experiența mea, Ajutor, HAI și CMS. Carduri cu desen vectorial de cadru video, titlu complet, categorie și acțiune explicită; desenul este decorativ și nu reprezintă o miniatură extrasă din videoclip. Căutarea locală din listele mai lungi ignoră diacriticele și are stare fără rezultate. Nu sunt inventate durate sau procente de progres.
+- `VideoPlayerScreen` păstrează mecanismul HLS și tracking-ul existent, cu titlul deasupra imaginii, alegere Video/Doar sunet, consolă cu slider, timpi și butoane separate pentru -15 secunde, redare/pauză și +30 secunde. Vitezele 0,5–2× se deschid la cerere; fullscreen și PiP rămân disponibile când dispozitivul le permite. Ecranul de final respectă Reduce Motion și arată dacă materialul îndeplinește pragul de finalizare.
+- Overlay-ul existent pentru recomandarea căștilor este redat în afara conținutului derulabil, printr-un parametru opțional în `AppScreen`; astfel nu mai apare la mijlocul unei liste lungi.
+- Verificări: cele 48 de identificatoare din cele șapte cataloage existente sunt identice, 42 teste trec, exporturi Expo iOS/Android/web reușite; verificări în browser la 320/390 px pentru titluri lungi, căutare fără diacritice, selecția vitezei, comutarea modului și categorii, în ambele teme. Previzualizările din browser folosesc exclusiv date locale demonstrative. Redarea HLS, skip-ul în timpul redării și PiP pe telefoane reale rămân verificări înainte de lansare.

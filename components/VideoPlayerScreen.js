@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Animated, StyleSheet, Text, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { isPictureInPictureSupported, useVideoPlayer, VideoView } from 'expo-video';
 import { useEvent } from 'expo';
 import * as Crypto from 'expo-crypto';
 import Slider from '@react-native-community/slider';
@@ -10,6 +10,7 @@ import { AppButton, AppHeader, AppScreen, PressableScale } from './ui';
 import { colors, fonts } from './ui/theme';
 import { useTheme, useThemedStyles } from './ui/themeContext';
 import Illustration from './Illustration';
+import VideoArtwork from './VideoArtwork';
 import HeadphonesDisclaimer from './HeadphonesDisclaimer';
 import { resolveLessonSource } from '../utils/lessonSource.mjs';
 import { API_BASE_URL } from '../utils/api';
@@ -41,6 +42,9 @@ function LessonPlayerContent({ navigation, title = 'Lecție cu Dan', subtitle = 
   const [sourceError, setSourceError] = useState(false);
   const [resolving, setResolving] = useState(true);
   const videoView = useRef(null);
+  const pictureInPictureSupported = useMemo(() => {
+    try { return isPictureInPictureSupported(); } catch { return false; }
+  }, []);
   const loadedSource = useRef(null);
   const completionScale = useRef(new Animated.Value(1)).current;
   const source = useMemo(() => {
@@ -128,68 +132,66 @@ function LessonPlayerContent({ navigation, title = 'Lecție cu Dan', subtitle = 
     tracker.current.sample(player.currentTime,Date.now(),player.playing,player.playbackRate || 1);
     player.pause(); flush.current();
   };
-  return <AppScreen>
-    <AppHeader title={subtitle || 'Lecția ta cu Dan'} onBack={() => { pauseAndSave(); navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'); }} />
-    <View style={[styles.videoStage,audioOnly && styles.hiddenStage]}>
-      <VideoView ref={videoView} player={player} nativeControls={false} fullscreenOptions={{ enable: true }} allowsPictureInPicture contentFit="contain" style={styles.video} accessible={!audioOnly} pointerEvents={audioOnly ? 'none' : 'auto'} />
-      {!audioOnly && !finished ? <PressableScale style={styles.fullscreen} onPress={() => videoView.current?.enterFullscreen()} accessibilityRole="button" accessibilityLabel="Ecran complet"><Feather name="maximize" size={19} color={colors.white} /></PressableScale> : null}
+  const [speedOpen, setSpeedOpen] = useState(false);
+  const [viewError, setViewError] = useState(null);
+  const openView = async (method) => {
+    setViewError(null);
+    try { await videoView.current?.[method](); }
+    catch { setViewError('Modul de afișare nu este disponibil momentan.'); }
+  };
+  const displayedPosition = seeking ? position : currentTime || 0;
+  return <AppScreen contentStyle={styles.screen} overlay={<HeadphonesDisclaimer />}>
+    <AppHeader title={subtitle || 'Videoclip cu Dan'} onBack={() => { pauseAndSave(); navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'); }} />
+    {!finished ? <View style={styles.heading}><Text style={styles.title}>{title}</Text><Text style={styles.artist}>{nowPlayingArtist}</Text></View> : null}
+    <View style={[styles.videoStage,(audioOnly || finished) && styles.hiddenStage]}>
+      <VideoView ref={videoView} player={player} nativeControls={false} fullscreenOptions={{ enable: true }} allowsPictureInPicture contentFit="contain" style={styles.video} accessible={!audioOnly && !finished} pointerEvents={audioOnly || finished ? 'none' : 'auto'} />
+      {!audioOnly && !finished && !failed && !loading ? <PressableScale disabled={disabled} style={styles.fullscreen} onPress={() => openView('enterFullscreen')} accessibilityRole="button" accessibilityLabel="Ecran complet"><Feather name="maximize" size={20} color={colors.white} /></PressableScale> : null}
+      {!audioOnly && !finished && (failed || loading) ? <View style={styles.videoOverlay}><VideoArtwork size={100} />{loading ? <ActivityIndicator color={tc(colors.primary,'fg')} /> : <Feather name="alert-circle" size={21} color={tc(colors.textMuted,'fg')} />}</View> : null}
     </View>
     {finished ? <View style={styles.completion}>
-      <Animated.View style={{ alignSelf: 'center', marginBottom: 18, transform: [{ scale: completionScale }] }}><Illustration kind="complete" size={170} /></Animated.View>
+      <Animated.View style={{ alignSelf: 'center', marginBottom: 22, transform: [{ scale: completionScale }] }}><Illustration kind="complete" size={150} /></Animated.View>
+      <Text style={styles.eyebrow}>Un moment oferit ție</Text>
       <Text style={styles.title} accessibilityLiveRegion="polite">{completed ? 'Ai parcurs materialul.' : 'Redare încheiată.'}</Text>
-      <Text style={styles.subtitle}>{completed ? 'Un moment pe care l-ai oferit ție. Lecția se adaugă în profil după sincronizare.' : 'Poți reveni asupra lecției. Finalizarea presupune parcurgerea a cel puțin 90% din material.'}</Text>
+      <Text style={styles.subtitle}>{completed ? 'Progresul tău se adaugă în profil după sincronizare. Continuă în ritmul tău.' : 'Poți reveni asupra videoclipului. Se adaugă la materialele finalizate după parcurgerea a cel puțin 90%.'}</Text>
       {saveError ? <><Text style={styles.error} accessibilityRole="alert">Nu am putut salva progresul pe telefon.</Text><AppButton title="Reîncearcă salvarea" onPress={() => flush.current()} /></> : null}
-      <AppButton title="Vezi progresul din profil" icon="bar-chart-2" onPress={() => { pauseAndSave(); navigation.navigate('Profile'); }} />
-      <AppButton title="Alege altă lecție" variant="ghost" style={styles.nextAction} onPress={() => navigation.goBack()} />
-      <AppButton title="Redă din nou" variant="ghost" style={styles.nextAction} onPress={replay} />
+      <View style={styles.finishActions}><AppButton title="Alege alt videoclip" icon="film" onPress={() => navigation.goBack()} /><AppButton title="Vezi progresul din profil" icon="bar-chart-2" variant="ghost" onPress={() => { pauseAndSave(); navigation.navigate('Profile'); }} /><AppButton title="Redă din nou" variant="ghost" onPress={replay} /></View>
     </View> : <>
-      {audioOnly ? <View style={styles.cover}><Illustration size={170} /><Text style={styles.coverCaption}>Aceeași lecție, doar sunetul. Poți bloca ecranul.</Text></View> : null}
-      <Text style={styles.title}>{title}</Text><Text style={styles.artist}>{nowPlayingArtist}</Text>
-      {loading ? <View style={styles.state}><ActivityIndicator color={tc(colors.primary,'fg')} /><Text style={styles.subtitle}>Se încarcă videoclipul…</Text></View> : null}
-      {failed ? <View style={styles.state}><Text style={styles.error} accessibilityRole="alert">Materialul nu s-a putut încărca.</Text><AppButton title="Reîncearcă" onPress={retry} /></View> : null}
-      <View style={styles.progress}>
-        <Slider accessibilityLabel="Poziție în lecție" disabled={disabled} minimumValue={0} maximumValue={duration || 1} value={seeking ? position : currentTime || 0} minimumTrackTintColor={tc(colors.primary,'fg')} maximumTrackTintColor={tc(colors.primarySoft,'bg')} thumbTintColor={tc(colors.accent,'fg')} onSlidingStart={() => { tracker.current.discontinuity(player.currentTime,Date.now(),false); setSeeking(true); }} onValueChange={setPosition} onSlidingComplete={(value) => { seek(value); setSeeking(false); }} />
-        <View style={styles.timeRow}><Text style={styles.time}>{time(seeking ? position : currentTime || 0)}</Text><Text style={styles.time}>{time(duration)}</Text></View>
+      {audioOnly ? <View style={styles.audioStage}><View style={styles.audioMark}><Feather name="headphones" size={33} color={tc(colors.primary,'fg')} /></View><Text style={styles.audioTitle}>Doar sunetul</Text><Text style={styles.audioCaption}>Același videoclip. Poți bloca ecranul.</Text></View> : null}
+      <View style={styles.modeSwitch}>
+        {[false,true].map(onlySound => <PressableScale key={String(onlySound)} onPress={() => setAudioOnly(onlySound)} scaleTo={1} containerStyle={styles.modeCell} style={[styles.modeOption,audioOnly === onlySound && styles.activeMode]} accessibilityRole="button" accessibilityLabel={onlySound ? 'Ascultă doar sunetul' : 'Vizionare video'} accessibilityState={{selected:audioOnly === onlySound}}><Feather name={onlySound ? 'headphones' : 'film'} size={17} color={tc(colors.primary,'fg')} /><Text style={[styles.modeText,audioOnly === onlySound && styles.activeModeText]}>{onlySound ? 'Doar sunet' : 'Video'}</Text></PressableScale>)}
       </View>
-      <View style={styles.controls}>
-        <PressableScale disabled={disabled} onPress={() => seek((player.currentTime || 0)-15)} style={styles.skip} accessibilityRole="button" accessibilityLabel="Înapoi 15 secunde"><Feather name="rotate-ccw" size={25} color={tc(colors.primary,'fg')} /><Text style={styles.skipLabel}>15 sec</Text></PressableScale>
-        <PressableScale disabled={disabled} onPress={() => isPlaying ? player.pause() : player.play()} style={[styles.play,disabled && styles.disabled]} scaleTo={reduceMotion ? 1 : 0.96} accessibilityRole="button" accessibilityLabel={isPlaying ? 'Pauză' : 'Redă lecția'}><Feather name={isPlaying ? 'pause' : 'play'} size={31} color={tc(colors.white,'fg')} /></PressableScale>
-        <PressableScale disabled={disabled} onPress={() => seek((player.currentTime || 0)+30)} style={styles.skip} accessibilityRole="button" accessibilityLabel="Înainte 30 secunde"><Feather name="rotate-cw" size={25} color={tc(colors.primary,'fg')} /><Text style={styles.skipLabel}>30 sec</Text></PressableScale>
+      {loading ? <Text style={styles.statusText} accessibilityLiveRegion="polite">Se încarcă videoclipul…</Text> : null}
+      {failed ? <View style={styles.failure}><Text style={styles.error} accessibilityRole="alert">Videoclipul nu s-a putut încărca.</Text><PressableScale style={styles.retry} onPress={retry} accessibilityRole="button" accessibilityLabel="Reîncearcă încărcarea"><Feather name="refresh-cw" size={17} color={tc(colors.primary,'fg')} /><Text style={styles.modeText}>Reîncearcă</Text></PressableScale></View> : null}
+      <View style={styles.console}>
+        <View style={styles.timeRow}><Text style={styles.time}>{time(displayedPosition)}</Text><Text style={styles.time}>{time(duration)}</Text></View>
+        <Slider style={styles.slider} accessibilityLabel="Poziție în videoclip" accessibilityValue={{text:`${time(displayedPosition)} din ${time(duration)}`}} disabled={disabled} minimumValue={0} maximumValue={duration || 1} value={displayedPosition} minimumTrackTintColor={tc(colors.primary,'fg')} maximumTrackTintColor={tc(colors.primarySoft,'bg')} thumbTintColor={tc(colors.accent,'fg')} onSlidingStart={() => { tracker.current.discontinuity(player.currentTime,Date.now(),false); setSeeking(true); }} onValueChange={setPosition} onSlidingComplete={(value) => { seek(value); setSeeking(false); }} />
+        <View style={styles.controls}>
+          <PressableScale disabled={disabled} onPress={() => seek((player.currentTime || 0)-15)} style={[styles.skip,disabled && styles.disabled]} accessibilityRole="button" accessibilityLabel="Înapoi 15 secunde"><Feather name="rotate-ccw" size={24} color={tc(colors.primary,'fg')} /><Text style={styles.skipLabel}>15 sec</Text></PressableScale>
+          <PressableScale disabled={disabled} onPress={() => isPlaying ? player.pause() : player.play()} style={[styles.play,disabled && styles.disabled]} scaleTo={reduceMotion ? 1 : 0.96} accessibilityRole="button" accessibilityLabel={isPlaying && !disabled ? 'Pauză' : 'Redă videoclipul'}><Feather name={isPlaying && !disabled ? 'pause' : 'play'} size={32} color={tc(colors.white,'fg')} style={!isPlaying ? {marginLeft:3} : null} /></PressableScale>
+          <PressableScale disabled={disabled} onPress={() => seek((player.currentTime || 0)+30)} style={[styles.skip,disabled && styles.disabled]} accessibilityRole="button" accessibilityLabel="Înainte 30 secunde"><Feather name="rotate-cw" size={24} color={tc(colors.primary,'fg')} /><Text style={styles.skipLabel}>30 sec</Text></PressableScale>
+        </View>
+        <View style={styles.consoleFooter}><PressableScale style={styles.speedToggle} onPress={() => setSpeedOpen(value => !value)} accessibilityRole="button" accessibilityLabel={`Viteză de redare: ${rate} ori`} accessibilityState={{expanded:speedOpen}}><Feather name="sliders" size={16} color={tc(colors.primary,'fg')} /><Text style={styles.modeText}>Viteză · {rate}×</Text><Feather name={speedOpen ? 'chevron-up' : 'chevron-down'} size={15} color={tc(colors.textMuted,'fg')} /></PressableScale>{!audioOnly && pictureInPictureSupported ? <PressableScale disabled={disabled} style={styles.pip} onPress={() => openView('startPictureInPicture')} accessibilityRole="button" accessibilityLabel="Redă în fereastră mică"><Feather name="minimize-2" size={18} color={tc(colors.primary,'fg')} /></PressableScale> : null}</View>
+        {speedOpen ? <View style={styles.speeds}>{[0.5,0.75,1,1.25,1.5,2].map(speed => <PressableScale key={speed} onPress={() => { tracker.current.discontinuity(player.currentTime,Date.now(),player.playing); player.playbackRate = speed; setRate(speed); setSpeedOpen(false); }} scaleTo={1} containerStyle={styles.speedCell} style={[styles.speed,rate === speed && styles.activeSpeed]} accessibilityRole="button" accessibilityState={{selected:speed === rate}} accessibilityLabel={`Viteza ${speed} ori`}><Text style={[styles.speedText,rate === speed && styles.activeSpeedText]}>{speed}×</Text></PressableScale>)}</View> : null}
       </View>
-      <View style={styles.speeds}>{[0.5,0.75,1,1.25,1.5,2].map((speed) => <PressableScale key={speed} onPress={() => { tracker.current.discontinuity(player.currentTime,Date.now(),player.playing); player.playbackRate = speed; setRate(speed); }} scaleTo={1} style={[styles.speed,rate === speed && styles.activeSpeed]} accessibilityRole="button" accessibilityState={{ selected: speed === rate }} accessibilityLabel={`Viteza ${speed} ori`}><Text style={styles.speedText}>{speed}×</Text></PressableScale>)}</View>
-      <PressableScale onPress={() => setAudioOnly(value => !value)} style={styles.modeToggle} scaleTo={reduceMotion ? 1 : 0.98} accessibilityRole="button" accessibilityLabel={audioOnly ? 'Revino la video' : 'Ascultă doar sunetul'} accessibilityState={{ selected: audioOnly }}><Feather name={audioOnly ? 'film' : 'headphones'} size={18} color={tc(colors.primary,'fg')} /><Text style={styles.modeText}>{audioOnly ? 'Revino la video' : 'Ascultă doar sunetul'}</Text></PressableScale>
-      <Text style={styles.subtitle}>Poți viziona lecția sau asculta același videoclip cu ecranul blocat.</Text>
+      <View style={styles.tip}><Feather name="headphones" size={17} color={tc(colors.accent,'fg')} /><Text style={styles.tipText}>Cu căști, îți poți oferi un moment fără distrageri.</Text></View>
+      {viewError ? <Text style={styles.error} accessibilityRole="alert">{viewError}</Text> : null}
       {saveError ? <Text style={styles.error}>Progresul nu s-a putut salva. Reîncearcă din ecranul de final.</Text> : null}
     </>}
-    <HeadphonesDisclaimer />
   </AppScreen>;
 }
-const createStyles = (tc) => StyleSheet.create({
-  videoStage: { width: '100%', aspectRatio: 16 / 9, borderRadius: 22, overflow: 'hidden', backgroundColor: colors.primaryDark, marginVertical: 20 },
-  video: { width: '100%', height: '100%' },
-  hiddenStage: { position: 'absolute', width: 1, height: 1, opacity: 0, marginVertical: 0 },
-  fullscreen: { position: 'absolute', right: 12, bottom: 12, padding: 12, borderRadius: 12, backgroundColor: 'rgba(16,25,35,0.65)' },
-  modeToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 16, borderRadius: 18, backgroundColor: tc(colors.primarySoft,'bg') },
-  modeText: { color: tc(colors.primary,'fg'), fontSize: 13, fontWeight: '600' },
-  cover: { alignItems: 'center', backgroundColor: tc(colors.primarySoft,'bg'), borderRadius: 28, paddingVertical: 20, marginVertical: 18 },
-  coverCaption: { color: tc(colors.textMuted,'fg'), fontSize: 11, lineHeight: 18, paddingHorizontal: 15 },
-  title: { fontFamily: fonts.display, fontSize: 27, lineHeight: 34, color: tc(colors.text,'fg'), marginBottom: 8 },
-  artist: { color: tc(colors.textMuted,'fg'), fontSize: 13, lineHeight: 20 },
-  subtitle: { color: tc(colors.textMuted,'fg'), fontSize: 13, lineHeight: 21, marginVertical: 12 },
-  progress: { marginTop: 30 },
-  timeRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 7 },
-  time: { color: tc(colors.textMuted,'fg'), fontSize: 12, fontVariant: ['tabular-nums'] },
-  controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 30, marginVertical: 24 },
-  play: { width: 78, height: 78, borderRadius: 39, alignItems: 'center', justifyContent: 'center', backgroundColor: tc(colors.primary,'bg') },
-  skip: { minWidth: 48, minHeight: 58, alignItems: 'center', justifyContent: 'center', gap: 6 },
-  skipLabel: { fontSize: 11, color: tc(colors.textMuted,'fg') },
-  speeds: { flexDirection: 'row', justifyContent: 'center', gap: 2, flexWrap: 'wrap', marginBottom: 20 },
-  speed: { minWidth: 48, minHeight: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  activeSpeed: { backgroundColor: tc(colors.primarySoft,'bg') },
-  speedText: { fontSize: 12, color: tc(colors.primary,'fg') },
-  disabled: { opacity: 0.4 },
-  state: { paddingVertical: 16 },
-  error: { color: tc(colors.danger,'fg'), fontSize: 13, lineHeight: 21 },
-  completion: { paddingVertical: 28, alignItems: 'stretch' },
-  nextAction: { marginTop: 12 },
+const createStyles = tc => StyleSheet.create({
+  screen:{width:'100%',maxWidth:680,alignSelf:'center',paddingBottom:30},
+  heading:{paddingTop:10,paddingBottom:22},eyebrow:{fontSize:12,lineHeight:19,color:tc(colors.textMuted,'fg'),marginBottom:10},
+  title:{fontFamily:fonts.display,fontSize:29,lineHeight:37,color:tc(colors.text,'fg'),marginBottom:10},artist:{fontSize:12,lineHeight:20,color:tc(colors.textMuted,'fg')},
+  videoStage:{width:'100%',aspectRatio:16/9,borderRadius:22,overflow:'hidden',backgroundColor:colors.primaryDark,marginBottom:18},video:{width:'100%',height:'100%'},
+  hiddenStage:{position:'absolute',width:1,height:1,opacity:0,marginBottom:0},fullscreen:{position:'absolute',right:10,bottom:10,width:44,height:44,alignItems:'center',justifyContent:'center',borderRadius:13,backgroundColor:'rgba(16,25,35,0.65)'},
+  videoOverlay:{...StyleSheet.absoluteFillObject,backgroundColor:tc(colors.primarySoft,'bg'),alignItems:'center',justifyContent:'center',gap:12},
+  audioStage:{paddingVertical:24,paddingHorizontal:20,borderRadius:22,backgroundColor:tc(colors.primarySoft,'bg'),alignItems:'center',marginBottom:18},audioMark:{width:70,height:70,borderRadius:24,backgroundColor:tc(colors.surfaceStrong,'bg'),alignItems:'center',justifyContent:'center',marginBottom:15},audioTitle:{fontFamily:fonts.display,fontSize:24,lineHeight:30,color:tc(colors.text,'fg')},audioCaption:{fontSize:12,lineHeight:20,color:tc(colors.textMuted,'fg'),textAlign:'center',marginTop:6},
+  modeSwitch:{flexDirection:'row',backgroundColor:tc(colors.primarySoft,'bg'),padding:5,borderRadius:18,gap:6,marginBottom:18},modeCell:{flex:1,minWidth:0},modeOption:{minHeight:48,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:9,borderRadius:13},activeMode:{backgroundColor:tc(colors.surfaceStrong,'bg')},modeText:{fontSize:13,lineHeight:20,color:tc(colors.primary,'fg')},activeModeText:{fontWeight:'600'},
+  statusText:{fontSize:13,lineHeight:21,color:tc(colors.textMuted,'fg'),marginBottom:16},failure:{gap:5,paddingBottom:16},retry:{flexDirection:'row',alignItems:'center',gap:9,alignSelf:'flex-start',minHeight:44,paddingHorizontal:10},error:{fontSize:13,lineHeight:21,color:tc(colors.danger,'fg')},
+  console:{padding:18,borderRadius:24,backgroundColor:tc(colors.surfaceStrong,'bg')},timeRow:{flexDirection:'row',justifyContent:'space-between'},time:{fontSize:12,lineHeight:18,color:tc(colors.textMuted,'fg'),fontVariant:['tabular-nums']},slider:{height:40,marginHorizontal:-4},
+  controls:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:14,marginTop:10,marginBottom:22},play:{width:80,height:80,borderRadius:40,alignItems:'center',justifyContent:'center',backgroundColor:tc(colors.primary,'bg')},skip:{width:62,minHeight:66,borderRadius:18,backgroundColor:tc(colors.primarySoft,'bg'),alignItems:'center',justifyContent:'center',gap:7},skipLabel:{fontSize:11,lineHeight:17,color:tc(colors.primary,'fg')},disabled:{opacity:0.4},
+  consoleFooter:{borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:tc(colors.border,'bg'),paddingTop:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12},speedToggle:{minHeight:44,flexDirection:'row',alignItems:'center',gap:8},pip:{width:44,height:44,alignItems:'center',justifyContent:'center',borderRadius:12,backgroundColor:tc(colors.primarySoft,'bg')},
+  speeds:{flexDirection:'row',flexWrap:'wrap',gap:8,marginTop:12},speedCell:{flexBasis:'30%',flexGrow:1,minWidth:58},speed:{minHeight:46,alignItems:'center',justifyContent:'center',borderRadius:12,backgroundColor:tc(colors.primarySoft,'bg')},activeSpeed:{backgroundColor:tc(colors.primary,'bg')},speedText:{fontSize:13,color:tc(colors.primary,'fg')},activeSpeedText:{color:tc(colors.white,'fg'),fontWeight:'600'},
+  tip:{flexDirection:'row',gap:10,alignItems:'center',marginTop:22,paddingHorizontal:4},tipText:{flex:1,fontSize:12,lineHeight:20,color:tc(colors.textMuted,'fg')},subtitle:{fontSize:14,lineHeight:23,color:tc(colors.textMuted,'fg'),marginVertical:12},completion:{paddingTop:40},finishActions:{gap:12,marginTop:24},
 });

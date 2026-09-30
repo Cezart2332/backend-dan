@@ -1,91 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Feather, Ionicons } from '@expo/vector-icons';
-import { useTheme, useThemedStyles } from './ui/themeContext';
+import VideoLibraryContent from './VideoLibraryContent';
 
+const items = [
+  {id:'intro',title:'Intro',description:'Prezentarea lui Dan',screen:'AboutDanIntro'},
+  {id:'cine',title:'Cine sunt eu?',description:'Povestea lui Dan',screen:'AboutDanCineVideo'},
+  {id:'experienta',title:'Din experiența mea',kind:'category',screen:'DinExperientaMea'},
+];
 export default function AboutDanScreen({ navigation }) {
-  const { tc } = useTheme();
-  const styles = useThemedStyles(createStyles);
-  const items = [
-    { id: 'intro', title: 'Intro', subtitle: 'Prezentarea lui Dan', iconName: 'book-outline', iconColor: '#24384e', iconBg: '#e8ebef' },
-    { id: 'cine', title: 'Cine sunt eu?', subtitle: 'Povestea lui Dan', iconName: 'person-circle-outline', iconColor: '#6d6b8f', iconBg: '#ececf2' },
-    { id: 'experienta', title: 'Din experiența mea', subtitle: 'Lecții personale', iconName: 'compass-outline', iconColor: '#3e7e76', iconBg: '#e9f0ef' },
-  ];
-
-  const openItem = (it) => {
-    if (it.id === 'intro') {
-      navigation.navigate('AboutDanIntro');
-    } else if (it.id === 'cine') {
-      navigation.navigate('AboutDanCineVideo');
-    } else if (it.id === 'experienta') {
-      navigation.navigate('DinExperientaMea');
-    } else {
-      navigation.navigate('AboutDanSection', { section: it });
-    }
-  };
-
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={[tc("#f6f7f8", 'bg'), tc("#f3f4f6", 'bg'), tc("#eef0f2", 'bg')]} style={styles.background}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
-            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Înapoi" onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
-              <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Despre Dan</Text>
-          </View>
-
-          <Text style={styles.sectionLabel}>POVESTEA ȘI EXPERIENȚA LUI DAN</Text>
-          <View style={styles.group}>
-            {items.map((it, index) => (
-              <React.Fragment key={it.id}>
-                {index > 0 && <View style={styles.separator} />}
-                <TouchableOpacity style={styles.row} onPress={() => openItem(it)} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={it.title}>
-                  <View style={[styles.iconWrap, { backgroundColor: tc(it.iconBg, 'bg') }]}>
-                    <Ionicons name={it.iconName} size={20} color={tc(it.iconColor, 'fg')} />
-                  </View>
-                  <View style={styles.rowTextWrap}>
-                    <Text style={styles.rowTitle}>{it.title}</Text>
-                    <Text style={styles.rowSubtitle}>{it.subtitle}</Text>
-                  </View>
-                  <Feather name="chevron-right" size={18} color={tc("#9aa5b1", 'fg')} />
-                </TouchableOpacity>
-              </React.Fragment>
-            ))}
-          </View>
-        </ScrollView>
-      </LinearGradient>
-    </SafeAreaView>
-  );
+  return <VideoLibraryContent navigation={navigation} title="Despre Dan"
+    description="Cunoaște povestea lui Dan și experiențele pe care le împărtășește."
+    lessons={items} sectionLabel="Povestea și experiența lui Dan"
+    onPlay={item => navigation.navigate(item.screen)} />;
 }
-
-const createStyles = (tc) => StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: tc("#f6f7f8", 'bg') },
-  background: { flex: 1 },
-  content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 40 },
-  header: { flexDirection: "row", alignItems: "center", marginBottom: 28, marginTop: 4 },
-  backBtn: {
-    width: 38, height: 38, borderRadius: 19,
-    backgroundColor: tc("rgba(255,255,255,0.55)", 'bg'),
-    alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: tc("rgba(32,47,62,0.18)", 'bg'),
-    shadowColor: "#24384e", shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12, shadowRadius: 6, elevation: 3, marginRight: 14,
-  },
-  headerTitle: { fontSize: 22, fontWeight: "700", color: tc("#1c2b3a", 'fg'), letterSpacing: -0.3 },
-  sectionLabel: { fontSize: 11, fontWeight: "700", color: tc("#8a97a5", 'fg'), letterSpacing: 1.2, marginBottom: 8, marginLeft: 4 },
-  group: {
-    backgroundColor: tc("rgba(255,255,255,0.58)", 'bg'), borderRadius: 18,
-    borderWidth: 1, borderColor: tc("rgba(32,47,62,0.18)", 'bg'), overflow: "hidden",
-    shadowColor: "#24384e", shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
-  },
-  separator: { height: 1, backgroundColor: tc("rgba(32,47,62,0.18)", 'bg'), marginLeft: 68 },
-  row: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16 },
-  iconWrap: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", marginRight: 14 },
-  rowTextWrap: { flex: 1 },
-  rowTitle: { fontSize: 15, fontWeight: "600", color: tc("#1c2b3a", 'fg'), marginBottom: 2 },
-  rowSubtitle: { fontSize: 12, color: tc("#8a97a5", 'fg') },
-});

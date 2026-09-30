@@ -62,7 +62,7 @@ export function PressableScale({
   );
 }
 
-export function AppScreen({ children, scroll = true, keyboard = false, contentStyle }) {
+export function AppScreen({ children, scroll = true, keyboard = false, contentStyle, overlay }) {
   const { tc } = useTheme();
   const styles = useThemedStyles(createStyles);
   const body = scroll ? (
@@ -90,6 +90,7 @@ export function AppScreen({ children, scroll = true, keyboard = false, contentSt
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={tc(gradients.screen, 'bg')} style={styles.flex}>
         {wrapped}
+        {overlay}
       </LinearGradient>
     </SafeAreaView>
   );
