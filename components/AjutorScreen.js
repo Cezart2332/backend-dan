@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import HeadphonesDisclaimer from './HeadphonesDisclaimer';
 import { useTheme, useThemedStyles } from './ui/themeContext';
+import { AppButton } from './ui';
 
 export default function AjutorScreen({ navigation }) {
   const { tc } = useTheme();
@@ -21,6 +22,7 @@ export default function AjutorScreen({ navigation }) {
           </View>
 
           <Text style={styles.sectionLabel}>INTERVENȚIE RAPIDĂ</Text>
+          <AppButton title="Pornește SOS · respirație ghidată" icon="wind" onPress={() => navigation.navigate('Panic')} />
           <Text style={styles.intro}>Alege ce simți acum și intră în modul de intervenție.</Text>
 
           <View style={styles.group}>

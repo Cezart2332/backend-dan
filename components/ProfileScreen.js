@@ -5,6 +5,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -19,6 +20,7 @@ import { api, toAbsoluteApiUrl } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { getUser, saveUser } from '../utils/userStorage';
 import { useTheme, useThemedStyles } from './ui/themeContext';
+import ProfileActivity from './ProfileActivity';
 
 const MAX_AVATAR_BYTES = 3 * 1024 * 1024;
 
@@ -226,6 +228,7 @@ export default function ProfileScreen({ navigation }) {
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
           >
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 24 }}>
             <View style={styles.avatarSection}>
               <TouchableOpacity accessibilityRole="button" accessibilityLabel="Schimbă poza de profil" onPress={handlePickAvatar} activeOpacity={0.8} style={styles.avatarTapArea}>
                 {displayedAvatarUri ? (
@@ -249,6 +252,7 @@ export default function ProfileScreen({ navigation }) {
               ) : null}
             </View>
 
+            <ProfileActivity navigation={navigation} />
             <View style={styles.card}>
               <Text style={styles.label}>Nume afisat</Text>
               <TextInput
@@ -278,6 +282,7 @@ export default function ProfileScreen({ navigation }) {
                 </>
               )}
             </TouchableOpacity>
+            </ScrollView>
           </KeyboardAvoidingView>
         )}
       </LinearGradient>

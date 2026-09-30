@@ -9,6 +9,7 @@ import { getEntries, replaceAllWithServerEntries, isBackendReady } from '../util
 import { getToken } from '../utils/authStorage';
 import { api } from '../utils/api';
 import { useTheme, useThemedStyles } from './ui/themeContext';
+import { AppButton } from './ui';
 
 export default function ProgressHistoryScreen({ navigation }) {
   const { tc } = useTheme();
@@ -75,6 +76,7 @@ export default function ProgressHistoryScreen({ navigation }) {
           <Text style={styles.title}>Istoric Progres</Text>
         </View>
         <FlatList
+          ListHeaderComponent={<AppButton title="Vezi timeline-ul check-in-urilor" variant="ghost" onPress={() => navigation.navigate('MoodTimeline')} />}
           data={entries}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}

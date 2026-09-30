@@ -21,6 +21,10 @@ import { getToken } from "../utils/authStorage";
 import { signOutCleanup } from "../utils/session";
 import { hapticNotify, hapticSelection } from "../utils/haptics";
 import { useTheme, useThemedStyles } from "./ui/themeContext";
+import { AppButton } from './ui';
+import { getUser } from '../utils/userStorage';
+import { wellbeingRepository, stopWellbeingAccount } from '../utils/wellbeingRuntime';
+import { deleteAudioActivity } from '../utils/audioActivity';
 
 const THEME_OPTIONS = [
   { value: "system", label: "Sistem", icon: "smartphone" },
@@ -89,6 +93,10 @@ export default function SettingsScreen({ navigation, onLogout }) {
       const response = await api.deleteAccount(token);
       
       if (response.success) {
+        const user = await getUser();
+        await stopWellbeingAccount();
+        if (user?.id) await wellbeingRepository.remove(String(user.id));
+        if (user?.id) await deleteAudioActivity(user.id);
         // Clear all local storage
         await signOutCleanup();
         hapticNotify("success");
@@ -180,6 +188,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
           </View>
 
           {/* Section: Notificări */}
+          <AppButton title="Setări SOS și reminder check-in" variant="ghost" onPress={() => navigation.navigate('WellbeingSettings')} />
           <Text style={styles.sectionLabel}>NOTIFICĂRI</Text>
           <View style={styles.group}>
             <View style={styles.row}>

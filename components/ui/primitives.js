@@ -154,6 +154,9 @@ export function AppButton({
     <PressableScale
       onPress={onPress}
       disabled={disabled || loading}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
       style={[
         styles.button,
         isSolid && styles.solidButton,

@@ -6,12 +6,14 @@ import { replaceAllRuns } from './challengeStorage';
 import { logoutRevenueCatUser } from './revenuecat';
 import { clearAppBadge } from './appBadge';
 import { unregisterPushNotifications } from './pushRegistration';
+import { stopWellbeingAccount } from './wellbeingRuntime';
 
 /**
  * Curățenia la ieșirea din cont. Dezabonarea de la push are nevoie de
  * sesiune, așa că rulează înainte de ștergerea token-ului.
  */
 export async function signOutCleanup() {
+  await stopWellbeingAccount();
   await unregisterPushNotifications();
   await Promise.allSettled([
     logoutRevenueCatUser(),

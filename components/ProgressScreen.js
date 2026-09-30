@@ -19,6 +19,7 @@ import { getToken } from '../utils/authStorage';
 import { api } from '../utils/api';
 import { useTheme, useThemedStyles } from './ui/themeContext';
 import { hapticNotify } from '../utils/haptics';
+import { AppButton } from './ui';
 
 const { width } = Dimensions.get('window');
 
@@ -129,6 +130,8 @@ export default function ProgressScreen({ navigation }) {
           </View>
 
           {/* Anxiety Level Section */}
+          <AppButton title="Check-in rapid" variant="ghost" onPress={() => navigation.navigate('CheckIn')} />
+          <AppButton title="Starea mea în timp" variant="ghost" onPress={() => navigation.navigate('MoodTimeline')} />
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Nivel de anxietate</Text>
             <Text style={styles.sectionSubtitle}>Selectează nivelul tău actual (1-10)</Text>

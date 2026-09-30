@@ -870,16 +870,16 @@ export default function CommunityChatScreen({ navigation }) {
         <View style={[styles.otherRow, isLastInGroup ? styles.groupEnd : styles.groupInner]}>
           {!isFirstInGroup ? (
             <View style={styles.otherAvatarSpacer} />
-          ) : item.avatar ? (
-            <Image source={{ uri: item.avatar }} style={styles.otherAvatar} />
           ) : (
-            <View style={styles.otherAvatarFallback}>
+            <PressableScale accessibilityRole="button" accessibilityLabel={`Vezi profilul ${item.displayName}`} disabled={!Number(item.userId)} onPress={() => navigation.navigate('PublicProfile', { userId: item.userId })} scaleTo={1}>
+            {item.avatar ? <Image source={{ uri: item.avatar }} style={styles.otherAvatar} /> : <View style={styles.otherAvatarFallback}>
               <Text style={styles.otherAvatarInitial}>{avatarInitial(item.displayName)}</Text>
-            </View>
+            </View>}
+            </PressableScale>
           )}
           <View style={styles.otherContent}>
             {isFirstInGroup ? (
-              <Text style={styles.otherName}>
+              <Text style={styles.otherName} accessibilityRole="button" accessibilityLabel={`Vezi profilul ${item.displayName}`} onPress={() => Number(item.userId) && navigation.navigate('PublicProfile', { userId: item.userId })}>
                 {item.displayName}
                 <Text style={styles.otherTime}>  {formatMessageTime(item.createdAt)}</Text>
               </Text>
@@ -905,6 +905,7 @@ export default function CommunityChatScreen({ navigation }) {
     },
     [
       currentUserId,
+      navigation,
       handleFailedPress,
       handleMessagePress,
       highlightedId,
@@ -941,6 +942,9 @@ export default function CommunityChatScreen({ navigation }) {
               <Text style={styles.statusText}>{connectionLabel}</Text>
             </View>
           </View>
+          <PressableScale accessibilityRole="button" accessibilityLabel="Prieteni și mesaje" onPress={() => navigation.navigate('Friends')} style={styles.headerAction} scaleTo={1}>
+            <Feather name="users" size={19} color={tc('#24384e', 'fg')} />
+          </PressableScale>
           <PressableScale accessibilityRole="button" accessibilityLabel="Reîncarcă"
             onPress={() => loadHistory({ before: null, appendOlder: false })}
             style={styles.headerAction}

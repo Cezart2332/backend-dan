@@ -14,6 +14,7 @@ import {
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useSubscription } from "../contexts/SubscriptionContext";
 import { signOutCleanup } from "../utils/session";
+import { subscriptionLoadingVisible } from '../utils/subscriptionPolicy.mjs';
 import { useTheme, useThemedStyles } from "./ui/themeContext";
 
 const { width } = Dimensions.get("window");
@@ -40,11 +41,7 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
   const [pendingAction, setPendingAction] = useState(null);
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
-  const shouldShowLoading = useMemo(() => {
-    if (!isAuthed) return false;
-    if (pendingAction) return false;
-    return initializing || !subscriptionResolved;
-  }, [isAuthed, initializing, subscriptionResolved, pendingAction]);
+  const shouldShowLoading = subscriptionLoadingVisible({ isAuthed, paywallRequested, initializing, subscriptionResolved, pendingAction });
 
   // Paywall-ul nu se mai afiseaza automat pentru utilizatorii fara abonament.
   // Apare doar la cerere (paywallRequested), cand utilizatorul apasa pe o sectiune blocata.
@@ -143,6 +140,8 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
     try {
       setPendingAction("refresh");
       await refresh();
+    } catch (err) {
+      Alert.alert("Abonament", err?.message || "Nu am putut actualiza abonamentul.");
     } finally {
       setPendingAction(null);
     }

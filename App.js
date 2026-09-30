@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AppState } from "react-native";
+import { AppState, Platform } from "react-native";
 import { DarkTheme, DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { StatusBar } from "expo-status-bar";
@@ -11,6 +11,15 @@ import ForgotPasswordScreen from "./components/ForgotPasswordScreen";
 import DashboardScreen from "./components/DashboardScreen";
 import ProvocarilScreen from "./components/ProvocarilScreen";
 import ProgressScreen from "./components/ProgressScreen";
+import PanicScreen from "./components/PanicScreen";
+import CheckInScreen from "./components/CheckInScreen";
+import MoodTimelineScreen from "./components/MoodTimelineScreen";
+import OfflineKitScreen from "./components/OfflineKitScreen";
+import WellbeingSettingsScreen from "./components/WellbeingSettingsScreen";
+import { WellbeingProvider } from "./contexts/WellbeingContext";
+import { getUser } from "./utils/userStorage";
+import { stopWellbeingAccount } from "./utils/wellbeingRuntime";
+import { startAudioSync } from "./utils/audioActivity";
 import OnboardingQuestionsScreen from "./components/OnboardingQuestionsScreen";
 import QuoteOfTheDayScreen from "./components/QuoteOfTheDayScreen";
 import TehniciScreen from "./components/TehniciScreen";
@@ -48,6 +57,9 @@ import SettingsScreen from "./components/SettingsScreen";
 import MedicalInfoScreen from "./components/MedicalInfoScreen";
 import CommunityChatScreen from "./components/CommunityChatScreen";
 import ProfileScreen from "./components/ProfileScreen";
+import FriendsScreen from "./components/FriendsScreen";
+import PublicProfileScreen from "./components/PublicProfileScreen";
+import PrivateChatScreen from "./components/PrivateChatScreen";
 import CmsSectionScreen from "./components/CmsSectionScreen";
 import NotificationsScreen from "./components/NotificationsScreen";
 import { getToken, clearToken } from "./utils/authStorage";
@@ -111,6 +123,7 @@ function AppContent() {
 
   const [booting, setBooting] = useState(true);
   const [isAuthed, setIsAuthed] = useState(false);
+  useEffect(() => { if (isAuthed) return startAudioSync(); }, [isAuthed]);
   const navigationRef = useRef(null);
   const [currentRoute, setCurrentRoute] = useState(null);
   const isAuthedRef = useRef(false);
@@ -148,6 +161,7 @@ function AppContent() {
     // publicitar Meta. Pe Android permisiunea e acordată implicit.
     (async () => {
       try {
+        if (Platform.OS === 'web') return;
         const { requestTrackingPermissionsAsync } = require("expo-tracking-transparency");
         const { status } = await requestTrackingPermissionsAsync();
         metaEvents.setAdvertiserTrackingEnabled(status === "granted");
@@ -164,29 +178,19 @@ function AppContent() {
           if (mounted) setIsAuthed(false);
           return;
         }
-        // Validate token against server — if the account was deleted or
-        // the DB was wiped, the server returns 401 and we force logout.
-        try {
-          await api.getCurrentSubscription(token);
-          if (mounted) setIsAuthed(true);
-        } catch (err) {
+        // Cached identity opens the app immediately. Server validation runs in
+        // the background and can revoke only the same session that started it.
+        if (mounted) setIsAuthed(true);
+        api.getCurrentSubscription(token).catch(async (err) => {
           const msg = err?.message || '';
-          // 401 / auth errors → account no longer exists, clear everything
-          if (msg.includes('Neautorizat') || msg.includes('401') || msg.includes('BAD_TOKEN') || msg.includes('NO_AUTH')) {
-            await Promise.allSettled([
-              clearToken(),
-              clearUser(),
-              clearSubscription(),
-              clearEntries(),
-              replaceAllRuns([]),
-            ]);
-            clearAppBadge();
-            if (mounted) setIsAuthed(false);
-          } else {
-            // Network error / server down → let user in with cached data
-            if (mounted) setIsAuthed(true);
-          }
-        }
+          const revoked = err?.status === 401 || ['Neautorizat','BAD_TOKEN','NO_AUTH'].some(value => msg.includes(value));
+          if (!revoked || !mounted || await getToken() !== token) return;
+          await stopWellbeingAccount();
+          if (!mounted || await getToken() !== token) return;
+          await Promise.allSettled([clearToken(), clearUser(), clearSubscription(), clearEntries(), replaceAllRuns([])]);
+          clearAppBadge();
+          if (mounted) setIsAuthed(false);
+        }).catch(() => {});
       } catch {
         if (mounted) setIsAuthed(false);
       } finally {
@@ -234,6 +238,12 @@ function AppContent() {
 
       const data = notification?.request?.content?.data || {};
       const type = String(data?.type || '').toLowerCase();
+      if (type === 'wellbeing_checkin') {
+        getUser().then((user) => {
+          if (active && user?.id && String(user.id) === String(data.owner)) navigateFromNotification('CheckIn');
+        }).catch(() => {});
+        return;
+      }
 
       // Mesajele de chat duc direct în conversație (stil WhatsApp), gândul zilei
       // în ecranul lui — restul notificărilor în secțiunea dedicată de Notificări.
@@ -274,6 +284,7 @@ function AppContent() {
   };
   return (
     <SubscriptionProvider isAuthed={isAuthed}>
+      <WellbeingProvider isAuthed={isAuthed}>
       <NavigationContainer
         ref={navigationRef}
         theme={navigationTheme}
@@ -316,7 +327,15 @@ function AppContent() {
               )}
             </Stack.Screen>
             <Stack.Screen name="Provocari" component={ProvocarilScreen} />
+            <Stack.Screen name="Friends" component={FriendsScreen} />
+            <Stack.Screen name="PublicProfile" component={PublicProfileScreen} />
+            <Stack.Screen name="PrivateChat" component={PrivateChatScreen} />
             <Stack.Screen name="Progress" component={ProgressScreen} />
+            <Stack.Screen name="Panic" component={PanicScreen} />
+            <Stack.Screen name="CheckIn" component={CheckInScreen} />
+            <Stack.Screen name="MoodTimeline" component={MoodTimelineScreen} />
+            <Stack.Screen name="OfflineKit" component={OfflineKitScreen} />
+            <Stack.Screen name="WellbeingSettings" component={WellbeingSettingsScreen} />
             <Stack.Screen
               name="Onboarding"
               component={OnboardingQuestionsScreen}
@@ -455,6 +474,7 @@ function AppContent() {
         currentRoute={currentRoute}
         onLogout={() => setIsAuthed(false)}
       />
+      </WellbeingProvider>
     </SubscriptionProvider>
   );
 }

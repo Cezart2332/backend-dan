@@ -47,7 +47,11 @@ async function request(path, { method = 'GET', body, token, timeoutMs = 15000 } 
     });
     const text = await res.text();
     const data = (() => { try { return JSON.parse(text); } catch { return text; } })();
-    if (!res.ok) throw new Error(data?.error || data || 'Request failed');
+    if (!res.ok) {
+      const error = new Error(data?.error || data || 'Request failed');
+      error.status = res.status;
+      throw error;
+    }
     return data;
   } catch (e) {
     if (e?.name === 'AbortError') throw new Error('Server indisponibil. Încearcă din nou.');
@@ -58,6 +62,23 @@ async function request(path, { method = 'GET', body, token, timeoutMs = 15000 } 
 }
 
 export const api = {
+  saveAudioActivity: (payload, token) => request('/api/activity/audio', { method: 'POST', body: payload, token }),
+  getActivityStats: (token) => request('/api/activity/stats', { token }),
+  getSocialProfile: (id, token) => request(`/api/social/profiles/${encodeURIComponent(id)}`, { token }),
+  saveSocialPreferences: (shareActivity, token) => request('/api/social/preferences', { method: 'PUT', body: { shareActivity }, token }),
+  getFriends: (token, after) => request(`/api/social/friends${after ? `?after=${encodeURIComponent(after)}` : ''}`, { token }),
+  getSocialUnreadCount: (token) => request('/api/social/unread-count', { token }),
+  searchPeople: (q, token, after) => request(`/api/social/people?q=${encodeURIComponent(q)}${after ? `&after=${encodeURIComponent(after)}` : ''}`, { token }),
+  friendAction: (id, action, token) => request(`/api/social/friends/${encodeURIComponent(id)}${action === 'accept' ? '/accept' : ''}`, { method: action === 'remove' ? 'DELETE' : 'POST', token }),
+  blockPerson: (id, token) => request(`/api/social/blocks/${encodeURIComponent(id)}`, { method: 'POST', token }),
+  getBlockedPeople: (token, after) => request(`/api/social/blocks${after ? `?after=${encodeURIComponent(after)}` : ''}`, { token }),
+  unblockPerson: (id, token) => request(`/api/social/blocks/${encodeURIComponent(id)}`, { method: 'DELETE', token }),
+  getPrivateMessages: (id, token, direction, cursor) => request(`/api/social/private/${encodeURIComponent(id)}/messages${cursor ? `?${direction}=${encodeURIComponent(cursor)}` : ''}`, { token }),
+  sendPrivateMessage: (id, payload, token) => request(`/api/social/private/${encodeURIComponent(id)}/messages`, { method: 'POST', body: payload, token }),
+  readPrivateMessages: (id, lastId, token) => request(`/api/social/private/${encodeURIComponent(id)}/read`, { method: 'POST', body: { lastId }, token }),
+  createWellbeing: (kind, payload, token) => request(`/api/wellbeing/${kind}`, { method: 'POST', body: payload, token }),
+  listWellbeing: (kind, page, token) => request(`/api/wellbeing/${kind}?page=${page}&limit=100`, { token }),
+  updateWellbeingFeedback: (clientId, payload, token) => request(`/api/wellbeing/sessions/${clientId}/feedback`, { method: 'PATCH', body: payload, token }),
   register: (payload) => request('/api/custom-auth/register', { method: 'POST', body: payload }),
   login: (payload) => request('/api/custom-auth/login', { method: 'POST', body: payload }),
   oauthGoogle: (id_token) => request('/api/custom-auth/oauth/google', { method: 'POST', body: { id_token } }),

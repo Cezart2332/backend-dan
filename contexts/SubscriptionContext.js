@@ -5,7 +5,6 @@ import { api } from "../utils/api";
 import { getToken } from "../utils/authStorage";
 import { getUser } from "../utils/userStorage";
 import {
-  clearSubscription,
   getSubscription,
   saveSubscription,
 } from "../utils/subscriptionStorage";
@@ -19,9 +18,7 @@ import {
   OFFERING_IDS,
   getProEntitlement,
   getRevenueCatErrorMessage,
-  identifyRevenueCatUser,
   isProEntitlementActive,
-  logoutRevenueCatUser,
   presentRevenueCatCustomerCenter,
   presentRevenueCatPaywall,
   PRO_ENTITLEMENT_ID,
@@ -29,6 +26,8 @@ import {
   purchaseRevenueCatPackage,
   restoreRevenueCatPurchases,
 } from "../utils/revenuecat";
+
+import { cachedSubscription, liveSubscription } from '../utils/subscriptionPolicy.mjs';
 
 const SubscriptionContext = createContext(null);
 
@@ -83,291 +82,144 @@ export function SubscriptionProvider({ children, isAuthed }) {
   const listenerRef = useRef(null);
   const appStateRef = useRef(AppState.currentState);
 
-  const applyCustomerInfo = useCallback(async (info, { expectedAppUserId } = {}) => {
-    setCustomerInfo(info || null);
+  const snapshotRevisionRef = useRef(0);
+  const activeOwnerRef = useRef(null);
+  const epochRef = useRef(0);
+  const authedRef = useRef(isAuthed);
+  authedRef.current = isAuthed;
+  const applySnapshot = useCallback((snapshot) => {
+    snapshotRevisionRef.current++;
+    const { _ownerId, _status = 'none', _trialEligible = false, ...sub } = snapshot || {};
+    setSubscription(sub.type ? sub : null);
+    setStatus(_status);
+    setTrialEligible(_trialEligible);
+    setHasProEntitlement(_status === 'active' && isPaidSubscriptionType(sub.type));
+  }, []);
+  const sameSession = useCallback(async (owner, token, epoch) => {
+    const [user, currentToken] = await Promise.all([getUser(), getToken()]);
+    return authedRef.current && epochRef.current === epoch &&
+      normalizeAppUserId(user?.id) === owner && currentToken === token;
+  }, []);
+  const describeCustomer = useCallback((info, owner) => {
     const entitlement = getProEntitlement(info);
     const hasEntitlement = isProEntitlementActive(info);
-
-    const currentUser = await getUser();
-    const resolvedExpectedAppUserId =
-      normalizeAppUserId(expectedAppUserId) ||
-      normalizeAppUserId(currentUser?.id) ||
-      normalizeAppUserId(currentUser?.email);
     const originalAppUserId = normalizeAppUserId(info?.originalAppUserId);
-    const ownershipMismatch =
-      hasEntitlement &&
-      Boolean(resolvedExpectedAppUserId) &&
-      Boolean(originalAppUserId) &&
-      resolvedExpectedAppUserId !== originalAppUserId;
-
-    if (ownershipMismatch) {
-      setHasProEntitlement(false);
-      setStatus("none");
-      setSubscription(null);
-
-      try {
-        await saveSubscription({ _status: "none", _trialEligible: false });
-      } catch {
-        // Cache save failed.
-      }
-
-      return {
-        nextStatus: "none",
-        hasEntitlement: false,
-        ownershipMismatch: true,
-        expectedAppUserId: resolvedExpectedAppUserId,
-        originalAppUserId,
-      };
-    }
-
-    setHasProEntitlement(hasEntitlement);
-
-    const nextStatus = getRevenueCatSubscriptionStatus(info);
-
-    const nextSubscription = hasEntitlement
-      ? {
-          type: "pro",
-          product_id: entitlement?.productIdentifier || null,
-          starts_at: entitlement?.latestPurchaseDate || null,
-          ends_at: entitlement?.expirationDate || null,
-          store: entitlement?.store || null,
-          will_renew: entitlement?.willRenew,
-        }
-      : null;
-
-    setStatus(nextStatus);
-    setSubscription(nextSubscription);
-    setTrialEligible(false);
-
-    try {
-      if (nextSubscription) {
-        await saveSubscription({
-          ...nextSubscription,
-          _status: nextStatus,
-          _trialEligible: false,
-        });
-      } else {
-        await saveSubscription({ _status: nextStatus, _trialEligible: false });
-      }
-
-      // Keep backend subscription status synchronized for admin/reporting and auth checks.
-      const token = await getToken();
-      if (token) {
-        await api.syncRevenueCatSubscription(
-          {
-            status: nextStatus,
-            productId: nextSubscription?.product_id || null,
-            startsAt: nextSubscription?.starts_at || null,
-            endsAt: nextSubscription?.ends_at || null,
-            store: nextSubscription?.store || null,
-            willRenew:
-              typeof nextSubscription?.will_renew === "boolean"
-                ? nextSubscription.will_renew
-                : null,
-            entitlementId: PRO_ENTITLEMENT_ID,
-            appUserId: resolvedExpectedAppUserId || originalAppUserId || null,
-          },
-          token
-        );
-      }
-    } catch {
-      // Cache save failed.
-    }
-
     return {
-      nextStatus,
-      hasEntitlement,
-      ownershipMismatch: false,
-      expectedAppUserId: resolvedExpectedAppUserId,
-      originalAppUserId,
+      nextStatus: getRevenueCatSubscriptionStatus(info), hasEntitlement,
+      ownershipMismatch: hasEntitlement && Boolean(originalAppUserId) && originalAppUserId !== owner,
+      expectedAppUserId: owner, originalAppUserId,
+      subscription: hasEntitlement ? { type: 'pro', product_id: entitlement?.productIdentifier || null,
+        starts_at: entitlement?.latestPurchaseDate || null, ends_at: entitlement?.expirationDate || null,
+        store: entitlement?.store || null, will_renew: entitlement?.willRenew } : null,
     };
   }, []);
-
-  const applyBackendSubscription = useCallback(
-    async (backendCurrent, { hasRevenueCatEntitlement = false } = {}) => {
-      if (!backendCurrent || typeof backendCurrent !== "object") return;
-
-      const backendStatus = backendCurrent.status || "none";
-      const backendSub = backendCurrent.subscription || null;
-      const backendType = String(backendSub?.type || "").toLowerCase();
-      const hasActiveTrial = backendStatus === "active" && backendType === "trial";
-
-      if (hasActiveTrial && !hasRevenueCatEntitlement) {
-        const trialSnapshot = {
-          type: "trial",
-          product_id: "trial",
-          starts_at: backendSub?.starts_at || null,
-          ends_at: backendSub?.ends_at || null,
-          store: "backend-trial",
-          will_renew: false,
-        };
-
-        setStatus("none");
-        setSubscription(trialSnapshot);
-        setHasProEntitlement(false);
-        setTrialEligible(false);
-
-        try {
-          await saveSubscription({
-            ...trialSnapshot,
-            _status: "none",
-            _trialEligible: false,
-          });
-        } catch {
-          // Cache save failed.
-        }
-        return;
-      }
-
-      if (typeof backendCurrent.trialEligible === "boolean") {
-        setTrialEligible(backendCurrent.trialEligible);
-      }
-    },
-    []
-  );
-
-  const applySnapshot = useCallback((snapshot) => {
-    if (!snapshot || typeof snapshot !== "object") {
-      setSubscription(null);
-      setStatus("none");
-      setTrialEligible(false);
-      setHasProEntitlement(false);
-      return;
-    }
-    const { _status, _trialEligible, ...maybeSub } = snapshot;
-    const hasSubData = Object.keys(maybeSub).length > 0;
-    const isTrialSnapshot = String(maybeSub?.type || "").toLowerCase() === "trial";
-    setSubscription(hasSubData ? maybeSub : null);
-    if (_status) setStatus(_status);
-    if (typeof _trialEligible === "boolean") setTrialEligible(_trialEligible);
-    setHasProEntitlement(Boolean(_status === "active" && !isTrialSnapshot));
+  const syncCustomer = useCallback((result, token) => {
+    if (result.ownershipMismatch) return;
+    const sub = result.subscription;
+    // Server synchronization does not hold the dashboard or the billing UI open.
+    api.syncRevenueCatSubscription({ status: result.nextStatus, productId: sub?.product_id || null,
+      startsAt: sub?.starts_at || null, endsAt: sub?.ends_at || null, store: sub?.store || null,
+      willRenew: typeof sub?.will_renew === 'boolean' ? sub.will_renew : null,
+      entitlementId: PRO_ENTITLEMENT_ID, appUserId: result.expectedAppUserId }, token).catch(() => {});
   }, []);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const cached = await getSubscription();
-        if (mounted) applySnapshot(cached);
-      } catch (err) {
-        // Cache hydration failed - not critical
-      } finally {
-        if (mounted) setInitializing(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [applySnapshot]);
-
-  const clearState = useCallback(async () => {
+  const applyCustomerInfo = useCallback(async (info, { expectedAppUserId } = {}) => {
+    const epoch = epochRef.current, token = await getToken();
+    const owner = normalizeAppUserId(expectedAppUserId) || normalizeAppUserId((await getUser())?.id);
+    const result = describeCustomer(info, owner);
+    if (!owner || !await sameSession(owner, token, epoch)) return { ...result, ownershipMismatch: true };
+    const commitEpoch = ++epochRef.current;
     refreshPromiseRef.current = null;
-    setSubscription(null);
-    setStatus("none");
-    setTrialEligible(false);
-    setHasProEntitlement(false);
-    setCustomerInfo(null);
-    setOfferings(null);
-    setHasToken(false);
-    setSubscriptionResolved(false);
-    try {
-      await clearSubscription();
-    } catch {}
+    const snapshot = liveSubscription({ owner, revenueCat: result });
+    setCustomerInfo(info || null); applySnapshot(snapshot);
+    setSubscriptionResolved(true); setLoading(false);
+    await saveSubscription(snapshot);
+    if (await sameSession(owner, token, commitEpoch)) syncCustomer(result, token);
+    return result;
+  }, [applySnapshot, describeCustomer, sameSession, syncCustomer]);
+
+  // Hydrate account-scoped access immediately. Network validation is independent.
+  useEffect(() => {
+    let live = true;
+    if (!isAuthed) { setInitializing(false); return; }
+    const epoch = epochRef.current, revision = snapshotRevisionRef.current;
+    (async () => {
+      const owner = normalizeAppUserId((await getUser())?.id), token = await getToken();
+      if (!owner || !live || !await sameSession(owner, token, epoch)) return;
+      activeOwnerRef.current = owner;
+      const snapshot = await getSubscription();
+      if (live && await sameSession(owner, token, epoch) && revision === snapshotRevisionRef.current) applySnapshot(cachedSubscription(snapshot, owner));
+    })().catch(() => {}).finally(() => { if (live) setInitializing(false); });
+    return () => { live = false; };
+  }, [isAuthed, applySnapshot, sameSession]);
+
+  const clearState = useCallback(() => {
+    epochRef.current++; activeOwnerRef.current = null; refreshPromiseRef.current = null;
+    setSubscription(null); setStatus('none'); setTrialEligible(false); setHasProEntitlement(false);
+    setCustomerInfo(null); setOfferings(null); setHasToken(false); setSubscriptionResolved(false);
+    setPaywallRequested(false); setLoading(false);
+    // Explicit sign-out cleanup owns SDK logout and cache deletion. Avoid a late
+    // logOut callback clearing a newly signed-in account or flushing startup cache.
   }, []);
 
   const refresh = useCallback(async () => {
     if (refreshPromiseRef.current) return refreshPromiseRef.current;
+    const epoch = epochRef.current;
     const executor = (async () => {
+      const token = await getToken(), owner = normalizeAppUserId((await getUser())?.id);
+      if (!owner || !token || !await sameSession(owner, token, epoch)) return null;
+      activeOwnerRef.current = owner; setHasToken(true); setLoading(true);
       try {
-        setSubscriptionResolved(false);
-        const token = await getToken();
-        if (!token) {
-          await logoutRevenueCatUser();
-          await clearState();
-          return {
-            subscription: null,
-            status: "none",
-            trialEligible: false,
-            hasProEntitlement: false,
-            offerings: null,
-            customerInfo: null,
-          };
-        }
-
-        setHasToken(true);
-        setLoading(true);
-        const user = await getUser();
-        const appUserId = user?.id ? String(user.id) : user?.email || null;
-
-        const backendCurrentPromise = api.getCurrentSubscription(token).catch(() => null);
-
-        const isConfigured = await configureRevenueCat({ appUserID: appUserId || undefined });
-        if (!isConfigured) {
-          const backendCurrent = await backendCurrentPromise;
-          if (backendCurrent) {
-            const backendStatus = backendCurrent.status || "none";
-            const backendType = String(backendCurrent?.subscription?.type || "").toLowerCase();
-            const hasActiveBackendTrial = backendStatus === "active" && backendType === "trial";
-
-            await applyBackendSubscription(backendCurrent, { hasRevenueCatEntitlement: false });
-            return {
-              subscription: backendCurrent.subscription || null,
-              status: hasActiveBackendTrial ? "none" : backendStatus,
-              trialEligible: hasActiveBackendTrial ? false : Boolean(backendCurrent.trialEligible),
-              hasProEntitlement: false,
-              offerings: null,
-              customerInfo: null,
-            };
-          }
-
-          await clearState();
-          return {
-            subscription: null,
-            status: "none",
-            trialEligible: false,
-            hasProEntitlement: false,
-            offerings: null,
-            customerInfo: null,
-          };
-        }
-
-        if (appUserId) {
-          await identifyRevenueCatUser(appUserId);
-        }
-
-        const [info, latestOfferings, backendCurrent] = await Promise.all([
-          fetchCustomerInfo(),
-          fetchOfferings(),
-          backendCurrentPromise,
+        const backendPromise = api.getCurrentSubscription(token).catch(() => null);
+        // configureRevenueCat already identifies the user once, without a second logIn.
+        const configured = await configureRevenueCat({ appUserID: owner });
+        const [customer, latestOfferings, backendResult] = await Promise.allSettled([
+          configured ? fetchCustomerInfo() : Promise.resolve(null),
+          configured ? fetchOfferings() : Promise.resolve(null), backendPromise,
         ]);
-
-        setOfferings(latestOfferings || null);
-        const customerInfoResult = await applyCustomerInfo(info, {
-          expectedAppUserId: appUserId || undefined,
-        });
-        const revenueCatStatus = customerInfoResult?.nextStatus || getRevenueCatSubscriptionStatus(info);
-        const hasRevenueCatEntitlement = Boolean(customerInfoResult?.hasEntitlement);
-        await applyBackendSubscription(backendCurrent, { hasRevenueCatEntitlement });
-
-        return {
-          subscription: info,
-          status: revenueCatStatus,
-          trialEligible: Boolean(backendCurrent?.trialEligible),
-          hasProEntitlement: hasRevenueCatEntitlement,
-          offerings: latestOfferings || null,
-          customerInfo: info,
-        };
-      } catch (err) {
-        throw new Error(getRevenueCatErrorMessage(err, "Nu am putut sincroniza abonamentul."));
+        if (!await sameSession(owner, token, epoch)) return null;
+        const info = customer.status === 'fulfilled' ? customer.value : null;
+        const backend = backendResult.status === 'fulfilled' ? backendResult.value : null;
+        const rc = info ? describeCustomer(info, owner) : null;
+        const snapshot = liveSubscription({ owner, backend, revenueCat: rc });
+        if (!snapshot) throw new Error('Nu am putut sincroniza abonamentul.');
+        applySnapshot(snapshot);
+        if (info) setCustomerInfo(info);
+        if (latestOfferings.status === 'fulfilled' && latestOfferings.value) setOfferings(latestOfferings.value);
+        await saveSubscription(snapshot);
+        if (rc && await sameSession(owner, token, epoch)) syncCustomer(rc, token);
+        return { subscription: snapshot.type ? snapshot : null, status: snapshot._status,
+          trialEligible: snapshot._trialEligible, hasProEntitlement: snapshot._status === 'active',
+          offerings: latestOfferings.status === 'fulfilled' ? latestOfferings.value : null, customerInfo: info };
+      } catch (error) {
+        throw new Error(getRevenueCatErrorMessage(error, 'Nu am putut sincroniza abonamentul.'));
       } finally {
-        setSubscriptionResolved(true);
-        setLoading(false);
-        refreshPromiseRef.current = null;
+        if (await sameSession(owner, token, epoch)) { setSubscriptionResolved(true); setLoading(false); }
+        if (refreshPromiseRef.current === executor) refreshPromiseRef.current = null;
       }
     })();
     refreshPromiseRef.current = executor;
+    const release = () => { if (refreshPromiseRef.current === executor) refreshPromiseRef.current = null; };
+    executor.then(release, release);
     return executor;
-  }, [clearState, applyBackendSubscription]);
+  }, [applySnapshot, describeCustomer, sameSession, syncCustomer]);
+
+  useEffect(() => {
+    const end = Date.parse(subscription?.ends_at || '');
+    if (!Number.isFinite(end)) return;
+    const expire = () => {
+      if (Date.now() < end) return;
+      setSubscription(null); setHasProEntitlement(false); setStatus('expired');
+    };
+    let timer;
+    const schedule = () => {
+      const remaining = end - Date.now();
+      if (remaining <= 0) expire();
+      else timer = setTimeout(schedule, Math.min(remaining, 2147483647));
+    };
+    schedule();
+    const foreground = AppState.addEventListener('change', state => state === 'active' && expire());
+    return () => { clearTimeout(timer); foreground.remove(); };
+  }, [subscription]);
 
   const refreshAfterAccessChange = useCallback(async () => {
     try {
@@ -402,14 +254,14 @@ export function SubscriptionProvider({ children, isAuthed }) {
     }
 
     if (!isAuthed) {
-      logoutRevenueCatUser().finally(() => {
-        clearState();
-      });
+      clearState();
       return;
     }
 
     const listener = (info) => {
-      applyCustomerInfo(info).catch(() => {});
+      const owner = activeOwnerRef.current;
+      if (!owner || normalizeAppUserId(info?.originalAppUserId) !== owner) return;
+      refresh().catch(() => {});
     };
     listenerRef.current = listener;
     Purchases.addCustomerInfoUpdateListener(listener);
