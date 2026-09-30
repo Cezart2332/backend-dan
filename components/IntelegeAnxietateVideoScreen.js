@@ -13,7 +13,7 @@ export default function IntelegeAnxietateVideoScreen({ navigation, route }) {
     <VideoPlayerScreen
       navigation={navigation}
       title={title}
-      subtitle="Vizionare introductivă înainte de a asculta audio-urile"
+      subtitle="Înțelege anxietatea"
       videoFile={videoFile}
       playButtonText="Redă video"
       nowPlayingTitle={nowPlayingTitle || title}

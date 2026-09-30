@@ -7,7 +7,7 @@ export default function ActivityStats({ stats, unavailable = 'Statisticile vor a
   const styles = useThemedStyles(createStyles);
   if (!stats) return <Text style={styles.caption}>{unavailable}</Text>;
   return <View style={styles.grid}>
-    {[[stats.audioCompleted, 'Audio-uri finalizate'], [stats.listeningMinutes, 'Minute parcurse'], [stats.challengesCompleted, 'Provocări trimise'], [stats.uniqueAudios, 'Lecții audio diferite']].map(([value,label]) => <View key={label} style={styles.stat} accessible accessibilityLabel={`${label}: ${value}`}><Text style={styles.value}>{value}</Text><Text style={styles.label}>{label}</Text></View>)}
+    {[[stats.audioCompleted, 'Materiale finalizate'], [stats.listeningMinutes, 'Minute parcurse'], [stats.challengesCompleted, 'Provocări trimise'], [stats.uniqueAudios, 'Materiale diferite']].map(([value,label]) => <View key={label} style={styles.stat} accessible accessibilityLabel={`${label}: ${value}`}><Text style={styles.value}>{value}</Text><Text style={styles.label}>{label}</Text></View>)}
   </View>;
 }
 const createStyles = (tc) => StyleSheet.create({

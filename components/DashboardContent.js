@@ -158,8 +158,8 @@ export default function DashboardContent({ navigation, profileName, profileAvata
             </LinearGradient>
           </PressableScale>
 
-          <PressableScale onPress={() => lockStateFor(10).locked ? handleMenuPress({ id: 10 }) : navigation.navigate('AudioAnxietateList')} scaleTo={pressScale} style={styles.explore} accessibilityRole="button" accessibilityLabel="Ascultă audio-urile">
-            <View style={styles.illustratedCopy}><Text style={styles.audioCtaTitle}>Ascultă audio-urile</Text><Text style={styles.rowSubtitle}>Înțelege ce simți.{ '\n' }O lecție, în ritmul tău.</Text><View style={styles.audioCtaAction}><Text style={styles.exploreText}>Deschide biblioteca</Text><Feather name="arrow-right" size={18} color={tc(colors.primary,'fg')} /></View></View><Illustration size={96} />
+          <PressableScale onPress={() => lockStateFor(10).locked ? handleMenuPress({ id: 10 }) : navigation.navigate('IntelegeAnxietate')} scaleTo={pressScale} style={styles.explore} accessibilityRole="button" accessibilityLabel="Ascultă lecțiile lui Dan">
+            <View style={styles.illustratedCopy}><Text style={styles.audioCtaTitle}>Ascultă lecțiile lui Dan</Text><Text style={styles.rowSubtitle}>Înțelege ce simți.{ '\n' }O lecție, în ritmul tău.</Text><View style={styles.audioCtaAction}><Text style={styles.exploreText}>Vezi videoclipurile</Text><Feather name="arrow-right" size={18} color={tc(colors.primary,'fg')} /></View></View><Illustration size={96} />
           </PressableScale>
 
           <PressableScale onPress={() => navigation.navigate('CheckIn')} scaleTo={pressScale} accessibilityRole="button" accessibilityLabel="Check-in rapid" style={styles.checkin}>
@@ -180,7 +180,7 @@ export default function DashboardContent({ navigation, profileName, profileAvata
 
         {tab === 'practice' ? <>
           {heading('În ritmul tău', 'Tehnici și resurse la care poți reveni oricând.')}
-          {row({ title: 'Ascultă audio-urile', subtitle: 'Biblioteca de lecții cu Dan', icon: 'headphones', locked: lockStateFor(10).locked, onPress: () => lockStateFor(10).locked ? handleMenuPress({ id: 10 }) : navigation.navigate('AudioAnxietateList') })}
+          {row({ title: 'Ascultă lecțiile lui Dan', subtitle: 'Videoclipurile deja publicate', icon: 'headphones', locked: lockStateFor(10).locked, onPress: () => lockStateFor(10).locked ? handleMenuPress({ id: 10 }) : navigation.navigate('IntelegeAnxietate') })}
           <View style={styles.rows}>{PRACTICE.map(menuRow)}</View>
           {heading('La îndemână')}
           {row({ title: 'Kitul meu offline', subtitle: 'Exerciții, notițe și contacte salvate', icon: 'bookmark', onPress: () => navigation.navigate('OfflineKit') })}

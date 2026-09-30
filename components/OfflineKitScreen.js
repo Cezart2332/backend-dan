@@ -29,7 +29,7 @@ function Kit({ navigation }) {
     if (!dirty) return navigation.goBack();
     Alert.alert('Notiță nesalvată', 'Salvează înainte de a ieși?', [{text:'Continuă editarea',style:'cancel'},{text:'Ieși',onPress:()=>navigation.goBack()},{text:'Salvează',onPress:async()=>{if(await commit(draft))navigation.goBack();}}]);
   }} />
-    <AppCard><Text style={s.heading}>Exerciții incluse pe telefon</Text><Text style={s.muted}>Respirația, grounding-ul și sunetele sunt disponibile fără internet, cât timp abonamentul confirmat este valabil.</Text>
+    <AppCard><Text style={s.heading}>Exerciții incluse pe telefon</Text><Text style={s.muted}>Respirația, exercițiul „Observă ce te înconjoară” și sunetele sunt disponibile fără internet, cât timp abonamentul confirmat este valabil.</Text>
       {['breathing','grounding'].sort((a,b)=>Number(draft.favorites.includes(b))-Number(draft.favorites.includes(a))).map((technique) => <View key={technique} style={s.field}>
         <AppButton title={LABELS[technique]} onPress={() => navigation.navigate('Panic', { mode: technique })} />
         <AppButton title={draft.favorites.includes(technique) ? '★ Favorit · elimină' : 'Adaugă la favorite'} variant="ghost" disabled={saving} onPress={() => commit({ ...draft, favorites: draft.favorites.includes(technique) ? draft.favorites.filter((v)=>v!==technique) : [...draft.favorites,technique] })} />

@@ -1,16 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, AppState, Alert, StyleSheet, Switch, Text, View } from 'react-native';
+import { AccessibilityInfo, Animated, AppState, Alert, ActivityIndicator, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import Slider from '@react-native-community/slider';
-import { AppButton, AppCard, AppHeader, AppScreen } from './ui';
-import { useTheme } from './ui/themeContext';
-import { Choices, PrivacyNotice, WellbeingGate, useWellbeingStyles } from './WellbeingUI';
+import { AppScreen } from './ui';
+import { Feather } from '@expo/vector-icons';
+import { colors, fonts } from './ui/theme';
+import { useTheme, useThemedStyles } from './ui/themeContext';
+import { Choices, PrivacyNotice, WellbeingGate } from './WellbeingUI';
 import { useWellbeing } from '../contexts/WellbeingContext';
 import { breathingPhase, createSessionClock, CONTEXTS, GROUNDING, LABELS, recommendations } from '../utils/wellbeingCore.mjs';
 
-const PHASE_LABELS = { inhale: 'Inspiră ușor', hold: 'Ține, dacă este confortabil', exhale: 'Expiră lent' };
+const PHASE_LABELS = { inhale: 'Inspiră ușor', hold: 'Pauză scurtă', exhale: 'Expiră lent' };
 export default function PanicScreen(props) {
   const { allowed, owner } = useWellbeing();
   const admitted = useRef(null);
@@ -22,7 +24,7 @@ export default function PanicScreen(props) {
 function PanicSession({ navigation, route, admittedOwner }) {
   const wellbeing = useWellbeing();
   const { preferences, metadata, save, data, updatePreferences, owner } = wellbeing;
-  const s = useWellbeingStyles();
+  const local = useThemedStyles(createPanicStyles);
   const { tc } = useTheme();
   const [initial] = useState(() => ({ ...metadata(), duration: preferences.duration, pattern: preferences.pattern }));
   const [clock] = useState(() => createSessionClock(initial.duration * 1000));
@@ -32,7 +34,9 @@ function PanicSession({ navigation, route, admittedOwner }) {
   const [elapsed, setElapsed] = useState(0);
   const [paused, setPaused] = useState(false);
   const [finished, setFinished] = useState(false);
-  const [reduceMotion, setReduceMotion] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedback, setFeedback] = useState({ rating: null, level: null, context: null });
   const [saving, setSaving] = useState(false);
   const [persistError, setPersistError] = useState(null);
@@ -167,26 +171,119 @@ function PanicSession({ navigation, route, admittedOwner }) {
   const phase = breathingPhase(elapsed, initial.pattern);
   const helped = useMemo(() => recommendations(data?.sessions || [], data?.checkins || []), [data?.sessions, data?.checkins]);
   const remaining = Math.max(0, Math.ceil(initial.duration - elapsed / 1000));
-  return <AppScreen><AppHeader title={finished ? 'Ai făcut un pas pentru tine' : 'Sunt aici cu tine'} subtitle="Respiră confortabil, fără să forțezi." onBack={() => finished ? close(false) : finish.current('stopped')} />
-    {finished ? <AppCard><Text style={s.heading}>Cum a fost?</Text><Text style={s.body}>Feedback-ul este opțional.</Text>
-      <Choices label="Exercițiul" values={['helpful', 'neutral', 'unhelpful']} value={feedback.rating} onChange={(rating) => setFeedback((old) => ({ ...old, rating }))} />
-      <Choices label="Anxietate acum" values={[1,2,3,4,5,6,7,8,9,10]} value={feedback.level} onChange={(level) => setFeedback((old) => ({ ...old, level }))} />
-      <Choices label="Context" values={CONTEXTS} value={feedback.context} onChange={(context) => setFeedback((old) => ({ ...old, context }))} /><PrivacyNotice />
-      {persistError && <Text style={s.body} accessibilityRole="alert">{persistError} · Poți reîncerca.</Text>}
-      <AppButton title="Salvează feedback" loading={saving} onPress={() => close(true)} /><AppButton title="Încheie fără feedback" variant="ghost" disabled={saving} onPress={() => close(false)} />
-    </AppCard> : <>
-      <AppCard><Text style={s.muted}>{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2,'0')} rămase {paused ? '· În pauză' : ''}</Text>
-        {mode === 'breathing' ? <View style={local.center}><Animated.View accessible={false} style={[local.circle, { backgroundColor: tc('#e8ebef','bg'), borderColor: tc('#b3924f','fg'), transform: [{ scale: reduceMotion ? 1 : scale }] }]}><Text style={[s.heading, { textAlign: 'center' }]} accessibilityLiveRegion="polite">{paused ? 'Ia-ți timpul tău' : PHASE_LABELS[phase.name]}</Text><Text style={s.body}>{paused ? 'Reia când vrei' : `${phase.remaining} secunde`}</Text></Animated.View></View> : <View style={local.grounding}><Text style={s.heading} accessibilityLiveRegion="polite">{GROUNDING[step][0]}</Text><Text style={s.body}>{GROUNDING[step][1]}</Text><AppButton title={step === 4 ? 'Încheie grounding' : 'Următorul pas'} disabled={paused} onPress={() => step === 4 ? finish.current('completed') : setStep(step + 1)} /></View>}
-        <AppButton title={paused ? 'Reia exercițiul' : 'Pauză'} onPress={togglePause} /><AppButton title={mode === 'breathing' ? 'Treci la grounding' : 'Revino la respirație'} variant="ghost" onPress={() => switchMode(mode === 'breathing' ? 'grounding' : 'breathing')} />
-        <View style={s.row}><Text style={s.label}>Sunet discret</Text><Switch accessibilityLabel="Sunet discret" value={preferences.sound} onValueChange={(v) => changePreference('sound', v)} /></View>
-        {preferences.sound && <><Text style={s.label}>Volum: {Math.round(preferences.volume * 100)}%</Text><Slider accessibilityLabel="Volumul exercițiului" minimumValue={0} maximumValue={1} step={0.05} value={preferences.volume} onSlidingComplete={(value) => changePreference('volume', value)} /></>}
-        <View style={s.row}><Text style={s.label}>Vibrații</Text><Switch accessibilityLabel="Vibrații ghidate" value={preferences.haptics} onValueChange={(v) => changePreference('haptics', v)} /></View>
-        <Text style={s.muted}>Inspir: un impuls · Ținut: un impuls distinct · Expir: două impulsuri. Unele setări ale telefonului pot opri vibrațiile.</Text>
-        <AppButton title="Oprește exercițiul" variant="ghost" onPress={() => finish.current('stopped')} />
-      </AppCard>
-      {helped.length > 0 && <AppCard><Text style={s.heading}>Ce te-a ajutat înainte</Text>{helped.map((item) => <AppButton key={item.technique} title={`${LABELS[item.technique]} · ${item.count} evaluări pozitive`} variant="ghost" onPress={() => switchMode(item.technique)} />)}</AppCard>}
-      <AppButton title="Ajutorul existent" variant="ghost" onPress={() => { clock.pause(); stopEffects(); setPaused(true); navigation.navigate('Ajutor'); }} /><PrivacyNotice />
+  const openSettings = () => { clock.pause(); stopEffects(); setPaused(true); setSettingsOpen(true); };
+  const pauseTitle = paused ? 'Continuă exercițiul' : 'Ia o pauză';
+  return <AppScreen contentStyle={local.screen}>
+    <View style={local.header}>
+      <Pressable onPress={() => settingsOpen ? setSettingsOpen(false) : finished ? close(false) : finish.current('stopped')} style={local.iconButton} accessibilityRole="button" accessibilityLabel={settingsOpen ? 'Înapoi la exercițiu' : 'Încheie exercițiul'}><Feather name="chevron-left" size={24} color={tc(colors.primary,'fg')} /></Pressable>
+      <Text style={local.headerLabel}>{settingsOpen ? 'Sunet și vibrații' : finished ? 'Un moment pentru tine' : 'SOS'}</Text>
+      {!settingsOpen && !finished ? <Pressable onPress={openSettings} style={local.iconButton} accessibilityRole="button" accessibilityLabel="Setări de sunet și vibrații"><Feather name="sliders" size={21} color={tc(colors.primary,'fg')} /></Pressable> : <View style={local.iconButton} />}
+    </View>
+    {settingsOpen ? <View style={local.settings}>
+      <Text style={local.title}>Așa cum îți este bine.</Text>
+      <Text style={local.description}>Exercițiul este în pauză. Alege dacă vrei sunet sau vibrații.</Text>
+      <View style={local.settingRow}><View style={local.settingCopy}><Text style={local.settingTitle}>Sunet liniștit</Text><Text style={local.settingHint}>Un fundal discret pentru respirație.</Text></View><Switch accessibilityLabel="Sunet liniștit" value={preferences.sound} onValueChange={value => changePreference('sound',value)} trackColor={{false:tc(colors.primarySoft,'bg'),true:tc(colors.primary,'bg')}} /></View>
+      {preferences.sound ? <View style={local.volume}><Text style={local.settingTitle}>Volum · {Math.round(preferences.volume * 100)}%</Text><Slider accessibilityLabel="Volumul sunetului" minimumValue={0} maximumValue={1} step={0.05} value={preferences.volume} minimumTrackTintColor={tc(colors.accent,'fg')} thumbTintColor={tc(colors.primary,'fg')} onSlidingComplete={value => changePreference('volume',value)} /></View> : null}
+      <View style={local.settingRow}><View style={local.settingCopy}><Text style={local.settingTitle}>Vibrații ușoare</Text><Text style={local.settingHint}>Te ajută să urmărești respirația fără să privești ecranul.</Text></View><Switch accessibilityLabel="Vibrații ușoare" value={preferences.haptics} onValueChange={value => changePreference('haptics',value)} trackColor={{false:tc(colors.primarySoft,'bg'),true:tc(colors.primary,'bg')}} /></View>
+      <View style={local.actions}><SosButton title="Înapoi la exercițiu" icon="arrow-left" onPress={() => setSettingsOpen(false)} /><SosButton title="Durata și ritmul respirației" subtitle="Se aplică la următorul exercițiu." icon="clock" variant="outline" onPress={() => { setSettingsOpen(false); navigation.navigate('WellbeingSettings'); }} /></View>
+    </View> : finished ? <View style={local.finish}>
+      <View style={local.finishMark}><Feather name="check" size={34} color={tc(colors.primary,'fg')} /></View>
+      <Text style={local.title}>Ai luat un moment pentru tine.</Text>
+      <Text style={local.description}>Poți încheia aici. Dacă vrei, spune-ne cum a fost.</Text>
+      {feedbackOpen ? <View style={local.feedback}>
+        <Text style={local.settingTitle}>Exercițiul te-a ajutat?</Text>
+        <View style={local.feedbackChoices}>{['helpful','neutral','unhelpful'].map(rating => <SosButton key={rating} title={LABELS[rating]} variant="outline" selected={feedback.rating === rating} onPress={() => setFeedback(old => ({...old,rating:old.rating === rating ? null : rating}))} />)}</View>
+        <Text style={local.settingTitle}>Cât de intensă este anxietatea acum?</Text><Text style={local.settingHint}>1 = foarte puțin · 10 = foarte intens</Text>
+        <View style={local.levels}>{[1,2,3,4,5,6,7,8,9,10].map(level => <Pressable key={level} style={[local.level,feedback.level === level && local.selectedLevel]} accessibilityRole="button" accessibilityLabel={`Anxietate ${level} din 10`} accessibilityState={{selected:feedback.level === level}} onPress={() => setFeedback(old => ({...old,level:old.level === level ? null : level}))}><Text style={[local.levelText,feedback.level === level && local.selectedLevelText]}>{level}</Text></Pressable>)}</View>
+        <Choices label="Unde te aflai? (opțional)" values={CONTEXTS} value={feedback.context} onChange={context => setFeedback(old => ({...old,context}))} />
+        <PrivacyNotice />
+      </View> : null}
+      {persistError ? <Text style={local.error} accessibilityRole="alert">{persistError} · Poți reîncerca.</Text> : null}
+      <View style={local.actions}><SosButton title={feedbackOpen ? 'Salvează și încheie' : 'Încheie'} icon="check" loading={saving} onPress={() => close(feedbackOpen)} /><SosButton title={feedbackOpen ? 'Încheie fără evaluare' : 'Spune cum a fost (opțional)'} variant="outline" disabled={saving} onPress={() => feedbackOpen ? close(false) : setFeedbackOpen(true)} /></View>
+    </View> : <>
+      <View style={local.sessionMeta}><View style={local.timer}><Feather name="clock" size={14} color={tc(colors.textMuted,'fg')} /><Text style={local.timerText}>{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2,'0')} rămase{paused ? ' · Pauză' : ''}</Text></View></View>
+      {mode === 'breathing' ? <View style={local.stage}>
+        <Text style={local.title} accessibilityLiveRegion="polite">{paused ? 'Ia-ți timpul tău.' : PHASE_LABELS[phase.name]}</Text>
+        <Text style={local.description}>{paused ? 'Continuă când te simți pregătit.' : 'Urmărește cercul. Respiră fără să forțezi.'}</Text>
+        <View style={local.breathingMark}>
+          <Animated.View accessible={false} pointerEvents="none" style={[local.breathCircle,{transform:[{scale:reduceMotion ? 1 : scale}]}]} />
+          <View accessible={false} style={local.breathCount}><Text style={local.count}>{paused ? '–' : phase.remaining}</Text><Text style={local.countUnit}>{paused ? 'în pauză' : phase.remaining === 1 ? 'secundă' : 'secunde'}</Text></View>
+        </View>
+        <Text style={local.breathHint}>{paused ? 'Nu trebuie să te grăbești.' : phase.name === 'inhale' ? 'Lasă aerul să intre ușor.' : phase.name === 'hold' ? 'Dacă nu e confortabil, expiră ușor.' : 'Lasă aerul să iasă încet.'}</Text>
+      </View> : <View style={local.sensesStage}>
+        <Text style={local.stepLabel}>Pasul {step + 1} din 5</Text>
+        <View style={local.steps} accessible={false}>{GROUNDING.map((_,index) => <View key={index} style={[local.stepDot,index <= step && local.activeStepDot]} />)}</View>
+        <View style={local.senseMark}><Feather name={['eye','feather','headphones','wind','coffee'][step]} size={34} color={tc(colors.primary,'fg')} /></View>
+        <Text style={local.title} accessibilityLiveRegion="polite">{GROUNDING[step][0]}</Text>
+        <Text style={local.description}>{GROUNDING[step][1]}</Text>
+        {step === 0 ? <Text style={local.settingHint}>Le poți numi în gând sau cu voce joasă.</Text> : null}
+        <View style={local.actions}><SosButton title={paused ? 'Continuă exercițiul' : step === 4 ? 'Am terminat' : 'Următorul pas'} icon={paused ? 'play' : step === 4 ? 'check' : 'arrow-right'} onPress={() => paused ? togglePause() : step === 4 ? finish.current('completed') : setStep(step + 1)} />{step > 0 && !paused ? <SosButton title="Pasul anterior" variant="text" onPress={() => setStep(step - 1)} /> : null}</View>
+      </View>}
+      <View style={local.actions}>
+        {mode === 'breathing' || !paused ? <SosButton title={pauseTitle} icon={paused ? 'play' : 'pause'} variant={mode === 'breathing' ? 'solid' : 'outline'} onPress={togglePause} /> : null}
+        <SosButton title={mode === 'breathing' ? 'Observă ce te înconjoară' : 'Revino la respirație'} subtitle={mode === 'breathing' ? 'Privește, atinge și ascultă. Pas cu pas.' : 'Urmărește din nou cercul.'} icon={mode === 'breathing' ? 'eye' : 'wind'} variant="outline" onPress={() => switchMode(mode === 'breathing' ? 'grounding' : 'breathing')} />
+        <SosButton title="Încheie exercițiul" variant="text" onPress={() => finish.current('stopped')} />
+      </View>
+      {helped.length > 0 ? <View style={local.previous}><Text style={local.settingTitle}>Ce te-a ajutat înainte</Text><View style={local.actions}>{helped.map(item => <SosButton key={item.technique} title={LABELS[item.technique]} variant="outline" onPress={() => switchMode(item.technique)} />)}</View></View> : null}
+      <View style={local.help}><SosButton title="Mai multe exerciții de ajutor" icon="book-open" variant="text" onPress={() => { clock.pause(); stopEffects(); setPaused(true); navigation.navigate('Ajutor'); }} /></View>
     </>}
   </AppScreen>;
 }
-const local = StyleSheet.create({ center: { minHeight: 250, alignItems: 'center', justifyContent: 'center' }, circle: { width: 235, height: 235, borderRadius: 120, borderWidth: 2, padding: 20, alignItems: 'center', justifyContent: 'center' }, grounding: { minHeight: 220, justifyContent: 'center' } });
+function SosButton({ title, subtitle, onPress, icon, variant = 'solid', disabled = false, loading = false, selected }) {
+  const styles = useThemedStyles(createPanicStyles), {tc} = useTheme();
+  const solid = variant === 'solid' || selected;
+  const color = tc(solid ? colors.white : colors.primary,'fg');
+  return <Pressable onPress={onPress} disabled={disabled || loading} accessibilityRole="button" accessibilityLabel={title} accessibilityHint={subtitle} accessibilityState={{disabled:disabled || loading,busy:loading,selected}} style={({pressed}) => [styles.button,solid ? styles.solidButton : variant === 'text' ? styles.textButton : styles.outlineButton,(disabled || loading) && styles.disabled,pressed && styles.pressed]}>
+    {loading ? <ActivityIndicator color={color} /> : <>{icon ? <Feather name={icon} size={20} color={color} /> : null}<View style={styles.buttonCopy}><Text style={[styles.buttonTitle,{color}]}>{title}</Text>{subtitle ? <Text style={styles.buttonSubtitle}>{subtitle}</Text> : null}</View>{subtitle ? <Feather name="chevron-right" size={18} color={color} /> : null}</>}
+  </Pressable>;
+}
+const createPanicStyles = tc => StyleSheet.create({
+  screen: { width:'100%',maxWidth:560,alignSelf:'center',paddingBottom:32 },
+  header: { flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:16 },
+  headerLabel: { fontSize:16,fontWeight:'600',color:tc(colors.text,'fg'),flex:1,textAlign:'center',marginHorizontal:8 },
+  iconButton: { width:48,height:48,alignItems:'center',justifyContent:'center',borderRadius:16 },
+  sessionMeta: { alignItems:'center',marginBottom:20 },
+  timer: { flexDirection:'row',alignItems:'center',gap:8,backgroundColor:tc(colors.primarySoft,'bg'),paddingHorizontal:14,paddingVertical:9,borderRadius:20 },
+  timerText: { fontSize:12,fontVariant:['tabular-nums'],color:tc(colors.textMuted,'fg') },
+  stage: { alignItems:'center',marginBottom:24 },
+  title: { fontFamily:fonts.display,fontSize:30,lineHeight:38,color:tc(colors.text,'fg'),textAlign:'center',marginBottom:12 },
+  description: { fontSize:15,lineHeight:24,color:tc(colors.textMuted,'fg'),textAlign:'center',marginBottom:20 },
+  breathingMark: { width:'100%',maxWidth:232,aspectRatio:1,alignItems:'center',justifyContent:'center',marginVertical:10 },
+  breathCircle: { ...StyleSheet.absoluteFillObject,borderRadius:120,backgroundColor:tc(colors.primarySoft,'bg'),borderWidth:1,borderColor:tc(colors.accent,'fg') },
+  breathCount: { alignItems:'center',justifyContent:'center' },
+  count: { fontFamily:fonts.display,fontSize:62,lineHeight:74,color:tc(colors.text,'fg'),fontVariant:['tabular-nums'] },
+  countUnit: { fontSize:13,color:tc(colors.textMuted,'fg'),marginTop:2 },
+  breathHint: { fontSize:14,lineHeight:22,color:tc(colors.textMuted,'fg'),textAlign:'center',marginTop:20 },
+  actions: { gap:14 },
+  button: { minHeight:58,paddingVertical:17,paddingHorizontal:18,borderRadius:18,flexDirection:'row',alignItems:'center',gap:12 },
+  solidButton: { backgroundColor:tc(colors.primary,'bg') },
+  outlineButton: { backgroundColor:tc(colors.surfaceStrong,'bg'),borderWidth:1,borderColor:tc(colors.border,'bg') },
+  textButton: { backgroundColor:'transparent',justifyContent:'center' },
+  buttonCopy: { flex:1,minWidth:0 },
+  buttonTitle: { fontSize:15,lineHeight:22,fontWeight:'600' },
+  buttonSubtitle: { fontSize:12,lineHeight:19,color:tc(colors.textMuted,'fg'),marginTop:5 },
+  pressed: { opacity:0.8 },disabled:{opacity:0.45},
+  sensesStage: { marginBottom:28 },
+  stepLabel: { textAlign:'center',fontSize:13,color:tc(colors.textMuted,'fg'),marginBottom:12 },
+  steps: { flexDirection:'row',justifyContent:'center',gap:8,marginBottom:24 },
+  stepDot: { width:26,height:4,borderRadius:2,backgroundColor:tc(colors.primarySoft,'bg') },
+  activeStepDot: { backgroundColor:tc(colors.accent,'fg') },
+  senseMark: { width:82,height:82,borderRadius:26,backgroundColor:tc(colors.primarySoft,'bg'),alignItems:'center',justifyContent:'center',alignSelf:'center',marginBottom:24 },
+  settingRow: { flexDirection:'row',alignItems:'center',gap:20,paddingVertical:24,borderBottomWidth:1,borderBottomColor:tc(colors.border,'bg') },
+  settingCopy: { flex:1 },
+  settingTitle: { fontSize:16,lineHeight:24,fontWeight:'600',color:tc(colors.text,'fg'),marginBottom:6 },
+  settingHint: { fontSize:13,lineHeight:21,color:tc(colors.textMuted,'fg'),textAlign:'center' },
+  volume: { marginVertical:20 },
+  settings: { paddingTop:20,gap:18 },
+  finish: { paddingTop:16 },
+  finishMark: { width:80,height:80,borderRadius:40,backgroundColor:tc(colors.primarySoft,'bg'),alignItems:'center',justifyContent:'center',alignSelf:'center',marginBottom:24 },
+  feedback: { marginTop:20,marginBottom:24 },
+  feedbackChoices: { gap:12,marginTop:10,marginBottom:26 },
+  levels: { flexDirection:'row',flexWrap:'wrap',gap:10,marginTop:14,marginBottom:28 },
+  level: { flexBasis:'17%',flexGrow:1,minWidth:44,minHeight:48,borderRadius:14,backgroundColor:tc(colors.surfaceStrong,'bg'),borderWidth:1,borderColor:tc(colors.border,'bg'),alignItems:'center',justifyContent:'center' },
+  levelText: { fontSize:16,color:tc(colors.text,'fg') },
+  selectedLevel: { backgroundColor:tc(colors.primary,'bg') },selectedLevelText:{color:tc(colors.white,'fg')},
+  error: { color:tc(colors.danger,'fg'),fontSize:14,lineHeight:22,marginVertical:16 },
+  previous: { borderTopWidth:1,borderTopColor:tc(colors.border,'bg'),paddingTop:24,marginTop:28 },
+  help: { marginTop:18 },
+});

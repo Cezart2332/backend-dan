@@ -14,7 +14,7 @@ function Settings({navigation}) {
   return <AppScreen><AppHeader title="SOS și check-in" subtitle="Preferințe pentru următorul exercițiu" onBack={()=>navigation.goBack()} /><AppCard>
     <Choices label="Durata SOS" values={[{value:120,label:'2 minute'},{value:180,label:'3 minute'},{value:300,label:'5 minute'}]} value={preferences.duration} optional={false} onChange={(duration)=>update({duration})} />
     <Choices label="Ritm de respirație" values={[{value:'4-6',label:'Inspir 4 · expir 6'},{value:'4-2-6',label:'Inspir 4 · ținut 2 · expir 6'}]} value={preferences.pattern} optional={false} onChange={(pattern)=>update({pattern})} />
-    <Text style={s.muted}>Respiră confortabil, fără să forțezi. Poți trece oricând la grounding. Durata și ritmul se aplică la următoarea sesiune.</Text>
+    <Text style={s.muted}>Respiră confortabil, fără să forțezi. Poți alege și exercițiul „Observă ce te înconjoară”. Durata și ritmul se aplică la următoarea sesiune.</Text>
     <View style={s.row}><Text style={s.label}>Vibrații ghidate</Text><Switch accessibilityLabel="Vibrații ghidate" value={preferences.haptics} onValueChange={(haptics)=>update({haptics})} /></View>
     <View style={s.row}><Text style={s.label}>Sunet discret</Text><Switch accessibilityLabel="Sunet discret" value={preferences.sound} onValueChange={(sound)=>update({sound})} /></View>
     <Text style={s.label}>Volum: {Math.round(preferences.volume*100)}%</Text><Slider accessibilityLabel="Volumul exercițiului" accessibilityValue={{min:0,max:100,now:Math.round(preferences.volume*100)}} minimumValue={0} maximumValue={1} step={0.05} value={preferences.volume} minimumTrackTintColor={tc('#b3924f','fg')} onSlidingComplete={(volume)=>update({volume})} />

@@ -9,8 +9,8 @@ import { useTheme, useThemedStyles } from "./ui/themeContext";
 const options = [
   {
     id: "anxietate",
-    title: "Audio-uri despre anxietate",
-    description: "Explicații și ghidaje pentru a înțelege anxietatea la nivel profund.",
+    title: "Lecții despre anxietate",
+    description: "Videoclipurile lui Dan. Le poți viziona sau asculta doar sunetul.",
     iconName: "headset-outline",
     iconColor: "#5c5a80",
     iconBg: "#ececf2",

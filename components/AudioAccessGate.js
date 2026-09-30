@@ -13,9 +13,9 @@ export default function AudioAccessGate({ navigation, children }) {
   const paid = hasProEntitlement || ['basic','premium','vip','pro'].includes(String(subscription?.type || '').toLowerCase());
   if (paid) return children;
   return <AppScreen>
-    <AppHeader title="Biblioteca audio" onBack={() => navigation.goBack()} />
+    <AppHeader title="Lecțiile lui Dan" onBack={() => navigation.goBack()} />
     <Illustration size={140} />
-    <Text style={{ fontFamily: fonts.display, fontSize: 25, lineHeight: 33, color: tc(colors.text,'fg'), marginVertical: 20 }}>Lecțiile audio sunt disponibile cu abonament activ.</Text>
+    <Text style={{ fontFamily: fonts.display, fontSize: 25, lineHeight: 33, color: tc(colors.text,'fg'), marginVertical: 20 }}>Lecțiile sunt disponibile cu abonament activ.</Text>
     <AppButton title="Vezi abonamente" onPress={() => navigation.navigate('Subscriptions')} />
   </AppScreen>;
 }

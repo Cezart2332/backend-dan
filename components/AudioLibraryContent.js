@@ -10,14 +10,14 @@ import HeadphonesDisclaimer from './HeadphonesDisclaimer';
 export default function AudioLibraryContent({ navigation, lessons, cmsSubsections, hasPaidSub }) {
   const { tc } = useTheme();
   const styles = useThemedStyles(createStyles);
-  const play = (item, artist = 'Dan fost anxios · Audio anxietate') => navigation.navigate('AudioAnxietateVideo',{ title: item.title, videoFile: item.videoFile || `${item.storage_key}.mp4`, nowPlayingArtist: artist });
-  const lesson = (item,index,artist) => <PressableScale key={item.id} style={styles.lesson} onPress={() => play(item,artist)} accessibilityRole="button" accessibilityLabel={`Ascultă: ${item.title}`}>
-    <Text style={styles.number}>{String(index + 1).padStart(2,'0')}</Text><View style={styles.copy}><Text style={styles.lessonTitle}>{item.title}</Text><Text style={styles.meta}>Lecție audio · Cu Dan</Text></View><View style={styles.play}><Feather name="play" size={17} color={tc(colors.primary,'fg')} /></View>
+  const play = (item, artist = 'Dan fost anxios · Înțelege anxietatea') => navigation.navigate('AudioAnxietateVideo',{ title: item.title, videoFile: item.videoFile || `${item.storage_key}.mp4`, nowPlayingArtist: artist });
+  const lesson = (item,index,artist) => <PressableScale key={item.id} style={styles.lesson} onPress={() => play(item,artist)} accessibilityRole="button" accessibilityLabel={`Deschide lecția: ${item.title}`}>
+    <Text style={styles.number}>{String(index + 1).padStart(2,'0')}</Text><View style={styles.copy}><Text style={styles.lessonTitle}>{item.title}</Text><Text style={styles.meta}>Video · Poți asculta și doar sunetul</Text></View><View style={styles.play}><Feather name="play" size={17} color={tc(colors.primary,'fg')} /></View>
   </PressableScale>;
   return <AppScreen>
-    <AppHeader title="Biblioteca audio" subtitle="Explicații pe care le poți lua cu tine." onBack={() => navigation.goBack()} />
-    <View style={styles.hero}><View style={styles.copy}><Text style={styles.title}>Înțelege,{ '\n' }în ritmul tău.</Text><Text style={styles.body}>Găsește un loc pentru tine și ascultă o lecție cu Dan.</Text></View><Illustration size={112} /></View>
-    {lessons.length ? <AppButton title="Începe cu Intro" icon="play" onPress={() => play(lessons[0])} /> : null}
+    <AppHeader title="Înțelege anxietatea" subtitle="Videoclipurile și explicațiile lui Dan." onBack={() => navigation.goBack()} />
+    <View style={styles.hero}><View style={styles.copy}><Text style={styles.title}>Înțelege,{ '\n' }în ritmul tău.</Text><Text style={styles.body}>Alege un videoclip. Îl poți viziona sau asculta în ritmul tău.</Text></View><Illustration size={112} /></View>
+    {lessons.length ? <AppButton title="Deschide Intro" icon="play" onPress={() => play(lessons[0])} /> : null}
     <Text style={styles.section} accessibilityRole="header">Lecțiile tale <Text style={styles.count}>· {lessons.length}</Text></Text>
     {lessons.map((item,index) => lesson(item,index))}
     {hasPaidSub ? cmsSubsections.map((sub) => <View key={sub.id}><Text style={styles.section} accessibilityRole="header">{sub.title}</Text>{(sub.videos || []).map((item,index) => lesson(item,index,`Dan fost anxios · ${sub.title}`))}</View>) : cmsSubsections.length ? <View style={styles.extra}><Text style={styles.lessonTitle}>Mai multe lecții cu abonament</Text><Text style={styles.body}>Descoperă conținutul suplimentar din bibliotecă.</Text><AppButton title="Vezi abonamente" onPress={() => navigation.navigate('Subscriptions')} variant="ghost" /></View> : null}

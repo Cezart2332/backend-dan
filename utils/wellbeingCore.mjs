@@ -3,12 +3,12 @@ export const LABELS = {
   home: 'Acasă', work: 'Muncă', travel: 'Deplasare', social: 'Social', other: 'Altul',
   poor: 'Slab', average: 'Mediu', good: 'Bun', none: 'Fără', some: 'Puțină', much: 'Multă',
   rest: 'Odihnă', walk: 'Plimbare', exercise: 'Mișcare', breathing: 'Respirație',
-  grounding: 'Grounding 5–4–3–2–1', helpful: 'M-a ajutat', neutral: 'Neutru', unhelpful: 'Nu m-a ajutat',
+  grounding: 'Observă ce te înconjoară', helpful: 'M-a ajutat', neutral: 'Neutru', unhelpful: 'Nu m-a ajutat',
 };
 export const DEFAULT_PREFERENCES = { duration: 180, pattern: '4-6', sound: false, haptics: true, volume: 0.25, reminder: false };
 export const GROUNDING = [
   ['5 lucruri pe care le vezi', 'Privește în jur și numește cinci lucruri.'],
-  ['4 lucruri pe care le simți', 'Observă patru senzații de atingere: hainele, scaunul, podeaua.'],
+  ['4 lucruri pe care le poți atinge', 'Simte, pe rând, patru lucruri: hainele, scaunul, podeaua sau un obiect apropiat.'],
   ['3 sunete pe care le auzi', 'Ascultă și numește trei sunete din jur.'],
   ['2 mirosuri pe care le observi', 'Observă două mirosuri sau amintește-ți două mirosuri familiare.'],
   ['1 gust pe care îl observi', 'Observă un gust sau amintește-ți unul familiar.'],

@@ -35,11 +35,11 @@ export default function ProfileActivity({ navigation }) {
   return <View style={styles.section}>
     <View style={styles.heading}><View style={styles.copy}><Text style={styles.title} accessibilityRole="header">Timp oferit ție</Text><Text style={styles.caption}>Activitatea ta de până acum</Text></View><Illustration kind="journey" size={72} /></View>
     {loading ? <ActivityIndicator color={tc(colors.primary,'fg')} /> : <ActivityStats stats={data?.stats} />}
-    {data?.offline ? <Text style={styles.caption}>{data.pending ? 'Există ascultări salvate pe telefon, în așteptarea sincronizării.' : 'Ultimele statistici salvate pe telefon.'}</Text> : null}
-    <Text style={styles.caption}>Audio-urile sunt numărate după parcurgerea a cel puțin 90% și încheierea redării. Provocările apar după trimiterea feedback-ului.</Text>
+    {data?.offline ? <Text style={styles.caption}>{data.pending ? 'Există lecții parcurse salvate pe telefon, în așteptarea sincronizării.' : 'Ultimele statistici salvate pe telefon.'}</Text> : null}
+    <Text style={styles.caption}>Videoclipurile sunt numărate după parcurgerea a cel puțin 90% și încheierea redării, inclusiv în modul doar sunet. Provocările apar după trimiterea feedback-ului.</Text>
     <AppButton title="Prieteni și mesaje" icon="users" onPress={() => navigation.navigate('Friends')} />
-    <AppButton title="Ascultă audio-urile" icon="headphones" variant="ghost" style={{ marginTop: 12 }} onPress={() => navigation.navigate('AudioAnxietateList')} />
-    <View style={styles.sharing}><View style={styles.copy}><Text style={styles.sharingTitle}>Statistici pe profilul public</Text><Text style={styles.caption}>{share == null ? 'Disponibil după conectarea la server.' : 'Doar activitatea audio și provocările. Jurnalul și check-in-urile rămân private.'}</Text></View><Switch accessibilityLabel="Arată statisticile pe profilul public" value={Boolean(share)} disabled={share == null || saving} onValueChange={toggle} trackColor={{ false: tc(colors.primarySoft,'bg'), true: tc(colors.primary,'bg') }} /></View>
+    <AppButton title="Revino la lecțiile lui Dan" icon="headphones" variant="ghost" style={{ marginTop: 12 }} onPress={() => navigation.navigate('IntelegeAnxietate')} />
+    <View style={styles.sharing}><View style={styles.copy}><Text style={styles.sharingTitle}>Statistici pe profilul public</Text><Text style={styles.caption}>{share == null ? 'Disponibil după conectarea la server.' : 'Doar lecțiile parcurse și provocările. Jurnalul și check-in-urile rămân private.'}</Text></View><Switch accessibilityLabel="Arată statisticile pe profilul public" value={Boolean(share)} disabled={share == null || saving} onValueChange={toggle} trackColor={{ false: tc(colors.primarySoft,'bg'), true: tc(colors.primary,'bg') }} /></View>
     {error ? <Text style={styles.error} accessibilityRole="alert">{error}</Text> : null}
   </View>;
 }
