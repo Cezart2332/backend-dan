@@ -6,7 +6,7 @@ export default function AboutDanCineVideoScreen({ navigation }) {
     <VideoPlayerScreen
       navigation={navigation}
       title="Cine sunt eu?"
-      subtitle="Video de prezentare"
+      subtitle="Despre Dan"
       videoFile="about_dan_cine.mp4"
       playButtonText="Redă video"
       nowPlayingTitle="Cine sunt eu?"

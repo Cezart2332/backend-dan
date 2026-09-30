@@ -23,11 +23,11 @@ const PRACTICE = [
   { id: 10, title: 'Înțelege anxietatea', subtitle: 'Audio-uri și video explicative', icon: 'headphones' },
 ];
 const WITH_DAN = [
+  { id: 8, title: 'Despre Dan', subtitle: 'Intro, cine sunt eu și din experiența mea', icon: 'user' },
   { id: 4, title: 'Intră în direct cu Dan', subtitle: 'Întâlniri și jurnalul tău', icon: 'video' },
   { id: 5, title: 'Trimite-mi o întrebare', subtitle: 'Primești un răspuns personal', icon: 'help-circle' },
   { id: 11, title: 'Webinarii', subtitle: 'Întâlniri live și înregistrări', icon: 'cast' },
   { id: 12, title: 'Comunitate chat', subtitle: 'Vorbește cu oameni care te înțeleg', icon: 'message-square' },
-  { id: 8, title: 'Eu sunt Dan fost anxios', subtitle: 'Povestea din spatele metodei', icon: 'user' },
 ];
 
 function greetingForNow() {

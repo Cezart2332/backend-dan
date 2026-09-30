@@ -9,7 +9,7 @@ export default function AboutDanScreen({ navigation }) {
   const { tc } = useTheme();
   const styles = useThemedStyles(createStyles);
   const items = [
-    { id: 'intro', title: 'Intro', subtitle: 'Prezentare generală', iconName: 'book-outline', iconColor: '#24384e', iconBg: '#e8ebef' },
+    { id: 'intro', title: 'Intro', subtitle: 'Prezentarea lui Dan', iconName: 'book-outline', iconColor: '#24384e', iconBg: '#e8ebef' },
     { id: 'cine', title: 'Cine sunt eu?', subtitle: 'Povestea lui Dan', iconName: 'person-circle-outline', iconColor: '#6d6b8f', iconBg: '#ececf2' },
     { id: 'experienta', title: 'Din experiența mea', subtitle: 'Lecții personale', iconName: 'compass-outline', iconColor: '#3e7e76', iconBg: '#e9f0ef' },
   ];
@@ -34,15 +34,15 @@ export default function AboutDanScreen({ navigation }) {
             <TouchableOpacity accessibilityRole="button" accessibilityLabel="Înapoi" onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard'))} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.75}>
               <Feather name="chevron-left" size={22} color={tc("#24384e", 'fg')} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Eu sunt Dan</Text>
+            <Text style={styles.headerTitle}>Despre Dan</Text>
           </View>
 
-          <Text style={styles.sectionLabel}>SECȚIUNI</Text>
+          <Text style={styles.sectionLabel}>POVESTEA ȘI EXPERIENȚA LUI DAN</Text>
           <View style={styles.group}>
             {items.map((it, index) => (
               <React.Fragment key={it.id}>
                 {index > 0 && <View style={styles.separator} />}
-                <TouchableOpacity style={styles.row} onPress={() => openItem(it)} activeOpacity={0.7}>
+                <TouchableOpacity style={styles.row} onPress={() => openItem(it)} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={it.title}>
                   <View style={[styles.iconWrap, { backgroundColor: tc(it.iconBg, 'bg') }]}>
                     <Ionicons name={it.iconName} size={20} color={tc(it.iconColor, 'fg')} />
                   </View>

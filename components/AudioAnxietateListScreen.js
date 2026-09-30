@@ -7,7 +7,7 @@ import AudioAccessGate from './AudioAccessGate';
 const videos = [
   {
     id: "intro",
-    title: "Intro",
+    title: "Introducere în anxietate",
     videoFile: "intelege_anxietatea_intro.mp4",
     iconName: "hand-left-outline",
     iconColor: "#24384e",

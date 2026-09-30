@@ -17,7 +17,6 @@ export default function AudioLibraryContent({ navigation, lessons, cmsSubsection
   return <AppScreen>
     <AppHeader title="Înțelege anxietatea" subtitle="Videoclipurile și explicațiile lui Dan." onBack={() => navigation.goBack()} />
     <View style={styles.hero}><View style={styles.copy}><Text style={styles.title}>Înțelege,{ '\n' }în ritmul tău.</Text><Text style={styles.body}>Alege un videoclip. Îl poți viziona sau asculta în ritmul tău.</Text></View><Illustration size={112} /></View>
-    {lessons.length ? <AppButton title="Deschide Intro" icon="play" onPress={() => play(lessons[0])} /> : null}
     <Text style={styles.section} accessibilityRole="header">Lecțiile tale <Text style={styles.count}>· {lessons.length}</Text></Text>
     {lessons.map((item,index) => lesson(item,index))}
     {hasPaidSub ? cmsSubsections.map((sub) => <View key={sub.id}><Text style={styles.section} accessibilityRole="header">{sub.title}</Text>{(sub.videos || []).map((item,index) => lesson(item,index,`Dan fost anxios · ${sub.title}`))}</View>) : cmsSubsections.length ? <View style={styles.extra}><Text style={styles.lessonTitle}>Mai multe lecții cu abonament</Text><Text style={styles.body}>Descoperă conținutul suplimentar din bibliotecă.</Text><AppButton title="Vezi abonamente" onPress={() => navigation.navigate('Subscriptions')} variant="ghost" /></View> : null}
