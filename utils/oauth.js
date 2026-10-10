@@ -50,12 +50,12 @@ async function signInWithGoogleNative() {
       if (error.code === statusCodes.IN_PROGRESS) return null;
       if (error.code === statusCodes.SIGN_IN_CANCELLED) return { type: 'cancel' };
       if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        return { type: 'error', error: new Error('Serviciile Google Play nu sunt disponibile pe acest telefon.') };
+        return { type: 'error', error: new Error('Serviciile Google nu sunt disponibile pe acest telefon.') };
       }
       // DEVELOPER_ERROR: amprenta SHA-1 a aplicației nu e înregistrată în Google Cloud.
       if (String(error.code) === '10' || error.code === 'DEVELOPER_ERROR') {
         reportError(error, { flow: 'google_sign_in_android', code: 'DEVELOPER_ERROR' });
-        return { type: 'error', error: new Error('Configurarea Google pentru Android este incompletă (DEVELOPER_ERROR).') };
+        return { type: 'error', error: new Error('Configurarea autentificării Google este incompletă (DEVELOPER_ERROR).') };
       }
     }
     reportError(error, { flow: 'google_sign_in_android' });

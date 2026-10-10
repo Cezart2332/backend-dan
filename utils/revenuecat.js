@@ -111,7 +111,7 @@ export function isUserCancelledPurchase(error) {
 export async function configureRevenueCat({ appUserID } = {}) {
   if (!isIOSOrAndroid()) return false;
   if (!REVENUECAT_API_KEY) {
-    console.warn("RevenueCat disabled: missing EXPO_PUBLIC_REVENUECAT_IOS_API_KEY / EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY.");
+    console.warn("RevenueCat disabled: missing RevenueCat API key for this platform.");
     return false;
   }
 
@@ -252,7 +252,7 @@ export function getPackageForOfferingId(offerings, offeringId, planId) {
 
 export async function purchaseRevenueCatPackage(pkg) {
   if (!isIOSOrAndroid()) {
-    throw new Error("Achizitiile in-app sunt disponibile doar pe iOS/Android.");
+    throw new Error("Achizitiile in-app sunt disponibile doar in aplicatia mobila.");
   }
   if (!pkg) {
     throw new Error("Pachetul selectat nu este disponibil in oferta curenta.");
@@ -264,14 +264,14 @@ export async function purchaseRevenueCatPackage(pkg) {
 
 export async function restoreRevenueCatPurchases() {
   if (!isIOSOrAndroid()) {
-    throw new Error("Restore este disponibil doar pe iOS/Android.");
+    throw new Error("Restaurarea achizitiilor este disponibila doar in aplicatia mobila.");
   }
   return Purchases.restorePurchases();
 }
 
 export async function presentRevenueCatPaywall(requiredEntitlementIdentifier = PRO_ENTITLEMENT_ID) {
   if (!isIOSOrAndroid()) {
-    throw new Error("Paywall-ul RevenueCat este disponibil doar pe iOS/Android.");
+    throw new Error("Abonamentele sunt disponibile doar in aplicatia mobila.");
   }
 
   // RevenueCat Test Store / Preview API mode cannot present native paywall UI.
@@ -325,7 +325,7 @@ export async function presentRevenueCatPaywall(requiredEntitlementIdentifier = P
 
 export async function presentRevenueCatCustomerCenter() {
   if (!isIOSOrAndroid()) {
-    throw new Error("Customer Center este disponibil doar pe iOS/Android.");
+    throw new Error("Gestionarea abonamentului este disponibila doar in aplicatia mobila.");
   }
 
   if (typeof RevenueCatUI?.presentCustomerCenter === "function") {

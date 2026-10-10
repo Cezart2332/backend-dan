@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Platform,
   View,
   Text,
   StyleSheet,
@@ -10,6 +11,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useTheme, useThemedStyles } from "./ui/themeContext";
+
+// Fiecare platformă își vede doar propriul magazin (App Review Guideline 2.3.10).
+const STORE_PAYMENT_PROCESSOR = Platform.select({
+  ios: "Apple App Store",
+  android: "Google Play",
+  default: "magazinul de aplicații al dispozitivului",
+});
 
 export default function TermsScreen({ navigation }) {
   const { tc } = useTheme();
@@ -108,10 +116,9 @@ export default function TermsScreen({ navigation }) {
             Premium, VIP) cu funcționalități și prețuri diferite.{"\n\n"}
             3.2. Prețurile sunt exprimate în lei (RON) și includ T.V.A. conform
             legislației în vigoare.{"\n\n"}
-            3.3. Plățile se procesează prin intermediul procesatorului de plăți
-            Google Play (Android) și Apple App Store (iOS), prin sistemele
-            native de achiziții in-app. Datele cardului nu sunt stocate de
-            aplicație.{"\n\n"}
+            3.3. Plățile se procesează prin {STORE_PAYMENT_PROCESSOR}, prin
+            sistemul nativ de achiziții in-app. Datele cardului nu sunt
+            stocate de aplicație.{"\n\n"}
             3.4. Abonamentele se reînnoiesc automat la sfârșitul perioadei
             contractate, cu excepția cazului în care sunt anulate de utilizator.
           </Text>

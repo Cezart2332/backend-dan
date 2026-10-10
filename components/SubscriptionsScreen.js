@@ -28,6 +28,19 @@ const SERIF = Platform.OS === "ios" ? "Georgia" : "serif";
 const TERMS_OF_USE_URL = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";
 const PRIVACY_POLICY_URL = "https://danfostanxios.ro/politica-cookie-uri-ue/";
 
+// Fiecare magazin își vede doar propriul nume: Apple respinge aplicațiile iOS
+// care menționează alte platforme (App Review Guideline 2.3.10).
+const STORE_ACCOUNT_LABEL = Platform.select({
+  ios: "contul tău Apple (App Store)",
+  android: "contul tău Google Play",
+  default: "contul tău din magazinul de aplicații",
+});
+const STORE_SETTINGS_LABEL = Platform.select({
+  ios: "setările contului tău App Store",
+  android: "setările contului tău Google Play",
+  default: "setările contului tău din magazin",
+});
+
 // Folosit doar când magazinul nu întoarce durata produsului; toate planurile sunt lunare.
 const OFFERING_DURATION_FALLBACK = {
   [OFFERING_IDS.basic]: "Abonament lunar",
@@ -507,10 +520,10 @@ export default function SubscriptionsScreen({ navigation }) {
           <EnterFade index={animIndex++} style={styles.footer}>
             <View style={styles.footerLine} />
             <Text style={styles.legalNoticeText}>
-              Plata se debitează din contul tău App Store sau Google Play la confirmarea
-              achiziției. Abonamentul se reînnoiește automat dacă nu este anulat cu cel puțin 24
-              de ore înainte de sfârșitul perioadei curente. Îl poți gestiona sau anula oricând
-              din setările contului tău din magazin.
+              Plata se debitează din {STORE_ACCOUNT_LABEL} la confirmarea achiziției.
+              Abonamentul se reînnoiește automat dacă nu este anulat cu cel puțin 24 de ore
+              înainte de sfârșitul perioadei curente. Îl poți gestiona sau anula oricând din{" "}
+              {STORE_SETTINGS_LABEL}.
             </Text>
             <View style={styles.legalLinksRow}>
               <TouchableOpacity
