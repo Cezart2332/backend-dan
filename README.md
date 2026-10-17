@@ -7,6 +7,8 @@ A Fastify backend for authentication, subscriptions, admin APIs, and media metad
 
 Dashboard analytics, RevenueCat import and rollout instructions: [ANALYTICS.md](./ANALYTICS.md).
 
+Prelungirea abonamentelor din panel, migrarea și verificările: [SUBSCRIPTION_EXTENSIONS.md](./SUBSCRIPTION_EXTENSIONS.md).
+
 ## Setup
 1. Install deps
 2. Run DB migration (optional: Better Auth manages its own schema internally; custom tables are created by our migrate script using mysql2)

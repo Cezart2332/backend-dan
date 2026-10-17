@@ -2,6 +2,7 @@ import { mysqlPool } from "./mysql.js";
 import { migrateWellbeing } from "./wellbeing.js";
 import { migrateSocial } from "./social.js";
 import { migrateAnalytics } from "./revenue-ledger.js";
+import { migrateSubscriptionExtensions } from "./subscription-extensions.js";
 
 export async function runMigrations() {
   // Ensure tables
@@ -501,6 +502,7 @@ export async function runMigrations() {
   `);
 
   await migrateAnalytics(mysqlPool);
+  await migrateSubscriptionExtensions(mysqlPool);
 
   // Cartile PDF cadou: un singur rand per cont, ca fiecare sa le primeasca o data.
   await mysqlPool.query(`

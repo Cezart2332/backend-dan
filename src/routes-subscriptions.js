@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { mysqlPool } from "./mysql.js";
 import { productPlan, recordRevenueEvent } from "./revenue-ledger.js";
+import { preserveAdminExtensionEnd } from "./subscription-extensions.js";
 import {
   BOOK_SUBSCRIPTION_TYPES,
   deliverBooksForNewSubscription,
@@ -435,7 +436,10 @@ async function persistRevenueCatSnapshotData(
   if (nextStatus !== "active") {
     await db.query(
       `UPDATE subscriptions
-       SET ends_at = LEAST(COALESCE(ends_at, UTC_TIMESTAMP()), UTC_TIMESTAMP())
+       SET ends_at = CASE
+         WHEN admin_extended_until > UTC_TIMESTAMP() THEN admin_extended_until
+         ELSE LEAST(COALESCE(ends_at, UTC_TIMESTAMP()), UTC_TIMESTAMP())
+       END
        WHERE user_id = ?
          AND type <> 'trial'
          AND (ends_at IS NULL OR ends_at > NOW())`,
@@ -457,7 +461,7 @@ async function persistRevenueCatSnapshotData(
           revenuecat_event_type,
           revenuecat_period_type,
           stripe_price_id
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         ) VALUES (?, ?, ?, LEAST(COALESCE(?, UTC_TIMESTAMP()), UTC_TIMESTAMP()), ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
           normalizedType,
@@ -491,7 +495,12 @@ async function persistRevenueCatSnapshotData(
     !(await hasHadBookEligibleSubscription(userId, db));
 
   const [existingRows] = await db.query(
-    `SELECT id, starts_at, ends_at
+    `SELECT id, starts_at, ends_at,
+       (SELECT MAX(grant_row.admin_extended_until) FROM subscriptions grant_row
+        WHERE grant_row.user_id = subscriptions.user_id
+          AND grant_row.revenuecat_product_id <=> subscriptions.revenuecat_product_id
+          AND grant_row.revenuecat_entitlement_id <=> subscriptions.revenuecat_entitlement_id
+       ) AS admin_extended_until
      FROM subscriptions
      WHERE user_id = ?
        AND revenuecat_product_id <=> ?
@@ -510,6 +519,7 @@ async function persistRevenueCatSnapshotData(
          type = ?,
          starts_at = ?,
          ends_at = ?,
+         admin_extended_until = ?,
          revenuecat_app_user_id = ?,
          revenuecat_store = ?,
          revenuecat_will_renew = ?,
@@ -520,7 +530,8 @@ async function persistRevenueCatSnapshotData(
       [
         normalizedType,
         startDate,
-        endDate,
+        preserveAdminExtensionEnd(endDate, existing.admin_extended_until),
+        existing.admin_extended_until || null,
         appUserId || null,
         store || null,
         typeof willRenew === "boolean" ? Number(willRenew) : null,
