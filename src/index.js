@@ -30,7 +30,16 @@ import { registerAnalyticsRoutes } from './analytics.js';
 import { registerSubscriptionExtensionRoutes } from './subscription-extensions.js';
 
 const logLevel = process.env.LOG_LEVEL || "info";
-const app = Fastify({ logger: { level: logLevel }, bodyLimit: 5 * 1024 * 1024 }); // 5MB max body
+// The API runs behind Coolify's reverse proxy. Without trusting it, every
+// visitor shares the proxy's IP and therefore one rate-limit bucket.
+// TRUST_PROXY: number of proxy hops (default 1), "true"/"false" or an IP list.
+function resolveTrustProxy(raw = process.env.TRUST_PROXY) {
+  if (raw == null || raw === '') return 1;
+  if (/^\d+$/.test(raw)) return Number(raw);
+  if (raw === 'true' || raw === 'false') return raw === 'true';
+  return raw;
+}
+const app = Fastify({ logger: { level: logLevel }, bodyLimit: 5 * 1024 * 1024, trustProxy: resolveTrustProxy() }); // 5MB max body
 let isShuttingDown = false;
 let isReady = false;
 

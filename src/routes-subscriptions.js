@@ -32,7 +32,15 @@ const REVENUECAT_CACHE_MAX_ENTRIES = Math.max(
   Number(process.env.REVENUECAT_CACHE_MAX_ENTRIES || 5000),
 );
 
+const REVENUECAT_FETCH_TIMEOUT_MS = Math.max(
+  1000,
+  Number(process.env.REVENUECAT_FETCH_TIMEOUT_MS || 5000),
+);
+
 const revenueCatSubscriberCache = new Map();
+
+const BASE_PRODUCT_SQL = (expression) =>
+  `SUBSTRING_INDEX(${expression}, ':', 1)`;
 
 const ACTIVE_EVENT_TYPES = new Set([
   "INITIAL_PURCHASE",
@@ -181,6 +189,9 @@ async function fetchRevenueCatSubscriber(appUserId) {
         Authorization: `Bearer ${REVENUECAT_SECRET_API_KEY}`,
         "Content-Type": "application/json",
       },
+      // A slow RevenueCat must not hold the app's access check open; callers
+      // fall back to the stored snapshot.
+      signal: AbortSignal.timeout(REVENUECAT_FETCH_TIMEOUT_MS),
     },
   );
 
@@ -434,6 +445,9 @@ async function persistRevenueCatSnapshotData(
     nextStatus === "active" ? parsedEndsAt : parsedEndsAt || new Date();
 
   if (nextStatus !== "active") {
+    // An event for one product (e.g. a refunded Basic) must not end another
+    // product that is still paid. Only a verdict without a product (RevenueCat
+    // reports no entitlement at all) ends every store-managed row.
     await db.query(
       `UPDATE subscriptions
        SET ends_at = CASE
@@ -442,8 +456,9 @@ async function persistRevenueCatSnapshotData(
        END
        WHERE user_id = ?
          AND type <> 'trial'
-         AND (ends_at IS NULL OR ends_at > NOW())`,
-      [userId],
+         AND (ends_at IS NULL OR ends_at > NOW())
+         AND (? IS NULL OR ${BASE_PRODUCT_SQL("revenuecat_product_id")} = ${BASE_PRODUCT_SQL("?")})`,
+      [userId, normalizedProductId, normalizedProductId],
     );
 
     if (normalizedProductId) {
@@ -494,16 +509,18 @@ async function persistRevenueCatSnapshotData(
     BOOK_SUBSCRIPTION_TYPES.includes(normalizedType) &&
     !(await hasHadBookEligibleSubscription(userId, db));
 
+  // Google products arrive as "sku" from the REST API and as "sku:base-plan"
+  // from webhooks; both describe the same subscription row.
   const [existingRows] = await db.query(
     `SELECT id, starts_at, ends_at,
        (SELECT MAX(grant_row.admin_extended_until) FROM subscriptions grant_row
         WHERE grant_row.user_id = subscriptions.user_id
-          AND grant_row.revenuecat_product_id <=> subscriptions.revenuecat_product_id
+          AND ${BASE_PRODUCT_SQL("grant_row.revenuecat_product_id")} <=> ${BASE_PRODUCT_SQL("subscriptions.revenuecat_product_id")}
           AND grant_row.revenuecat_entitlement_id <=> subscriptions.revenuecat_entitlement_id
        ) AS admin_extended_until
      FROM subscriptions
      WHERE user_id = ?
-       AND revenuecat_product_id <=> ?
+       AND ${BASE_PRODUCT_SQL("revenuecat_product_id")} <=> ${BASE_PRODUCT_SQL("?")}
        AND revenuecat_entitlement_id <=> ?
      ORDER BY id DESC
      LIMIT 1`,
@@ -577,6 +594,67 @@ async function persistRevenueCatSnapshotData(
   return isFirstBookEligibleSubscription;
 }
 
+// Stores RevenueCat's current verdict for one account. Without a secret key
+// there is no verdict, so nothing is revoked.
+async function syncSubscriberFromRevenueCat(userId, appUserId, log) {
+  if (!REVENUECAT_SECRET_API_KEY) return false;
+  const { subscriber, cacheHit } =
+    await fetchRevenueCatSubscriberCached(appUserId);
+  if (cacheHit) {
+    log?.debug({ appUserId }, "RevenueCat cache hit for current subscription");
+  }
+  const entitlement = getEntitlementFromRevenueCat(
+    subscriber,
+    PRO_ENTITLEMENT_ID,
+  );
+
+  if (entitlement) {
+    await persistRevenueCatSnapshot({
+      userId,
+      appUserId,
+      entitlementId: entitlement.entitlementId,
+      productId: entitlement.productIdentifier,
+      status: entitlement.isActive ? "active" : "expired",
+      startsAt: entitlement.latestPurchaseDate,
+      endsAt: entitlement.expirationDate,
+      store: entitlement.store,
+      willRenew: entitlement.willRenew,
+      eventType: "API_SYNC",
+      periodType: String(
+        subscriber?.subscriptions?.[entitlement.productIdentifier]
+          ?.period_type ||
+          entitlement.raw?.periodType ||
+          "NORMAL",
+      ).toUpperCase(),
+    });
+  } else {
+    await persistRevenueCatSnapshot({
+      userId,
+      appUserId,
+      entitlementId: PRO_ENTITLEMENT_ID,
+      productId: null,
+      status: "none",
+      startsAt: null,
+      endsAt: new Date(),
+      store: null,
+      willRenew: null,
+      eventType: "API_SYNC",
+    });
+  }
+  return true;
+}
+
+// TRANSFER events carry no app_user_id, only the accounts on both sides.
+function numericAppUserIds(values) {
+  return [
+    ...new Set(
+      (Array.isArray(values) ? values : [])
+        .map((value) => String(value || "").trim())
+        .filter((value) => /^[1-9]\d*$/.test(value)),
+    ),
+  ];
+}
+
 function formatCurrentResponse(row, trialEligible) {
   const status = row
     ? computeStatusFromDates(row.starts_at, row.ends_at)
@@ -623,57 +701,7 @@ export async function registerSubscriptionRoutes(app) {
       const appUserId = String(user.sub || userRow.email || "").trim();
 
       try {
-        const { subscriber, cacheHit } =
-          await fetchRevenueCatSubscriberCached(appUserId);
-        if (cacheHit) {
-          request.log.debug(
-            { appUserId },
-            "RevenueCat cache hit for current subscription",
-          );
-        }
-        const entitlement = getEntitlementFromRevenueCat(
-          subscriber,
-          PRO_ENTITLEMENT_ID,
-        );
-        const status = entitlement
-          ? entitlement.isActive
-            ? "active"
-            : "expired"
-          : "none";
-
-        if (entitlement) {
-          await persistRevenueCatSnapshot({
-            userId: user.sub,
-            appUserId,
-            entitlementId: entitlement.entitlementId,
-            productId: entitlement.productIdentifier,
-            status,
-            startsAt: entitlement.latestPurchaseDate,
-            endsAt: entitlement.expirationDate,
-            store: entitlement.store,
-            willRenew: entitlement.willRenew,
-            eventType: "API_SYNC",
-            periodType: String(
-              subscriber?.subscriptions?.[entitlement.productIdentifier]
-                ?.period_type ||
-                entitlement.raw?.periodType ||
-                "NORMAL",
-            ).toUpperCase(),
-          });
-        } else {
-          await persistRevenueCatSnapshot({
-            userId: user.sub,
-            appUserId,
-            entitlementId: PRO_ENTITLEMENT_ID,
-            productId: null,
-            status: "none",
-            startsAt: null,
-            endsAt: new Date(),
-            store: null,
-            willRenew: null,
-            eventType: "API_SYNC",
-          });
-        }
+        await syncSubscriberFromRevenueCat(user.sub, appUserId, request.log);
       } catch (error) {
         request.log.warn(
           { err: error },
@@ -945,6 +973,32 @@ export async function registerSubscriptionRoutes(app) {
         : [];
       const entitlementId = entitlementIds[0] || PRO_ENTITLEMENT_ID;
       const store = event?.store || null;
+
+      if (eventType === "TRANSFER") {
+        // The event names no product or expiry, so both sides are re-read
+        // from RevenueCat: the receiver gains access, the giver may lose it.
+        const receivers = numericAppUserIds(event.transferred_to);
+        const affected = [
+          ...new Set([...receivers, ...numericAppUserIds(event.transferred_from)]),
+        ];
+        let owner = null;
+        for (const id of receivers) {
+          if (await getUserById(Number(id))) {
+            owner = Number(id);
+            break;
+          }
+        }
+        const recorded = await recordRevenueEvent(mysqlPool, event, owner);
+        if (recorded.ignored || event.environment !== "PRODUCTION") {
+          return reply.send({ received: true, ignored: recorded.ignored });
+        }
+        for (const id of affected) {
+          invalidateRevenueCatSubscriberCache(id);
+          if (!(await getUserById(Number(id)))) continue;
+          await syncSubscriberFromRevenueCat(Number(id), id, request.log);
+        }
+        return reply.send({ received: true });
+      }
 
       if (!appUserId) {
         return reply.code(400).send({ error: "Missing app_user_id" });
