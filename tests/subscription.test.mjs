@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cachedSubscription, liveSubscription, subscriptionLoadingVisible } from '../utils/subscriptionPolicy.mjs';
+import { cachedSubscription, liveSubscription, revenueCatOwnershipMismatch, subscriptionLoadingVisible } from '../utils/subscriptionPolicy.mjs';
 
 const now = Date.parse('2026-09-30T10:00:00Z');
 const future = '2026-10-01T00:00:00Z';
@@ -69,9 +69,25 @@ test('live lifetime access needs verification and malformed expiries are rejecte
   assert.equal(liveSubscription({ owner: 42, backend: { ...backend, subscription: { ...backend.subscription, ends_at: 'invalid' } } }, now).type, undefined);
 });
 
-test('ownership mismatch or actual expiry cannot grant access', () => {
+test('RevenueCat data from another SDK identity is ignored, never the server verdict', () => {
   const backend = { status: 'active', subscription: { type: 'premium', ends_at: future } };
-  assert.equal(liveSubscription({ owner: 42, backend, revenueCat: { ownershipMismatch: true } }, now).type, undefined);
+  const foreign = { ownershipMismatch: true, hasEntitlement: true, subscription: { type: 'pro', ends_at: future } };
+  assert.equal(liveSubscription({ owner: 42, backend, revenueCat: foreign }, now).type, 'premium');
+  assert.equal(liveSubscription({ owner: 42, backend: { status: 'none' }, revenueCat: foreign }, now).type, undefined);
+  // Without a server answer a foreign identity is no verdict at all.
+  assert.equal(liveSubscription({ owner: 42, revenueCat: foreign }, now), null);
+});
+
+test('an account aliased to an anonymous RevenueCat customer still owns its purchase', () => {
+  // Customer 598: originalAppUserId is $RCAnonymousID:..., the SDK is identified as 598.
+  assert.equal(revenueCatOwnershipMismatch({ hasEntitlement: true, sdkAppUserId: '598', owner: '598' }), false);
+  assert.equal(revenueCatOwnershipMismatch({ hasEntitlement: true, sdkAppUserId: '$RCAnonymousID:02fa', owner: '598' }), true);
+  assert.equal(revenueCatOwnershipMismatch({ hasEntitlement: true, sdkAppUserId: null, owner: '598' }), true);
+  assert.equal(revenueCatOwnershipMismatch({ hasEntitlement: false, sdkAppUserId: '1', owner: '598' }), false);
+});
+
+test('actual expiry cannot grant access', () => {
+  const backend = { status: 'active', subscription: { type: 'premium', ends_at: future } };
   const expired = liveSubscription({ owner: 42, backend: { ...backend, subscription: { ...backend.subscription, ends_at: new Date(now).toISOString() } } }, now);
   assert.equal(expired.type, undefined);
   assert.equal(expired._status, 'expired');

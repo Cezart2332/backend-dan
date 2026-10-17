@@ -10,6 +10,7 @@ import {
 } from "../utils/subscriptionStorage";
 import {
   configureRevenueCat,
+  ensureRevenueCatIdentity,
   fetchCustomerInfo,
   fetchOfferings,
   getAllPackagesFromOfferings,
@@ -17,6 +18,7 @@ import {
   getPackageForProductId,
   OFFERING_IDS,
   getProEntitlement,
+  getRevenueCatAppUserId,
   getRevenueCatErrorMessage,
   isProEntitlementActive,
   presentRevenueCatCustomerCenter,
@@ -27,7 +29,7 @@ import {
   restoreRevenueCatPurchases,
 } from "../utils/revenuecat";
 
-import { cachedSubscription, liveSubscription } from '../utils/subscriptionPolicy.mjs';
+import { cachedSubscription, liveSubscription, revenueCatOwnershipMismatch } from '../utils/subscriptionPolicy.mjs';
 
 const SubscriptionContext = createContext(null);
 
@@ -100,13 +102,13 @@ export function SubscriptionProvider({ children, isAuthed }) {
     return authedRef.current && epochRef.current === epoch &&
       normalizeAppUserId(user?.id) === owner && currentToken === token;
   }, []);
-  const describeCustomer = useCallback((info, owner) => {
+  const describeCustomer = useCallback((info, owner, sdkAppUserId) => {
     const entitlement = getProEntitlement(info);
     const hasEntitlement = isProEntitlementActive(info);
     const originalAppUserId = normalizeAppUserId(info?.originalAppUserId);
     return {
       nextStatus: getRevenueCatSubscriptionStatus(info), hasEntitlement,
-      ownershipMismatch: hasEntitlement && Boolean(originalAppUserId) && originalAppUserId !== owner,
+      ownershipMismatch: revenueCatOwnershipMismatch({ hasEntitlement, sdkAppUserId: normalizeAppUserId(sdkAppUserId), owner }),
       expectedAppUserId: owner, originalAppUserId,
       subscription: hasEntitlement ? { type: entitlement?.periodType === 'TRIAL' ? 'trial' : 'pro', product_id: entitlement?.productIdentifier || null,
         period_type: entitlement?.periodType || 'NORMAL',
@@ -127,11 +129,13 @@ export function SubscriptionProvider({ children, isAuthed }) {
   const applyCustomerInfo = useCallback(async (info, { expectedAppUserId } = {}) => {
     const epoch = epochRef.current, token = await getToken();
     const owner = normalizeAppUserId(expectedAppUserId) || normalizeAppUserId((await getUser())?.id);
-    const result = describeCustomer(info, owner);
+    const result = describeCustomer(info, owner, await getRevenueCatAppUserId().catch(() => null));
     if (!owner || !await sameSession(owner, token, epoch)) return { ...result, ownershipMismatch: true };
+    const snapshot = liveSubscription({ owner, revenueCat: result });
+    // Data from another SDK identity is no verdict; keep the current access.
+    if (!snapshot) return result;
     const commitEpoch = ++epochRef.current;
     refreshPromiseRef.current = null;
-    const snapshot = liveSubscription({ owner, revenueCat: result });
     setCustomerInfo(info || null); applySnapshot(snapshot);
     setSubscriptionResolved(true); setLoading(false);
     await saveSubscription(snapshot);
@@ -181,7 +185,8 @@ export function SubscriptionProvider({ children, isAuthed }) {
         if (!await sameSession(owner, token, epoch)) return null;
         const info = customer.status === 'fulfilled' ? customer.value : null;
         const backend = backendResult.status === 'fulfilled' ? backendResult.value : null;
-        const rc = info ? describeCustomer(info, owner) : null;
+        const sdkAppUserId = info ? await getRevenueCatAppUserId().catch(() => null) : null;
+        const rc = info ? describeCustomer(info, owner, sdkAppUserId) : null;
         const snapshot = liveSubscription({ owner, backend, revenueCat: rc });
         if (!snapshot) throw new Error('Nu am putut sincroniza abonamentul.');
         applySnapshot(snapshot);
@@ -260,9 +265,9 @@ export function SubscriptionProvider({ children, isAuthed }) {
       return;
     }
 
-    const listener = (info) => {
-      const owner = activeOwnerRef.current;
-      if (!owner || normalizeAppUserId(info?.originalAppUserId) !== owner) return;
+    // refresh() re-checks the SDK identity, so it decides whether an update counts.
+    const listener = () => {
+      if (!activeOwnerRef.current) return;
       refresh().catch(() => {});
     };
     listenerRef.current = listener;
@@ -303,24 +308,30 @@ export function SubscriptionProvider({ children, isAuthed }) {
     return mapped;
   }, [offerings]);
 
+  // Purchases and restores only run while the SDK is identified as this account.
+  const requireIdentity = useCallback(async () => {
+    await ensureRevenueCatIdentity(normalizeAppUserId((await getUser())?.id));
+  }, []);
+
   const purchaseByOfferingId = useCallback(
     async (offeringId) => {
       const packages = getPackagesByOffering();
       const pkg = packages?.[offeringId] || getPackageForProductId(offerings, offeringId);
+      await requireIdentity();
       const info = await purchaseRevenueCatPackage(pkg);
       const applyResult = await applyCustomerInfo(info);
       if (applyResult?.ownershipMismatch) {
-        throw new Error("Acest abonament este asociat altui cont. Conecteaza-te cu acel cont pentru restore purchases.");
+        throw new Error("Acest abonament este asociat altui cont. Conectează-te cu acel cont și folosește „Restaurează achizițiile”.");
       }
       await refreshAfterAccessChange();
       return info;
     },
-    [applyCustomerInfo, getPackagesByOffering, offerings, refreshAfterAccessChange]
+    [applyCustomerInfo, getPackagesByOffering, offerings, refreshAfterAccessChange, requireIdentity]
   );
 
   const restorePurchases = useCallback(async () => {
     const token = await getToken();
-    if (!token) throw new Error("Nu esti autentificat.");
+    if (!token) throw new Error("Nu ești conectat. Intră în cont și încearcă din nou.");
 
     const historyPayload = await api.getSubscriptionHistory(token).catch(() => null);
     const historyRows = Array.isArray(historyPayload?.history) ? historyPayload.history : [];
@@ -329,44 +340,46 @@ export function SubscriptionProvider({ children, isAuthed }) {
 
     if (!hasPaidHistory && !hasPaidSnapshot) {
       throw new Error(
-        "Restore purchases este permis doar pentru contul care a cumparat initial abonamentul. Conecteaza-te cu acel cont."
+        "Restaurarea achizițiilor funcționează doar pe contul cu care ai cumpărat abonamentul. Conectează-te cu acel cont."
       );
     }
 
+    await requireIdentity();
     const info = await restoreRevenueCatPurchases();
     const applyResult = await applyCustomerInfo(info);
     if (applyResult?.ownershipMismatch) {
       throw new Error(
-        "Abonamentul detectat este asociat altui cont din aplicatie. Conecteaza-te cu contul original pentru restore purchases."
+        "Abonamentul găsit este asociat altui cont din aplicație. Conectează-te cu contul cu care l-ai cumpărat."
       );
     }
     return info;
-  }, [applyCustomerInfo, hasProEntitlement, subscription]);
+  }, [applyCustomerInfo, hasProEntitlement, requireIdentity, subscription]);
 
   const showPaywall = useCallback(async () => {
+    await requireIdentity();
     const result = await presentRevenueCatPaywall();
     const info = await fetchCustomerInfo();
     const applyResult = await applyCustomerInfo(info);
     if (applyResult?.ownershipMismatch) {
-      throw new Error("Achizitia este asociata altui cont. Conecteaza-te cu acel cont.");
+      throw new Error("Achiziția este asociată altui cont. Conectează-te cu acel cont.");
     }
     await refreshAfterAccessChange();
     return result;
-  }, [applyCustomerInfo, refreshAfterAccessChange]);
+  }, [applyCustomerInfo, refreshAfterAccessChange, requireIdentity]);
 
   const openCustomerCenter = useCallback(async () => {
     const result = await presentRevenueCatCustomerCenter();
     const info = await fetchCustomerInfo();
     const applyResult = await applyCustomerInfo(info);
     if (applyResult?.ownershipMismatch) {
-      throw new Error("Contul din Customer Center nu corespunde contului curent din aplicatie.");
+      throw new Error("Abonamentul din magazin aparține altui cont din aplicație.");
     }
     return result;
   }, [applyCustomerInfo]);
 
   const startFreeTrial = useCallback(async () => {
     const token = await getToken();
-    if (!token) throw new Error("Nu esti autentificat.");
+    if (!token) throw new Error("Nu ești conectat. Intră în cont și încearcă din nou.");
     const result = await api.startTrial(token);
     await refreshAfterAccessChange();
     return result;
@@ -397,20 +410,21 @@ export function SubscriptionProvider({ children, isAuthed }) {
 
   const purchasePackage = useCallback(
     async (pkg) => {
+      await requireIdentity();
       const info = await purchaseRevenueCatPackage(pkg);
       const applyResult = await applyCustomerInfo(info);
       if (applyResult?.ownershipMismatch) {
-        throw new Error("Achizitia este asociata altui cont. Conecteaza-te cu acel cont.");
+        throw new Error("Achiziția este asociată altui cont. Conectează-te cu acel cont.");
       }
       await refreshAfterAccessChange();
       return { success: true, customerInfo: info };
     },
-    [applyCustomerInfo, refreshAfterAccessChange]
+    [applyCustomerInfo, refreshAfterAccessChange, requireIdentity]
   );
 
   const restorePermissions = useCallback(async () => {
     const token = await getToken();
-    if (!token) throw new Error("Nu esti autentificat.");
+    if (!token) throw new Error("Nu ești conectat. Intră în cont și încearcă din nou.");
 
     const historyPayload = await api.getSubscriptionHistory(token).catch(() => null);
     const historyRows = Array.isArray(historyPayload?.history) ? historyPayload.history : [];
@@ -419,19 +433,20 @@ export function SubscriptionProvider({ children, isAuthed }) {
 
     if (!hasPaidHistory && !hasPaidSnapshot) {
       throw new Error(
-        "Restore purchases este permis doar pentru contul care a cumparat initial abonamentul. Conecteaza-te cu acel cont."
+        "Restaurarea achizițiilor funcționează doar pe contul cu care ai cumpărat abonamentul. Conectează-te cu acel cont."
       );
     }
 
+    await requireIdentity();
     const info = await restoreRevenueCatPurchases();
     const applyResult = await applyCustomerInfo(info);
     if (applyResult?.ownershipMismatch) {
       throw new Error(
-        "Abonamentul detectat este asociat altui cont din aplicatie. Conecteaza-te cu contul original pentru restore purchases."
+        "Abonamentul găsit este asociat altui cont din aplicație. Conectează-te cu contul cu care l-ai cumpărat."
       );
     }
     return info;
-  }, [applyCustomerInfo, hasProEntitlement, subscription]);
+  }, [applyCustomerInfo, hasProEntitlement, requireIdentity, subscription]);
 
   const requestPaywall = useCallback(() => setPaywallRequested(true), []);
   const dismissPaywall = useCallback(() => setPaywallRequested(false), []);

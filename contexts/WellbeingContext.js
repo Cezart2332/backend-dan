@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import * as Notifications from 'expo-notifications';
@@ -7,7 +7,7 @@ import { getUser } from '../utils/userStorage';
 import { getToken } from '../utils/authStorage';
 import { api } from '../utils/api';
 import { useSubscription } from './SubscriptionContext';
-import { accessAllowed, DEFAULT_PREFERENCES } from '../utils/wellbeingCore.mjs';
+import { accessAllowed, confirmedAccess, DEFAULT_PREFERENCES } from '../utils/wellbeingCore.mjs';
 import { wellbeingRepository as repository, setWellbeingAccount, stopWellbeingAccount, syncWellbeing, scheduleWellbeingReminder } from '../utils/wellbeingRuntime';
 
 const Context = createContext(null);
@@ -24,7 +24,12 @@ export function WellbeingProvider({ isAuthed, children }) {
   const pendingPull = useRef(false);
   const onlineProof = useRef(false);
   const [onlineVerified, setOnlineVerified] = useState(false);
-  const allowed = Boolean(isAuthed && accessAllowed(data?.access, owner, now, onlineVerified));
+  // True when the last server check failed for a reason other than a verdict,
+  // so the gate can say "no connection" instead of "no subscription".
+  const [verifyFailed, setVerifyFailed] = useState(false);
+  const appAccess = useMemo(() => confirmedAccess(owner, subscriptionContext), [owner, subscriptionContext.hasProEntitlement, subscriptionContext.status, subscriptionContext.subscription]);
+  const appAccessRef = useRef(appAccess); appAccessRef.current = appAccess;
+  const allowed = Boolean(isAuthed && (accessAllowed(data?.access, owner, now, onlineVerified) || accessAllowed(appAccess, owner, now, true)));
   const reload = useCallback(async (id = ownerRef.current) => {
     if (!id) return;
     const next = await repository.read(id);
@@ -39,24 +44,33 @@ export function WellbeingProvider({ isAuthed, children }) {
     try {
       const token = await getToken();
       if (!token || ownerRef.current !== id) return;
-      // Network failure preserves the last confirmed, finite expiry.
-      try {
-        const result = await api.getCurrentSubscription(token);
-        if (ownerRef.current !== id) return;
-        onlineProof.current = true; setOnlineVerified(true);
-        await repository.update(id, { access: { owner: id, status: result.status, type: result.subscription?.type, expiresAt: result.subscription?.ends_at, checkedAt: new Date().toISOString() } });
-      } catch (failure) {
-        if (ownerRef.current !== id) return;
-        onlineProof.current = false; setOnlineVerified(false);
-        if (failure.status === 401 || String(failure.message).includes('Neautorizat')) {
-          await repository.update(id, { access: null });
+      // Access the subscription layer already confirmed needs no second server
+      // round trip; it is stored so SOS also opens offline until its expiry.
+      const confirmed = appAccessRef.current;
+      const confirmedLive = accessAllowed(confirmed, id, Date.now(), true);
+      if (confirmedLive) {
+        await repository.update(id, { access: { ...confirmed, checkedAt: new Date().toISOString() } });
+        setVerifyFailed(false);
+      } else {
+        // Network failure preserves the last confirmed, finite expiry.
+        try {
+          const result = await api.getCurrentSubscription(token);
+          if (ownerRef.current !== id) return;
+          onlineProof.current = true; setOnlineVerified(true); setVerifyFailed(false);
+          await repository.update(id, { access: { owner: id, status: result.status, type: result.subscription?.type, expiresAt: result.subscription?.ends_at, checkedAt: new Date().toISOString() } });
+        } catch (failure) {
+          if (ownerRef.current !== id) return;
+          onlineProof.current = false; setOnlineVerified(false);
+          if (failure.status === 401) {
+            await repository.update(id, { access: null });
+          } else setVerifyFailed(true);
         }
       }
       if (ownerRef.current !== id) return;
       const snapshot = await repository.read(id);
       await reload(id);
       await scheduleWellbeingReminder(id).catch(() => {});
-      if (accessAllowed(snapshot.access, id, Date.now(), onlineProof.current)) {
+      if (accessAllowed(snapshot.access, id, Date.now(), onlineProof.current || confirmedLive)) {
         await syncWellbeing(id, token, { pull });
         await reload(id);
         await scheduleWellbeingReminder(id).catch(() => {});
@@ -77,7 +91,7 @@ export function WellbeingProvider({ isAuthed, children }) {
     let active = true;
     ownerRef.current = null;
     onlineProof.current = false; setOnlineVerified(false);
-    setOwner(null); setData(null); setError(null);
+    setOwner(null); setData(null); setError(null); setVerifyFailed(false);
     stopWellbeingAccount().catch(() => {});
     if (isAuthed) (async () => {
       const user = await getUser();
@@ -141,6 +155,7 @@ export function WellbeingProvider({ isAuthed, children }) {
     const id = ownerRef.current;
     await repository.update(id, { kit }); await reload(id);
   };
-  return <Context.Provider value={{ owner, data, ready: Boolean(owner && data), allowed, error, preferences: { ...DEFAULT_PREFERENCES, ...data?.preferences }, refresh, reload, save, metadata, updatePreferences, updateKit, requestPaywall: subscriptionContext.requestPaywall }}>{children}</Context.Provider>;
+  const recheckAccess = () => { subscriptionContext.refresh().catch(() => {}); return refresh(); };
+  return <Context.Provider value={{ owner, data, ready: Boolean(owner && data), allowed, error, verifyFailed, recheckAccess, preferences: { ...DEFAULT_PREFERENCES, ...data?.preferences }, refresh, reload, save, metadata, updatePreferences, updateKit, requestPaywall: subscriptionContext.requestPaywall }}>{children}</Context.Provider>;
 }
 export function useWellbeing() { return useContext(Context); }

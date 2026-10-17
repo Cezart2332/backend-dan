@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { accessAllowed, breathingPhase, createSessionClock, observedPatterns, recommendations, reminderDate } from '../utils/wellbeingCore.mjs';
+import { accessAllowed, breathingPhase, confirmedAccess, createSessionClock, observedPatterns, recommendations, reminderDate } from '../utils/wellbeingCore.mjs';
 import { createWellbeingRepository } from '../utils/wellbeingRepository.mjs';
 import { createWellbeingSync } from '../utils/wellbeingSync.mjs';
 import { createReminderScheduler, reminderPlan } from '../utils/wellbeingReminder.mjs';
@@ -18,6 +18,17 @@ test('paid access needs matching owner and finite future expiry; trial never qua
   assert.equal(accessAllowed({owner:'2',type:'pro',status:'active',expiresAt:'2026-10-01T10:00:00Z'},'1',now),false);
   assert.equal(accessAllowed({owner:'1',type:'trial',status:'active',expiresAt:'2026-10-01T10:00:00Z'},'1',now),false);
   assert.equal(accessAllowed({owner:'1',type:'basic',status:'active',expiresAt:null},'1',now,true),true);
+});
+test('access confirmed by the subscription layer opens SOS without the server', () => {
+  const now = Date.parse('2026-09-30T10:00:00Z');
+  const paid = { hasProEntitlement: true, status: 'active', subscription: { type: 'premium', ends_at: '2026-10-30T10:00:00Z' } };
+  assert.equal(accessAllowed(confirmedAccess('147', paid), '147', now, true), true);
+  assert.equal(accessAllowed(confirmedAccess('147', { ...paid, subscription: { type: 'pro', ends_at: null } }), '147', now, true), true);
+  assert.equal(confirmedAccess('147', { ...paid, hasProEntitlement: false }), null);
+  assert.equal(confirmedAccess('147', { ...paid, status: 'expired' }), null);
+  assert.equal(confirmedAccess(null, paid), null);
+  assert.equal(accessAllowed(confirmedAccess('147', { ...paid, subscription: { type: 'trial', ends_at: '2026-10-30T10:00:00Z' } }), '147', now, true), false);
+  assert.equal(accessAllowed(confirmedAccess('147', { ...paid, subscription: { type: 'premium', ends_at: '2026-09-29T10:00:00Z' } }), '147', now, true), false);
 });
 test('clock pauses without consuming time and caps elapsed at duration', () => {
   let now=0;

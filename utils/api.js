@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { apiError } from './apiErrors.mjs';
 
 // Prefer runtime config from Expo constants, then env, then localhost fallback
 const fromConstants = Constants?.expoConfig?.extra?.EXPO_PUBLIC_API_URL || Constants?.manifest?.extra?.EXPO_PUBLIC_API_URL;
@@ -37,7 +38,10 @@ async function request(path, { method = 'GET', body, token, timeoutMs = 15000 } 
   if (body !== undefined && body !== null) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  // Expo's fetch reports our abort as "fetch failed: Fetch request has been
+  // canceled" rather than an AbortError, so the timeout is tracked here.
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
   try {
     const res = await fetch(`${DEFAULT_BASE}${path}`, {
       method,
@@ -47,15 +51,11 @@ async function request(path, { method = 'GET', body, token, timeoutMs = 15000 } 
     });
     const text = await res.text();
     const data = (() => { try { return JSON.parse(text); } catch { return text; } })();
-    if (!res.ok) {
-      const error = new Error(data?.error || data || 'Request failed');
-      error.status = res.status;
-      throw error;
-    }
+    if (!res.ok) throw apiError({ status: res.status, body: data });
     return data;
   } catch (e) {
-    if (e?.name === 'AbortError') throw new Error('Server indisponibil. Încearcă din nou.');
-    throw e;
+    if (e?.kind) throw e;
+    throw apiError({ timedOut, cause: e });
   } finally {
     clearTimeout(timer);
   }

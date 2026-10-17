@@ -93,9 +93,13 @@ function LessonPlayerContent({ navigation, title = 'Lecție cu Dan', subtitle = 
   }, []);
   useEffect(() => {
     const sample = () => tracker.current.sample(player.currentTime,Date.now(),player.playing,player.playbackRate || 1);
+    // On Android the player is prepared with an empty playlist before the
+    // lesson source arrives; ExoPlayer reports that as "ended". Only a lesson
+    // that actually played can finish.
+    let started = false;
     const positionListener = player.addListener('timeUpdate',sample);
-    const playingListener = player.addListener('playingChange',({ isPlaying: playing }) => { sample(); tracker.current.discontinuity(player.currentTime,Date.now(),playing); if (!playing) flush.current(); });
-    const endListener = player.addListener('playToEnd',() => { sample(); tracker.current.end(); setCompleted(tracker.current.snapshot(player.duration).completed); setFinished(true); flush.current(); });
+    const playingListener = player.addListener('playingChange',({ isPlaying: playing }) => { if (playing) started = true; sample(); tracker.current.discontinuity(player.currentTime,Date.now(),playing); if (!playing) flush.current(); });
+    const endListener = player.addListener('playToEnd',() => { if (!started) return; sample(); tracker.current.end(); setCompleted(tracker.current.snapshot(player.duration).completed); setFinished(true); flush.current(); });
     const timer = setInterval(() => { if (player.playing) flush.current(); },15000);
     return () => { positionListener.remove(); playingListener.remove(); endListener.remove(); clearInterval(timer); flush.current(); };
   }, [player]);

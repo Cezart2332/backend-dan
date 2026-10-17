@@ -15,10 +15,19 @@ export function Choices({ label, values, value, onChange, optional = true }) {
   })}</View></View>;
 }
 export function WellbeingGate({ navigation, title, children }) {
-  const { ready, allowed, refresh, error } = useWellbeing();
+  const { ready, allowed, recheckAccess, error, verifyFailed } = useWellbeing();
   const s = useWellbeingStyles();
   if (ready && allowed) return children;
-  return <AppScreen><AppHeader title={title} onBack={() => navigation.goBack()} /><AppCard>{!ready && !error ? <><ActivityIndicator /><Text style={s.body}>Se încarcă datele de pe telefon…</Text></> : <><Text style={s.heading}>{error && !ready ? 'Datele nu au putut fi încărcate' : 'Disponibil cu abonament'}</Text><Text style={s.body}>{error && !ready ? error : 'Ai nevoie de un abonament plătit activ. Offline folosim ultima confirmare până la expirarea cunoscută. Datele salvate se păstrează.'}</Text><AppButton title="Vezi abonamente" onPress={() => navigation.navigate('Subscriptions')} /><AppButton title="Reverifică accesul" variant="ghost" onPress={refresh} /></>}</AppCard></AppScreen>;
+  if (!ready && !error) return <AppScreen><AppHeader title={title} onBack={() => navigation.goBack()} /><AppCard><ActivityIndicator /><Text style={s.body}>Se încarcă datele de pe telefon…</Text></AppCard></AppScreen>;
+  // A failed check is not a missing subscription; say which one it is.
+  const copy = error && !ready
+    ? ['Datele nu au putut fi încărcate', error]
+    : verifyFailed
+      ? ['Nu am putut verifica abonamentul', 'Nu ne-am putut conecta la server. Verifică conexiunea la internet și încearcă din nou. Datele salvate pe telefon se păstrează.']
+      : ['Disponibil cu abonament', 'Exercițiile SOS și jurnalul sunt incluse în abonamentele plătite. Datele salvate pe telefon se păstrează.'];
+  const recheck = <AppButton title="Încearcă din nou" variant={verifyFailed ? undefined : 'ghost'} onPress={recheckAccess} />;
+  const plans = <AppButton title="Vezi abonamente" variant={verifyFailed ? 'ghost' : undefined} onPress={() => navigation.navigate('Subscriptions')} />;
+  return <AppScreen><AppHeader title={title} onBack={() => navigation.goBack()} /><AppCard><Text style={s.heading}>{copy[0]}</Text><Text style={s.body}>{copy[1]}</Text>{verifyFailed ? <>{recheck}{plans}</> : <>{plans}{recheck}</>}</AppCard></AppScreen>;
 }
 export function PrivacyNotice() {
   const s = useWellbeingStyles();

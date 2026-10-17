@@ -14,6 +14,14 @@ export const GROUNDING = [
   ['1 gust pe care îl observi', 'Observă un gust sau amintește-ți unul familiar.'],
 ];
 
+// Paid access the subscription layer has already confirmed (server or
+// RevenueCat, for the signed-in account). It lets SOS open while our server
+// is unreachable, since the store verdict is just as authoritative.
+export function confirmedAccess(owner, { hasProEntitlement, status, subscription } = {}) {
+  if (!owner || !hasProEntitlement || status !== 'active') return null;
+  return { owner: String(owner), status: 'active', type: String(subscription?.type || '').toLowerCase(), expiresAt: subscription?.ends_at ?? null };
+}
+
 export function accessAllowed(snapshot, owner, now = Date.now(), onlineVerified = false) {
   return Boolean(owner && String(snapshot?.owner) === String(owner) && snapshot?.status === 'active'
     && ['basic', 'premium', 'vip', 'pro'].includes(snapshot?.type)

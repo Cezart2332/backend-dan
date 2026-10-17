@@ -92,11 +92,24 @@ function isIOSOrAndroid() {
   return Platform.OS === "ios" || Platform.OS === "android";
 }
 
-export function getRevenueCatErrorMessage(error, fallback = "A aparut o eroare la abonament.") {
+const STORE_ERROR_MESSAGES = {
+  [PURCHASES_ERROR_CODE.NETWORK_ERROR]: "Nu ne putem conecta la magazin. Verifică conexiunea la internet și încearcă din nou.",
+  [PURCHASES_ERROR_CODE.OFFLINE_CONNECTION_ERROR]: "Nu ne putem conecta la magazin. Verifică conexiunea la internet și încearcă din nou.",
+  [PURCHASES_ERROR_CODE.STORE_PROBLEM_ERROR]: "Magazinul nu răspunde momentan. Încearcă din nou în câteva minute.",
+  [PURCHASES_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR]: "Achizițiile nu sunt permise pe acest telefon. Verifică restricțiile contului din magazin.",
+  [PURCHASES_ERROR_CODE.PRODUCT_NOT_AVAILABLE_FOR_PURCHASE_ERROR]: "Abonamentul nu este disponibil momentan. Încearcă din nou mai târziu.",
+  [PURCHASES_ERROR_CODE.CONFIGURATION_ERROR]: "Abonamentele nu sunt disponibile momentan. Încearcă din nou mai târziu.",
+  [PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR]: "Ai deja acest abonament. Folosește „Restaurează achizițiile” ca să-l activezi.",
+  [PURCHASES_ERROR_CODE.RECEIPT_ALREADY_IN_USE_ERROR]: "Achiziția este folosită de alt cont din aplicație. Conectează-te cu contul cu care ai cumpărat.",
+  [PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR]: "Plata este în curs de procesare. Abonamentul se activează imediat ce magazinul o confirmă.",
+  [PURCHASES_ERROR_CODE.OPERATION_ALREADY_IN_PROGRESS_ERROR]: "O achiziție este deja în curs. Așteaptă câteva secunde.",
+};
+
+// Store errors carry a code and an English message; our own errors are
+// already written for people and are shown as they are.
+export function getRevenueCatErrorMessage(error, fallback = "A apărut o problemă la abonament. Încearcă din nou.") {
   if (!error) return fallback;
-  if (String(error?.code) === "23") {
-    return "Produsul nu este disponibil pentru contul de test sau storefront-ul curent. Verifica Offering-ul curent, pachetele si contul Sandbox.";
-  }
+  if (error?.code != null) return STORE_ERROR_MESSAGES[String(error.code)] || fallback;
   if (typeof error?.message === "string" && error.message.trim()) return error.message;
   return fallback;
 }
@@ -126,16 +139,36 @@ export async function configureRevenueCat({ appUserID } = {}) {
       return true;
     }
 
-    if (appUserID && appUserID !== currentAppUserId) {
+    // After a sign-out the SDK runs as a new anonymous user, so the identity is
+    // read from the SDK itself rather than from what this module last asked for.
+    if (appUserID && (await Purchases.getAppUserID()) !== appUserID) {
       await Purchases.logIn(appUserID);
-      currentAppUserId = appUserID;
     }
+    currentAppUserId = appUserID || currentAppUserId;
 
     return true;
   } catch (error) {
     console.warn("RevenueCat configure failed:", error?.message || error);
     return false;
   }
+}
+
+export async function getRevenueCatAppUserId() {
+  if (!isIOSOrAndroid() || !configured) return null;
+  return Purchases.getAppUserID();
+}
+
+// A purchase made while the SDK is anonymous lands on another RevenueCat
+// customer and does not unlock this account, so it is never started then.
+export async function ensureRevenueCatIdentity(appUserID) {
+  if (!isIOSOrAndroid()) return;
+  const expected = String(appUserID || "").trim();
+  if (expected && (await configureRevenueCat({ appUserID: expected }))) {
+    if ((await getRevenueCatAppUserId().catch(() => null)) === expected) return;
+  }
+  throw new Error(
+    "Nu am putut verifica contul pentru abonament. Verifică conexiunea la internet și încearcă din nou."
+  );
 }
 
 export async function identifyRevenueCatUser(appUserID) {

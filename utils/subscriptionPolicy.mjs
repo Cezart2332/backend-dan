@@ -11,10 +11,18 @@ export function cachedSubscription(snapshot, owner, now = Date.now()) {
   return empty(owner, Number.isFinite(expiry) && expiry <= now ? 'expired' : snapshot?._status === 'expired' ? 'expired' : 'none', Boolean(snapshot?._trialEligible));
 }
 
+// RevenueCat keeps the first (often anonymous) ID as originalAppUserId and
+// adds the account as an alias, so ownership is the SDK's current identity.
+export function revenueCatOwnershipMismatch({ hasEntitlement, sdkAppUserId, owner }) {
+  return Boolean(hasEntitlement) && (!owner || String(sdkAppUserId ?? '') !== String(owner));
+}
+
 // Live server verification also supports lifetime subscriptions. A failure is
 // distinct from a verified "none", so it cannot revoke a valid cached grant.
-export function liveSubscription({ owner, backend, revenueCat }, now = Date.now()) {
-  if (revenueCat?.ownershipMismatch) return empty(owner);
+// RevenueCat data read while the SDK is identified as another user is
+// discarded, but the server's per-account verdict still stands.
+export function liveSubscription({ owner, backend, revenueCat: reported }, now = Date.now()) {
+  const revenueCat = reported?.ownershipMismatch ? null : reported;
   const backendExpiry = Date.parse(backend?.subscription?.ends_at || '');
   const backendActive = backend?.status === 'active' && liveExpiryValid(backend.subscription?.ends_at, now);
   if (backendActive && paid(backend.subscription?.type)) return { ...backend.subscription, _ownerId: String(owner), _status: 'active', _trialEligible: false };
