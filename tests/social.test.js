@@ -29,6 +29,7 @@ function database() {
         case 'unblock':blocks.delete(`${a}:${b}`);return [{}];
         case 'message-save':if(!messages.some(m=>m.senderId===a&&m.clientId===c))messages.push({id:++seq,senderId:a,recipientId:b,clientId:c,content:d,createdAt:new Date().toISOString()});return [{}];
         case 'message-get':return [messages.filter(m=>m.senderId===a&&m.clientId===b)];
+        case 'message-known':return [messages.filter(m=>m.senderId===a&&m.clientId===b)];
         case 'messages':return [messages.filter(m=>(m.senderId===a&&m.recipientId===b)||(m.senderId===c&&m.recipientId===d)).filter(m=>!args[4]||(sql.includes('AND id <')?m.id<args[4]:m.id>args[4])).sort((x,y)=>sql.includes('id ASC')?x.id-y.id:y.id-x.id).slice(0,51)];
         case 'read-check':return [messages.filter(m=>m.id===a&&((m.senderId===b&&m.recipientId===c)||(m.senderId===d&&m.recipientId===args[4])))];
         case 'read-save':reads.set(`${a}:${b}`,Math.max(reads.get(`${a}:${b}`)||0,c));return [{}];
@@ -48,12 +49,27 @@ function database() {
   }; return db;
 }
 async function fixture(t) {
-  const pool=database(),app=Fastify(),secret='social-tests-only';
-  await registerSocialRoutes(app,{pool,jwtSecret:secret});t.after(()=>app.close());
+  const pool=database(),app=Fastify(),secret='social-tests-only',pushes=[];
+  await registerSocialRoutes(app,{pool,jwtSecret:secret,notify:(event)=>{pushes.push(event);}});t.after(()=>app.close());
   const call=(viewer,method,url,payload)=>app.inject({method,url,payload,headers:viewer?{authorization:`Bearer ${jwt.sign({sub:viewer},secret)}`}:{}});
   const befriend=async(a=1,b=2)=>{assert.equal((await call(a,'POST',`/api/social/friends/${b}`)).statusCode,200);assert.equal((await call(b,'POST',`/api/social/friends/${a}/accept`)).statusCode,200);};
-  return {app,pool,call,befriend};
+  // Pushes are sent after the response; let them run before asserting.
+  const sentPushes=async()=>{await new Promise(r=>setImmediate(r));return pushes.map(({recipientId,actorId,kind,content})=>({recipientId,actorId,kind,...(content?{content}:{})}));};
+  return {app,pool,call,befriend,sentPushes};
 }
+test('only new requests, acceptances and messages notify the other person',async t=>{
+  const {call,sentPushes}=await fixture(t);
+  await call(1,'POST','/api/social/friends/2');await call(1,'POST','/api/social/friends/2');await call(2,'POST','/api/social/friends/1');
+  assert.deepEqual(await sentPushes(),[{recipientId:2,actorId:1,kind:'friend_request'}]);
+  await call(2,'POST','/api/social/friends/1/accept');await call(2,'POST','/api/social/friends/1/accept');
+  const payload={clientId:randomUUID(),content:' Salut '};
+  await call(1,'POST','/api/social/private/2/messages',payload);await call(1,'POST','/api/social/private/2/messages',payload);
+  assert.deepEqual((await sentPushes()).slice(1),[{recipientId:1,actorId:2,kind:'friend_accepted'},{recipientId:2,actorId:1,kind:'private_message',content:'Salut'}]);
+  // Rejected actions never notify.
+  await call(3,'POST','/api/social/private/1/messages',{clientId:randomUUID(),content:'Hei'});
+  await call(2,'POST','/api/social/blocks/3');await call(3,'POST','/api/social/friends/2');
+  assert.equal((await sentPushes()).length,3);
+});
 test('all social and activity routes require a valid existing account',async t=>{
   const {call}=await fixture(t);
   for(const url of ['/api/activity/stats','/api/social/profiles/2','/api/social/friends','/api/social/private/2/messages','/api/social/people?q=User']) {

@@ -496,10 +496,17 @@ export async function runMigrations() {
     CREATE TABLE IF NOT EXISTS user_notification_prefs (
       user_id BIGINT PRIMARY KEY,
       chat_push TINYINT(1) NOT NULL DEFAULT 1,
+      social_push TINYINT(1) NOT NULL DEFAULT 1,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       CONSTRAINT fk_user_notification_prefs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
+  // Friend requests and private messages are muted separately from the community chat.
+  try {
+    await mysqlPool.query(`ALTER TABLE user_notification_prefs ADD COLUMN social_push TINYINT(1) NOT NULL DEFAULT 1`);
+  } catch (error) {
+    if (error.errno !== 1060) throw error; // ER_DUP_FIELDNAME: already added.
+  }
 
   await migrateAnalytics(mysqlPool);
   await migrateSubscriptionExtensions(mysqlPool);

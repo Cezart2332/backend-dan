@@ -97,11 +97,14 @@ export async function registerNotificationRoutes(app) {
 
     try {
       const [rows] = await mysqlPool.query(
-        'SELECT chat_push FROM user_notification_prefs WHERE user_id = ? LIMIT 1',
+        'SELECT chat_push, social_push FROM user_notification_prefs WHERE user_id = ? LIMIT 1',
         [Number(user.sub)]
       );
-      const chatPush = Array.isArray(rows) && rows.length ? Boolean(Number(rows[0].chat_push)) : true;
-      return reply.send({ chatPush });
+      const row = Array.isArray(rows) && rows.length ? rows[0] : null;
+      return reply.send({
+        chatPush: row ? Boolean(Number(row.chat_push)) : true,
+        socialPush: row ? Boolean(Number(row.social_push)) : true,
+      });
     } catch (error) {
       request.log.error({ err: error }, 'Get notification preferences failed');
       return reply.code(500).send({ error: 'Eroare server' });
@@ -112,19 +115,32 @@ export async function registerNotificationRoutes(app) {
     const user = authMiddleware(request);
     if (!user) return reply.code(401).send({ error: 'Neautorizat' });
 
-    if (typeof request.body?.chatPush !== 'boolean') {
-      return reply.code(400).send({ error: 'Parametrul chatPush este invalid.' });
+    // Each preference is optional so older app versions (chatPush only) keep working.
+    const { chatPush, socialPush } = request.body || {};
+    if ((chatPush !== undefined && typeof chatPush !== 'boolean') ||
+        (socialPush !== undefined && typeof socialPush !== 'boolean') ||
+        (chatPush === undefined && socialPush === undefined)) {
+      return reply.code(400).send({ error: 'Preferință de notificare invalidă.' });
     }
-    const chatPush = request.body.chatPush;
 
     try {
       await mysqlPool.query(
-        `INSERT INTO user_notification_prefs (user_id, chat_push)
-         VALUES (?, ?)
-         ON DUPLICATE KEY UPDATE chat_push = VALUES(chat_push)`,
-        [Number(user.sub), chatPush ? 1 : 0]
+        `INSERT INTO user_notification_prefs (user_id, chat_push, social_push)
+         VALUES (?, COALESCE(?, 1), COALESCE(?, 1))
+         ON DUPLICATE KEY UPDATE chat_push = COALESCE(?, chat_push), social_push = COALESCE(?, social_push)`,
+        [
+          Number(user.sub),
+          chatPush === undefined ? null : Number(chatPush),
+          socialPush === undefined ? null : Number(socialPush),
+          chatPush === undefined ? null : Number(chatPush),
+          socialPush === undefined ? null : Number(socialPush),
+        ]
       );
-      return reply.send({ chatPush });
+      const [[row]] = await mysqlPool.query(
+        'SELECT chat_push, social_push FROM user_notification_prefs WHERE user_id = ?',
+        [Number(user.sub)]
+      );
+      return reply.send({ chatPush: Boolean(Number(row.chat_push)), socialPush: Boolean(Number(row.social_push)) });
     } catch (error) {
       request.log.error({ err: error }, 'Update notification preferences failed');
       return reply.code(500).send({ error: 'Eroare server' });

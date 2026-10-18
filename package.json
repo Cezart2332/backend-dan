@@ -13,7 +13,7 @@
     "migrate:custom": "node -e \"import('./src/migrate.js').then(m=>m.runMigrations())\"",
     "encode:hls": "node src/encode-videos.js",
     "load:test": "node scripts/load-test.js",
-    "test:audio-social": "node --test tests/social.test.js"
+    "test:audio-social": "node --test tests/social.test.js tests/social-push.test.js"
   },
   "dependencies": {
     "@fastify/compress": "^8.3.1",

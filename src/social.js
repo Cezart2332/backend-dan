@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { notifySocial } from './social-push.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const fail = (status, message) => Object.assign(new Error(message), { statusCode: status });
@@ -52,7 +53,9 @@ export async function migrateSocial(pool) {
   for (const sql of tables) await pool.query(sql);
 }
 
-export async function registerSocialRoutes(app, { pool, jwtSecret }) {
+export async function registerSocialRoutes(app, { pool, jwtSecret, notify = (event) => notifySocial({ pool, ...event }) }) {
+  // Pushes go out after the change is committed and never delay or fail it.
+  const push = (event) => { Promise.resolve().then(() => notify(event)).catch(() => {}); };
   async function auth(request, reply) {
     try {
       const bearer = request.headers.authorization;
@@ -149,17 +152,30 @@ export async function registerSocialRoutes(app, { pool, jwtSecret }) {
         AND NOT EXISTS (SELECT 1 FROM user_blocks b WHERE (b.user_id = ? AND b.blocked_id = m.sender_id) OR (b.blocked_id = ? AND b.user_id = m.sender_id))) AS messages`, Array(7).fill(req.viewer));
     return { unreadCount: Number(rows[0]?.requests || 0) + Number(rows[0]?.messages || 0) };
   });
-  route('POST', '/api/social/friends/:id', async (req) => transaction(req.viewer,id(req.params.id),async (db,low,high) => {
-    if (await blocked(db,req.viewer,id(req.params.id))) throw fail(403,'Cererea nu poate fi trimisă.');
-    await db.query('/* social:request */ INSERT INTO friendships (user_low,user_high,requested_by) VALUES (?,?,?) ON DUPLICATE KEY UPDATE id = id', [low,high,req.viewer]);
+  route('POST', '/api/social/friends/:id', async (req) => {
+    const target = id(req.params.id);
+    const created = await transaction(req.viewer,target,async (db,low,high) => {
+      if (await blocked(db,req.viewer,target)) throw fail(403,'Cererea nu poate fi trimisă.');
+      // Only a new request notifies; repeats and existing friendships stay quiet.
+      if (await relationship(db,req.viewer,target)) return false;
+      await db.query('/* social:request */ INSERT INTO friendships (user_low,user_high,requested_by) VALUES (?,?,?) ON DUPLICATE KEY UPDATE id = id', [low,high,req.viewer]);
+      return true;
+    });
+    if (created) push({ recipientId: target, actorId: req.viewer, kind: 'friend_request', log: req.log });
     return { ok: true };
-  }), 10);
-  route('POST', '/api/social/friends/:id/accept', async (req) => transaction(req.viewer,id(req.params.id),async (db,low,high) => {
-    const relation = await relationship(db,req.viewer,id(req.params.id));
-    if (await blocked(db,req.viewer,id(req.params.id)) || !relation || Number(relation.requested_by) === req.viewer) throw fail(403,'Doar destinatarul poate accepta cererea.');
-    await db.query("/* social:accept */ UPDATE friendships SET status = 'accepted' WHERE user_low = ? AND user_high = ?", [low,high]);
+  }, 10);
+  route('POST', '/api/social/friends/:id/accept', async (req) => {
+    const target = id(req.params.id);
+    const accepted = await transaction(req.viewer,target,async (db,low,high) => {
+      const relation = await relationship(db,req.viewer,target);
+      if (await blocked(db,req.viewer,target) || !relation || Number(relation.requested_by) === req.viewer) throw fail(403,'Doar destinatarul poate accepta cererea.');
+      const wasPending = relation.status !== 'accepted';
+      await db.query("/* social:accept */ UPDATE friendships SET status = 'accepted' WHERE user_low = ? AND user_high = ?", [low,high]);
+      return wasPending;
+    });
+    if (accepted) push({ recipientId: target, actorId: req.viewer, kind: 'friend_accepted', log: req.log });
     return { ok: true };
-  }));
+  });
   route('DELETE', '/api/social/friends/:id', async (req) => transaction(req.viewer,id(req.params.id),async (db,low,high) => {
     await db.query('/* social:remove */ DELETE FROM friendships WHERE user_low = ? AND user_high = ?', [low,high]); return { ok: true };
   }));
@@ -187,13 +203,17 @@ export async function registerSocialRoutes(app, { pool, jwtSecret }) {
   route('POST', '/api/social/private/:id/messages', async (req) => {
     const target = id(req.params.id), content = typeof req.body?.content === 'string' ? req.body.content.trim() : null;
     if (!UUID.test(req.body?.clientId) || typeof content !== 'string' || !content || content.length > 2000) throw fail(400,'Mesaj invalid (maximum 2000 de caractere).');
-    return transaction(req.viewer,target,async (db) => {
+    const result = await transaction(req.viewer,target,async (db) => {
       await requireFriend(db,req.viewer,target);
+      // A retried send (same clientId) must not notify twice.
+      const [known] = await db.query('/* social:message-known */ SELECT id FROM private_messages WHERE sender_id = ? AND client_id = ?', [req.viewer,req.body.clientId.toLowerCase()]);
       await db.query('/* social:message-save */ INSERT INTO private_messages (sender_id,recipient_id,client_id,content) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE id = id', [req.viewer,target,req.body.clientId.toLowerCase(),content]);
       const [rows] = await db.query('/* social:message-get */ SELECT id,sender_id AS senderId,recipient_id AS recipientId,client_id AS clientId,content,created_at AS createdAt FROM private_messages WHERE sender_id = ? AND client_id = ?', [req.viewer,req.body.clientId.toLowerCase()]);
       if (Number(rows[0]?.recipientId) !== target || rows[0]?.content !== content) throw fail(409,'Identificatorul aparține altui mesaj.');
-      return { item: rows[0] };
+      return { item: rows[0], created: !known.length };
     });
+    if (result.created) push({ recipientId: target, actorId: req.viewer, kind: 'private_message', content, log: req.log });
+    return { item: result.item };
   }, 30);
   route('POST', '/api/social/private/:id/read', async (req) => {
     const target = id(req.params.id), last = id(req.body?.lastId); await requireFriend(pool,req.viewer,target);
