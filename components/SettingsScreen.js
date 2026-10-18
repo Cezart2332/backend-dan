@@ -45,13 +45,18 @@ export default function SettingsScreen({ navigation, onLogout }) {
   const [loading, setLoading] = useState(false);
   const [chatPush, setChatPush] = useState(null);
   const [savingChatPush, setSavingChatPush] = useState(false);
+  const [socialPush, setSocialPush] = useState(null);
+  const [savingSocialPush, setSavingSocialPush] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     getToken()
       .then((token) => (token ? api.getNotificationPreferences(token) : null))
       .then((prefs) => {
-        if (mounted && prefs) setChatPush(prefs.chatPush !== false);
+        if (mounted && prefs) {
+          setChatPush(prefs.chatPush !== false);
+          setSocialPush(prefs.socialPush !== false);
+        }
       })
       .catch(() => {});
     return () => {
@@ -76,6 +81,24 @@ export default function SettingsScreen({ navigation, onLogout }) {
       setSavingChatPush(false);
     }
   }, [chatPush]);
+
+  const handleToggleSocialPush = useCallback(async (value) => {
+    const previous = socialPush;
+    setSocialPush(value);
+    setSavingSocialPush(true);
+    hapticSelection();
+
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("Nu ești autentificat.");
+      await api.updateNotificationPreferences({ socialPush: value }, token);
+    } catch (error) {
+      setSocialPush(previous);
+      Alert.alert("Eroare", error?.message || "Nu am putut salva preferința.");
+    } finally {
+      setSavingSocialPush(false);
+    }
+  }, [socialPush]);
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== "STERGE") {
@@ -205,6 +228,25 @@ export default function SettingsScreen({ navigation, onLogout }) {
                 value={chatPush === true}
                 onValueChange={handleToggleChatPush}
                 disabled={chatPush === null || savingChatPush}
+                trackColor={{ false: tc("rgba(32,47,62,0.18)", 'bg'), true: tc("#3d7d5f", 'bg') }}
+                ios_backgroundColor={tc("rgba(32,47,62,0.18)", 'bg')}
+                thumbColor="#ffffff"
+              />
+            </View>
+            <View style={styles.rowDivider} />
+            <View style={styles.row}>
+              <View style={[styles.iconWrap, { backgroundColor: tc("#e9f0ec", 'bg') }]}>
+                <Feather name="user-plus" size={20} color={tc("#3d7d5f", 'fg')} />
+              </View>
+              <View style={styles.rowTextWrap}>
+                <Text style={styles.rowTitle}>Prieteni și mesaje private</Text>
+                <Text style={styles.rowSubtitle}>Cereri de prietenie și mesaje noi de la prieteni</Text>
+              </View>
+              <Switch
+                accessibilityLabel="Notificări pentru prieteni și mesaje private"
+                value={socialPush === true}
+                onValueChange={handleToggleSocialPush}
+                disabled={socialPush === null || savingSocialPush}
                 trackColor={{ false: tc("rgba(32,47,62,0.18)", 'bg'), true: tc("#3d7d5f", 'bg') }}
                 ios_backgroundColor={tc("rgba(32,47,62,0.18)", 'bg')}
                 thumbColor="#ffffff"
@@ -509,6 +551,11 @@ const createStyles = (tc) => StyleSheet.create({
     alignItems: "center",
     paddingVertical: 14,
     paddingHorizontal: 16,
+  },
+  rowDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 68,
+    backgroundColor: tc("rgba(32,47,62,0.12)", 'bg'),
   },
   iconWrap: {
     width: 38,

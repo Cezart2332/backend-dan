@@ -25,6 +25,13 @@ export async function ensureAndroidNotificationChannels() {
       vibrationPattern: [0, 250, 250, 250],
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     });
+    await Notifications.setNotificationChannelAsync('social', {
+      name: 'Prieteni și mesaje private',
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: 'default',
+      vibrationPattern: [0, 250, 250, 250],
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PRIVATE,
+    });
     await Notifications.setNotificationChannelAsync('default', {
       name: 'Anunțuri',
       importance: Notifications.AndroidImportance.DEFAULT,

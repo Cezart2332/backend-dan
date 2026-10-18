@@ -11,6 +11,8 @@ import { api } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { getUser } from '../utils/userStorage';
 import { mergePrivateMessages } from '../utils/privateMessages.mjs';
+import { dismissNotificationsWhere, setActivePrivateChat } from '../utils/socialNotifications';
+import { isPrivateMessageFrom } from '../utils/socialNotificationRoutes.mjs';
 
 export default function PrivateChatScreen({ route, navigation }) {
   const { userId, name = 'Prieten' } = route.params;
@@ -40,10 +42,13 @@ export default function PrivateChatScreen({ route, navigation }) {
   }, [userId]);
   useFocusEffect(useCallback(() => {
     live.current = true; receive(!newest.current);
+    // Messages from this person now appear here; clear their notifications.
+    setActivePrivateChat(userId);
+    dismissNotificationsWhere((data) => isPrivateMessageFrom(data,userId));
     const interval = setInterval(() => receive(),5000);
     const foreground = AppState.addEventListener('change',(state) => state === 'active' && receive());
-    return () => { live.current = false; clearInterval(interval); foreground.remove(); };
-  }, [receive]));
+    return () => { live.current = false; setActivePrivateChat(null); clearInterval(interval); foreground.remove(); };
+  }, [receive, userId]));
   const older = async () => {
     if (olderLoading || !olderCursor.current) return; setOlderLoading(true);
     try { const data = await api.getPrivateMessages(userId,token.current,'before',olderCursor.current); if (!live.current) return; setMessages((old) => mergePrivateMessages(old,data.items)); setHasOlder(data.hasMore); olderCursor.current = data.items[0]?.id; }

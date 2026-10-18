@@ -11,7 +11,8 @@
     "web": "expo start --web",
     "test:audio-social": "node --test tests/audio-social.test.mjs",
     "test:subscriptions": "node --test tests/subscription.test.mjs",
-    "test:api-errors": "node --test tests/api-errors.test.mjs"
+    "test:api-errors": "node --test tests/api-errors.test.mjs",
+    "test:social-notifications": "node --test tests/social-notifications.test.mjs"
   },
   "dependencies": {
     "@expo/config-plugins": "~57.0.9",

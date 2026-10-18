@@ -7,6 +7,8 @@ import { useTheme, useThemedStyles } from './ui/themeContext';
 import Illustration from './Illustration';
 import { api, toAbsoluteApiUrl } from '../utils/api';
 import { getToken } from '../utils/authStorage';
+import { dismissNotificationsWhere } from '../utils/socialNotifications';
+import { isFriendNotification } from '../utils/socialNotificationRoutes.mjs';
 
 export default function FriendsScreen({ navigation }) {
   const { tc } = useTheme(), styles = useThemedStyles(createStyles);
@@ -21,7 +23,7 @@ export default function FriendsScreen({ navigation }) {
     catch (e) { if (live.current) setError(e.message || 'Prietenii nu s-au putut încărca.'); }
     finally { if (live.current) setLoading(false); }
   }, []);
-  useFocusEffect(useCallback(() => { live.current = true; refresh(); return () => { live.current = false; searchVersion.current++; }; }, [refresh]));
+  useFocusEffect(useCallback(() => { live.current = true; refresh(); dismissNotificationsWhere(isFriendNotification); return () => { live.current = false; searchVersion.current++; }; }, [refresh]));
   const act = async (person,action) => {
     setBusy(person.id);
     try { await api.friendAction(person.id,action,tokenRef.current); await refresh(); }

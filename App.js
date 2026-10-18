@@ -61,6 +61,8 @@ import ProfileScreen from "./components/ProfileScreen";
 import FriendsScreen from "./components/FriendsScreen";
 import PublicProfileScreen from "./components/PublicProfileScreen";
 import PrivateChatScreen from "./components/PrivateChatScreen";
+import { isActivePrivateChatNotification } from "./utils/socialNotifications";
+import { socialNotificationTarget } from "./utils/socialNotificationRoutes.mjs";
 import CmsSectionScreen from "./components/CmsSectionScreen";
 import NotificationsScreen from "./components/NotificationsScreen";
 import { getToken, clearToken } from "./utils/authStorage";
@@ -84,12 +86,16 @@ const Stack = createStackNavigator();
 const MIN_SPLASH_MS = 1400;
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
+  handleNotification: async (notification) => {
+    // A message from the conversation already open is shown in it, not as a banner.
+    const quiet = isActivePrivateChatNotification(notification?.request?.content?.data);
+    return {
+      shouldShowBanner: !quiet,
+      shouldShowList: !quiet,
+      shouldPlaySound: !quiet,
+      shouldSetBadge: true,
+    };
+  },
 });
 
 initMonitoring();
@@ -254,6 +260,12 @@ function AppContent() {
         return;
       }
 
+      const socialTarget = socialNotificationTarget(data);
+      if (socialTarget) {
+        navigateFromNotification(socialTarget.name, socialTarget.params);
+        return;
+      }
+
       if (type === 'daily_quote') {
         navigateFromNotification('QuoteOfTheDay', data?.quote ? { quote: String(data.quote) } : undefined);
         return;
@@ -330,8 +342,9 @@ function AppContent() {
             </Stack.Screen>
             <Stack.Screen name="Provocari" component={ProvocarilScreen} />
             <Stack.Screen name="Friends" component={FriendsScreen} />
-            <Stack.Screen name="PublicProfile" component={PublicProfileScreen} />
-            <Stack.Screen name="PrivateChat" component={PrivateChatScreen} />
+            {/* One screen per person, so opening another conversation from a notification never reuses this one. */}
+            <Stack.Screen name="PublicProfile" component={PublicProfileScreen} getId={({ params }) => String(params?.userId ?? '')} />
+            <Stack.Screen name="PrivateChat" component={PrivateChatScreen} getId={({ params }) => String(params?.userId ?? '')} />
             <Stack.Screen name="Progress" component={ProgressScreen} />
             <Stack.Screen name="Panic" component={PanicScreen} />
             <Stack.Screen name="CheckIn" component={CheckInScreen} />
