@@ -150,21 +150,3 @@ test("official export shares webhook keys, accounts for partial refunds, and val
     0,
   );
 });
-test("Stripe subscription transaction identifiers remain unique across renewals and export/import", () => {
-  const first = normalizeRevenueEvent({
-    ...event,
-    store: "STRIPE",
-    renewal_number: 1,
-  }).entries[0];
-  const renewal = normalizeRevenueEvent({
-    ...event,
-    store: "STRIPE",
-    renewal_number: 2,
-  }).entries[0];
-  assert.notEqual(first.key, renewal.key);
-  assert.equal(
-    renewal.key,
-    normalizeExportRow({ ...exported, store: "stripe", renewal_number: "2" })[0]
-      .key,
-  );
-});

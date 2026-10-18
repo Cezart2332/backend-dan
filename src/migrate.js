@@ -31,16 +31,8 @@ export async function runMigrations() {
     await mysqlPool.query(`ALTER TABLE users ADD INDEX idx_users_password_reset_token (password_reset_token)`);
   } catch {}
 
-  await mysqlPool.query(`
-    CREATE TABLE IF NOT EXISTS sessions (
-      id BIGINT PRIMARY KEY AUTO_INCREMENT,
-      user_id BIGINT NOT NULL,
-      token VARCHAR(255) UNIQUE,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      expires_at TIMESTAMP NULL,
-      CONSTRAINT fk_sessions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    )
-  `);
+  // Authentication uses stateless JWTs; the old server-side sessions table was never read.
+  await mysqlPool.query(`DROP TABLE IF EXISTS sessions`);
 
   // progress entries table
   await migrateWellbeing(mysqlPool);
@@ -151,14 +143,10 @@ export async function runMigrations() {
     CREATE TABLE IF NOT EXISTS chat_user_reads (
       user_id BIGINT PRIMARY KEY,
       last_read_message_id BIGINT NOT NULL DEFAULT 0,
-      last_notified_at TIMESTAMP NULL,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       CONSTRAINT fk_chat_user_reads_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
-  try {
-    await mysqlPool.query(`ALTER TABLE chat_user_reads ADD COLUMN last_notified_at TIMESTAMP NULL`);
-  } catch {}
 
   await mysqlPool.query(`
     CREATE TABLE IF NOT EXISTS user_push_tokens (
@@ -299,15 +287,11 @@ export async function runMigrations() {
       revenuecat_store VARCHAR(64) NULL,
       revenuecat_will_renew TINYINT(1) NULL,
       revenuecat_event_type VARCHAR(64) NULL,
-      stripe_customer_id VARCHAR(255) NULL,
-      stripe_subscription_id VARCHAR(255) NULL,
-      stripe_price_id VARCHAR(255) NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
       CONSTRAINT fk_subscriptions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
       INDEX idx_subscriptions_user (user_id),
       INDEX idx_subscriptions_active (user_id, ends_at),
-      INDEX idx_subscriptions_stripe_sub (stripe_subscription_id),
       INDEX idx_subscriptions_revenuecat_app_user (revenuecat_app_user_id),
       INDEX idx_subscriptions_revenuecat_product (revenuecat_product_id),
       INDEX idx_subscriptions_user_starts (user_id, starts_at DESC)
@@ -339,6 +323,22 @@ export async function runMigrations() {
   try {
     await mysqlPool.query(`ALTER TABLE subscriptions ADD INDEX idx_subscriptions_revenuecat_product (revenuecat_product_id)`);
   } catch {}
+
+  // Columns nothing reads any more: Stripe was replaced by RevenueCat, and chat
+  // notifications never recorded when they were sent.
+  for (const [table, column] of [
+    ["subscriptions", "stripe_customer_id"],
+    ["subscriptions", "stripe_subscription_id"],
+    ["subscriptions", "stripe_price_id"],
+    ["chat_user_reads", "last_notified_at"],
+  ]) {
+    try {
+      await mysqlPool.query(`ALTER TABLE ${table} DROP COLUMN ${column}`);
+    } catch (error) {
+      // ER_CANT_DROP_FIELD_OR_KEY: already removed.
+      if (error.errno !== 1091) throw error;
+    }
+  }
 
   // bug_reports table
   await mysqlPool.query(`

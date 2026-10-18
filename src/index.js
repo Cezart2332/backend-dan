@@ -2,7 +2,6 @@ import "dotenv/config";
 import Fastify from "fastify";
 import fastifyCors from "@fastify/cors";
 import fastifyCompress from "@fastify/compress";
-import fastifyRawBody from "fastify-raw-body";
 import fastifyMultipart from "@fastify/multipart";
 import rateLimit from "@fastify/rate-limit";
 import websocket from "@fastify/websocket";
@@ -56,14 +55,6 @@ app.addContentTypeParser(/^application\/json($|;)/, { parseAs: "string" }, (requ
     err.statusCode = 400;
     done(err, undefined);
   }
-});
-
-// Register raw body plugin (needed for Stripe webhook signature verification)
-await app.register(fastifyRawBody, {
-  field: 'rawBody',      // request.rawBody
-  global: false,         // only enabled per-route via config.rawBody
-  encoding: 'utf8',
-  runFirst: true,        // parse before any other body parsers
 });
 
 // Rate limiting — global default + stricter on auth routes

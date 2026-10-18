@@ -104,10 +104,6 @@ export function normalizeRevenueEvent(event) {
   const period = String(event.period_type || "NORMAL").toUpperCase();
   const transactionId = String(event.transaction_id || "");
   const store = storeName(event.store);
-  const uniqueTransaction =
-    store === "STRIPE"
-      ? `${transactionId}:renewal:${Number(event.renewal_number) || 1}`
-      : transactionId;
   const record = {
     eventId: String(event.id).slice(0, 190),
     type,
@@ -117,7 +113,7 @@ export function normalizeRevenueEvent(event) {
     period,
     trialConversion: event.is_trial_conversion === true,
     occurred,
-    transactionId: uniqueTransaction.slice(0, 190),
+    transactionId: transactionId.slice(0, 190),
     entries: [],
   };
   if (
@@ -133,7 +129,7 @@ export function normalizeRevenueEvent(event) {
     ? String(event.currency).toUpperCase()
     : null;
   const common = {
-    key: digest(`${environment}:${store}:${uniqueTransaction}`),
+    key: digest(`${environment}:${store}:${transactionId}`),
     transactionId: record.transactionId,
     productId: String(event.product_id || "").slice(0, 190),
     plan: record.plan,
@@ -240,11 +236,7 @@ export async function saveRevenueLifecycle(db, record, userId) {
 export function exportLifecycle(row) {
   const purchased = dateOf(row.start_time),
     store = storeName(row.store);
-  const transactionId = (
-    store === "STRIPE"
-      ? `${row.store_transaction_id}:renewal:${row.renewal_number}`
-      : String(row.store_transaction_id || "")
-  ).slice(0, 190);
+  const transactionId = String(row.store_transaction_id || "").slice(0, 190);
   const environment = yes(row.is_sandbox) ? "SANDBOX" : "PRODUCTION";
   const base = {
     plan: productPlan(row.product_identifier),
@@ -296,16 +288,6 @@ export function normalizeExportRow(row) {
     return [];
   const environment = yes(row.is_sandbox) ? "SANDBOX" : "PRODUCTION",
     store = storeName(row.store);
-  if (
-    store === "STRIPE" &&
-    (!Number.isInteger(Number(row.renewal_number)) ||
-      Number(row.renewal_number) < 1)
-  )
-    throw new Error("Exportul Stripe necesită renewal_number.");
-  const uniqueTransaction =
-    store === "STRIPE"
-      ? `${transactionId}:renewal:${row.renewal_number}`
-      : transactionId;
   const currency = /^[A-Z]{3}$/.test(
     String(row.purchased_currency || "").toUpperCase(),
   )
@@ -327,8 +309,8 @@ export function normalizeExportRow(row) {
   if (row.refunded_at && grossUsd == null && grossNative == null)
     throw new Error("Exportul rambursat necesită coloanele purchase_price.");
   const common = {
-    key: digest(`${environment}:${store}:${uniqueTransaction}`),
-    transactionId: uniqueTransaction.slice(0, 190),
+    key: digest(`${environment}:${store}:${transactionId}`),
+    transactionId: transactionId.slice(0, 190),
     productId: String(row.product_identifier || "").slice(0, 190),
     plan: productPlan(row.product_identifier),
     store,

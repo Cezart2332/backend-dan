@@ -1,12 +1,9 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import Stripe from "stripe";
 import { mysqlPool } from "./mysql.js";
 import { deleteAvatarFileByUrl } from "./profile-photo-storage.js";
 import { sendPasswordResetEmail } from "./email.js";
-
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY || '';
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.CORE_JWT_SECRET;
 if (!JWT_SECRET) {
@@ -319,22 +316,6 @@ export async function registerAuthRoutes(app) {
     let conn;
     let avatarUrlToDelete = null;
     try {
-      // Cancel active Stripe subscriptions (best-effort; do not fail account deletion if Stripe is unavailable)
-      if (stripeSecretKey) {
-        const stripeClient = new Stripe(stripeSecretKey, { apiVersion: '2024-06-20' });
-        const [stripeSubs] = await mysqlPool.query(
-          "SELECT stripe_subscription_id FROM subscriptions WHERE user_id = ? AND stripe_subscription_id IS NOT NULL AND (ends_at IS NULL OR ends_at > NOW())",
-          [userId]
-        );
-        for (const sub of (stripeSubs || [])) {
-          try {
-            await stripeClient.subscriptions.cancel(sub.stripe_subscription_id);
-          } catch (err) {
-            request.log.error({ err, stripe_subscription_id: sub.stripe_subscription_id }, 'Failed to cancel Stripe subscription on account deletion');
-          }
-        }
-      }
-
       conn = await mysqlPool.getConnection();
       await conn.beginTransaction();
 
@@ -376,7 +357,6 @@ export async function registerAuthRoutes(app) {
       await deleteByUserId("meetings");
       await deleteByUserId("subscriptions");
       await deleteByUserId("bug_reports");
-      await deleteByUserId("sessions");
       
       // Finally delete the user
       const [result] = await conn.query("DELETE FROM users WHERE id = ?", [userId]);

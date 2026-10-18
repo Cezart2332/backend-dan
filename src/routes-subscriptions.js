@@ -529,9 +529,8 @@ async function persistRevenueCatSnapshotData(
           revenuecat_store,
           revenuecat_will_renew,
           revenuecat_event_type,
-          revenuecat_period_type,
-          stripe_price_id
-         ) VALUES (?, ?, ?, LEAST(COALESCE(?, UTC_TIMESTAMP()), UTC_TIMESTAMP()), ?, ?, ?, ?, ?, ?, ?, ?)`,
+          revenuecat_period_type
+         ) VALUES (?, ?, ?, LEAST(COALESCE(?, UTC_TIMESTAMP()), UTC_TIMESTAMP()), ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
           normalizedType,
@@ -544,7 +543,6 @@ async function persistRevenueCatSnapshotData(
           typeof willRenew === "boolean" ? Number(willRenew) : null,
           eventType || null,
           periodType,
-          normalizedProductId,
         ],
       );
     }
@@ -596,8 +594,7 @@ async function persistRevenueCatSnapshotData(
          revenuecat_store = ?,
          revenuecat_will_renew = ?,
          revenuecat_event_type = ?,
-         revenuecat_period_type = ?,
-         stripe_price_id = ?
+         revenuecat_period_type = ?
        WHERE id = ?`,
       [
         normalizedType,
@@ -609,7 +606,6 @@ async function persistRevenueCatSnapshotData(
         typeof willRenew === "boolean" ? Number(willRenew) : null,
         eventType || null,
         periodType,
-        normalizedProductId,
         existing.id,
       ],
     );
@@ -628,9 +624,8 @@ async function persistRevenueCatSnapshotData(
       revenuecat_store,
       revenuecat_will_renew,
       revenuecat_event_type,
-      revenuecat_period_type,
-      stripe_price_id
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      revenuecat_period_type
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       userId,
       normalizedType,
@@ -643,7 +638,6 @@ async function persistRevenueCatSnapshotData(
       typeof willRenew === "boolean" ? Number(willRenew) : null,
       eventType || null,
       periodType,
-      normalizedProductId,
     ],
   );
   return isFirstBookEligibleSubscription;
@@ -722,7 +716,7 @@ function formatCurrentResponse(row, trialEligible) {
   const subscription = row
     ? {
         type: row.type,
-        product_id: row.revenuecat_product_id || row.stripe_price_id || null,
+        product_id: row.revenuecat_product_id || null,
         starts_at: row.starts_at || null,
         ends_at: row.ends_at || null,
         store: row.revenuecat_store || null,
@@ -893,8 +887,6 @@ export async function registerSubscriptionRoutes(app) {
           revenuecat_entitlement_id,
           revenuecat_event_type,
           revenuecat_will_renew,
-          stripe_subscription_id,
-          stripe_price_id,
           created_at,
           updated_at
          FROM subscriptions
@@ -988,25 +980,6 @@ export async function registerSubscriptionRoutes(app) {
       reply.code(500).send({ error: "Eroare server" });
     }
   });
-
-  app.post("/api/subscriptions/create-checkout", async (_request, reply) => {
-    return reply.code(410).send({
-      error:
-        "Checkout-ul Stripe este dezactivat. Folosește RevenueCat purchases în aplicație.",
-      code: "REVENUECAT_MANAGED",
-    });
-  });
-
-  app.post(
-    "/api/subscriptions/create-payment-sheet",
-    async (_request, reply) => {
-      return reply.code(410).send({
-        error:
-          "PaymentSheet Stripe este dezactivat. Folosește RevenueCat purchases în aplicație.",
-        code: "REVENUECAT_MANAGED",
-      });
-    },
-  );
 
   // RevenueCat webhook endpoint.
   app.post("/api/subscriptions/webhook", async (request, reply) => {
