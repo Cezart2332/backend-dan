@@ -51,8 +51,6 @@ export const OFFERING_IDS = {
 };
 
 export const PLAN_IDS = OFFERING_IDS;
-// Backward compatible alias kept for screens still using PRODUCT_IDS naming.
-export const PRODUCT_IDS = PLAN_IDS;
 
 const PRODUCT_ALIASES = {
   [PLAN_IDS.basic]: [
@@ -86,7 +84,6 @@ const PRODUCT_ALIASES = {
 };
 
 let configured = false;
-let currentAppUserId = null;
 
 function isIOSOrAndroid() {
   return Platform.OS === "ios" || Platform.OS === "android";
@@ -135,7 +132,6 @@ export async function configureRevenueCat({ appUserID } = {}) {
       }
       await Purchases.configure({ apiKey: REVENUECAT_API_KEY, appUserID });
       configured = true;
-      currentAppUserId = appUserID || null;
       return true;
     }
 
@@ -144,7 +140,6 @@ export async function configureRevenueCat({ appUserID } = {}) {
     if (appUserID && (await Purchases.getAppUserID()) !== appUserID) {
       await Purchases.logIn(appUserID);
     }
-    currentAppUserId = appUserID || currentAppUserId;
 
     return true;
   } catch (error) {
@@ -171,22 +166,10 @@ export async function ensureRevenueCatIdentity(appUserID) {
   );
 }
 
-export async function identifyRevenueCatUser(appUserID) {
-  if (!isIOSOrAndroid()) return null;
-  if (!appUserID) return null;
-  if (appUserID === currentAppUserId) {
-    return fetchCustomerInfo();
-  }
-  const result = await Purchases.logIn(appUserID);
-  currentAppUserId = appUserID;
-  return result?.customerInfo || null;
-}
-
 export async function logoutRevenueCatUser() {
   if (!isIOSOrAndroid()) return;
   try {
     await Purchases.logOut();
-    currentAppUserId = null;
   } catch {
     // No-op: logOut can fail if SDK was not configured.
   }

@@ -20,7 +20,7 @@ The project has **three parts**:
 - **IAP:** RevenueCat (`react-native-purchases`)
 - **Push:** `expo-notifications` via Expo Push API
 - **Auth:** Email/password + Google OAuth + Apple Sign-In (Facebook OAuth server-side)
-- **Payments:** Stripe (web checkout) + RevenueCat
+- **Payments:** RevenueCat (App Store, Google Play)
 - **Video:** `expo-av`, `expo-video`
 - **Builds:** EAS Build + Submit (CI/CD via GitHub Actions)
 
@@ -52,7 +52,6 @@ The project has **three parts**:
 | TehnicaHAIFizice | `TehnicaHAIFiziceScreen.js` | Physical techniques list |
 | TehnicaHAIVideo | `TehnicaHAIVideoScreen.js` | Technique video playback |
 | Ajutor | `AjutorScreen.js` | Help section menu |
-| AjutorRau | `AjutorRau.js` | Emergency help |
 | AjutorAnxietateList | `AjutorAnxietateListScreen.js` | Anxiety help articles |
 | AjutorAnxietateVideo | `AjutorAnxietateVideoScreen.js` | Anxiety help video |
 | AjutorAtacPanicaList | `AjutorAtacPanicaListScreen.js` | Panic attack help articles |
@@ -95,7 +94,6 @@ The project has **three parts**:
 | `challengeStorage.js` | Challenge runs cache |
 | `oauth.js` | Google + Apple OAuth hooks & handlers |
 | `revenuecat.js` | RevenueCat SDK wrapper |
-| `stripe.js` | Stripe publishable key config |
 | `metaEvents.js` | Meta/Facebook App Events SDK wrapper |
 
 ### Config / Other
@@ -125,7 +123,7 @@ The project has **three parts**:
 - **Node.js** + **Fastify 5**
 - **MySQL** via `mysql2` connection pool
 - **Auth:** Better Auth 1.3 (email + social login)
-- **Payments:** Stripe
+- **Payments:** RevenueCat webhooks and REST API
 - **Push:** Expo Push Notification API (`https://exp.host/--/api/v2/push/send`)
 - **Chat:** WebSockets via `@fastify/websocket`
 - **Profanity filter:** `bad-words`
@@ -149,7 +147,7 @@ The project has **three parts**:
 | `src/routes-meetings.js` | `/api/meetings/*` | 1:1 meeting requests (CRUD) |
 | `src/routes-challenges.js` | `/api/challenges/*` | Challenge runs (save, list) |
 | `src/routes-media.js` | `/api/media/*` | File serving (conditional — Nginx in production) |
-| `src/routes-subscriptions.js` | `/api/subscriptions/*` | Stripe checkout sessions, webhooks |
+| `src/routes-subscriptions.js` | `/api/subscriptions/*` | RevenueCat sync and webhooks |
 | `src/routes-videos.js` | `/api/videos/*` | CMS video content for mobile app |
 | `src/routes-webinars.js` | `/api/webinars/*` | Webinar listing for mobile app |
 | `src/routes-notifications.js` | `/api/notifications/*` | Push token registration/enable/disable |
@@ -173,7 +171,7 @@ The project has **three parts**:
 | `challenge_runs` | Completed challenge records |
 | `meetings` | 1:1 meeting schedules |
 | `webinars` | Webinar content |
-| `subscriptions` | Subscription records (Stripe + RevenueCat) |
+| `subscriptions` | Subscription records (RevenueCat) |
 | `bug_reports` | User bug reports |
 | `cms_video_sections` | CMS: video section groups |
 | `cms_video_subsections` | CMS: video subsections |
@@ -187,7 +185,6 @@ See `backend-dan/.env.example` for all variables. Key ones:
 - `MYSQL_*` – Database connection
 - `JWT_SECRET` – JWT signing
 - `ADMIN_TOKEN` – Static admin panel auth token
-- `STRIPE_*` – Stripe integration
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` – Google OAuth
 - `APPLE_CLIENT_ID`, `APPLE_PRIVATE_KEY` – Apple Sign-In
 
@@ -308,7 +305,7 @@ Push notifications are sent via **Expo Push API** (`https://exp.host/--/api/v2/p
 | Push notification logic | `backend-dan/src/push.js` (send), `src/routes-admin.js` (triggers) |
 | Admin panel page | Create file in `paneldan/src/pages/`, add route in `App.jsx`, add link in `Sidebar.jsx` |
 | Admin panel API calls | `paneldan/src/api.js` |
-| Subscription/payment logic | `backend-dan/src/routes-subscriptions.js` (server), `utils/revenuecat.js` + `utils/stripe.js` (mobile) |
+| Subscription/payment logic | `backend-dan/src/routes-subscriptions.js` (server), `utils/revenuecat.js` (mobile) |
 | Auth logic | `backend-dan/src/auth.js` + `src/routes-auth.js` (server), `utils/oauth.js` (mobile) |
 | Chat (WebSocket) | `backend-dan/src/chat/routes.js` + `src/chat/service.js` |
 | Meta/Facebook App Events | `utils/metaEvents.js` (configured in `app.json` via `react-native-fbsdk-next`) |

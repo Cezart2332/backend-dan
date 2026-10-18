@@ -83,7 +83,6 @@ export const api = {
   register: (payload) => request('/api/custom-auth/register', { method: 'POST', body: payload }),
   login: (payload) => request('/api/custom-auth/login', { method: 'POST', body: payload }),
   oauthGoogle: (id_token) => request('/api/custom-auth/oauth/google', { method: 'POST', body: { id_token } }),
-  oauthFacebook: (payload) => request('/api/custom-auth/oauth/facebook', { method: 'POST', body: payload }),
   oauthApple: (id_token, name) => request('/api/custom-auth/oauth/apple', { method: 'POST', body: { id_token, name } }),
   // Progress
   createProgress: (payload, token) => request('/api/progress', { method: 'POST', body: payload, token }),
@@ -111,7 +110,6 @@ export const api = {
   updateNotificationPreferences: (payload, token) => request('/api/notifications/preferences', { method: 'PUT', body: payload, token }),
   // Meetings
   createMeeting: (payload, token) => request('/api/meetings', { method: 'POST', body: payload, token }),
-  listMyMeetings: (token) => request('/api/meetings', { method: 'GET', token }),
   // Webinars
   listWebinars: (token) => request('/api/webinars', { method: 'GET', token }),
   // Chat
@@ -136,8 +134,6 @@ export const api = {
   getSubscriptionHistory: (token) => request('/api/subscriptions/history', { method: 'GET', token }),
   syncRevenueCatSubscription: (payload, token) => request('/api/subscriptions/sync', { method: 'POST', body: payload, token }),
   startTrial: (token) => request('/api/subscriptions/start-trial', { method: 'POST', token }),
-  createCheckout: (payload, token) => request('/api/subscriptions/create-checkout', { method: 'POST', body: payload, token }),
-  createPaymentSheet: (payload, token) => request('/api/subscriptions/create-payment-sheet', { method: 'POST', body: payload, token }),
   getProfile: (token) => request('/api/profile', { method: 'GET', token }),
   updateProfile: (payload, token) => request('/api/profile', { method: 'PUT', body: payload, token }),
   // Account management

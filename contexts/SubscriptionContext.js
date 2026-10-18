@@ -60,8 +60,7 @@ function hasPaidHistoryRows(rows) {
     if (type === "trial") return false;
     return (
       isPaidSubscriptionType(type) ||
-      Boolean(row?.revenuecat_product_id) ||
-      Boolean(row?.stripe_price_id)
+      Boolean(row?.revenuecat_product_id)
     );
   });
 }
