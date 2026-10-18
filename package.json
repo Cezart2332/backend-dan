@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:subscriptions": "node --test tests/subscription-extensions.test.js tests/subscription-webhooks.test.js",
+    "test:subscriptions": "node --test tests/subscription-extensions.test.js tests/subscription-webhooks.test.js tests/subscription-refunds.test.js",
     "test:analytics": "node --test tests/analytics.test.js tests/analytics.mysql.test.js",
     "test:wellbeing": "node --test tests/wellbeing.test.js",
     "dev": "node --watch src/index.js",

@@ -58,6 +58,16 @@ const INACTIVE_EVENT_TYPES = new Set([
   "SUBSCRIPTION_PAUSED",
 ]);
 
+// Events whose fields cannot be trusted alone (a refund is a CANCELLATION,
+// a reversed refund restores access), so RevenueCat is asked for the state.
+const RESYNC_EVENT_TYPES = new Set([
+  "CANCELLATION",
+  "EXPIRATION",
+  "BILLING_ISSUE",
+  "SUBSCRIPTION_PAUSED",
+  "REFUND_REVERSED",
+]);
+
 function requireAuth(request) {
   const auth = request.headers.authorization || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
@@ -122,7 +132,7 @@ function computeStatusFromDates(startsAt, endsAt) {
   return "expired";
 }
 
-function getEntitlementFromRevenueCat(subscriber, entitlementId) {
+export function getEntitlementFromRevenueCat(subscriber, entitlementId) {
   if (!subscriber) return null;
 
   const entitlements = subscriber.entitlements || {};
@@ -159,21 +169,53 @@ function getEntitlementFromRevenueCat(subscriber, entitlementId) {
 
   const restEntitlement = entitlements?.[entitlementId];
   if (restEntitlement && typeof restEntitlement === "object") {
-    const expirationDate = parseNullableDate(restEntitlement.expires_date);
-    const isActive = !expirationDate || expirationDate.getTime() > Date.now();
+    // The entitlement only names the product and its dates; the store, refund
+    // and renewal state live on the product's entry in `subscriptions`.
+    const purchase = findRestSubscription(
+      subscriber.subscriptions,
+      restEntitlement.product_identifier,
+    );
+    const refundedAt = parseNullableDate(purchase?.refunded_at);
+    const expirationDate = refundedAt
+      ? purchase.refunded_at
+      : restEntitlement.expires_date;
+    const expiry = parseNullableDate(expirationDate);
+    const isActive =
+      !refundedAt && (!expiry || expiry.getTime() > Date.now());
     return {
       raw: restEntitlement,
       isActive,
       productIdentifier: restEntitlement.product_identifier,
       latestPurchaseDate: restEntitlement.purchase_date,
-      expirationDate: restEntitlement.expires_date,
-      store: restEntitlement.store,
-      willRenew: restEntitlement.unsubscribe_detected_at ? false : null,
+      expirationDate,
+      store: purchase?.store || restEntitlement.store || null,
+      willRenew: purchase
+        ? !(
+            purchase.unsubscribe_detected_at ||
+            purchase.billing_issues_detected_at ||
+            purchase.refunded_at
+          )
+        : restEntitlement.unsubscribe_detected_at
+          ? false
+          : null,
+      periodType: purchase?.period_type || null,
       entitlementId,
     };
   }
 
   return null;
+}
+
+// Google entries may be keyed "sku" or "sku:base-plan" independently of the
+// identifier the entitlement reports.
+function findRestSubscription(subscriptions, productId) {
+  if (!subscriptions || !productId) return null;
+  if (subscriptions[productId]) return subscriptions[productId];
+  const base = String(productId).split(":")[0];
+  const key = Object.keys(subscriptions).find(
+    (candidate) => candidate.split(":")[0] === base,
+  );
+  return key ? subscriptions[key] : null;
 }
 
 async function fetchRevenueCatSubscriber(appUserId) {
@@ -453,15 +495,28 @@ async function persistRevenueCatSnapshotData(
        SET ends_at = CASE
          WHEN admin_extended_until > UTC_TIMESTAMP() THEN admin_extended_until
          ELSE LEAST(COALESCE(ends_at, UTC_TIMESTAMP()), UTC_TIMESTAMP())
-       END
+       END,
+       revenuecat_will_renew = 0,
+       revenuecat_event_type = COALESCE(?, revenuecat_event_type)
        WHERE user_id = ?
          AND type <> 'trial'
          AND (ends_at IS NULL OR ends_at > NOW())
          AND (? IS NULL OR ${BASE_PRODUCT_SQL("revenuecat_product_id")} = ${BASE_PRODUCT_SQL("?")})`,
-      [userId, normalizedProductId, normalizedProductId],
+      [eventType || null, userId, normalizedProductId, normalizedProductId],
     );
 
-    if (normalizedProductId) {
+    // A product seen for the first time already inactive still gets one
+    // history row; repeated syncs of an expired product must not add more.
+    const [knownRows] = normalizedProductId
+      ? await db.query(
+          `SELECT id FROM subscriptions
+           WHERE user_id = ?
+             AND ${BASE_PRODUCT_SQL("revenuecat_product_id")} = ${BASE_PRODUCT_SQL("?")}
+           LIMIT 1`,
+          [userId, normalizedProductId],
+        )
+      : [[]];
+    if (normalizedProductId && !knownRows.length) {
       await db.query(
         `INSERT INTO subscriptions (
           user_id,
@@ -596,7 +651,12 @@ async function persistRevenueCatSnapshotData(
 
 // Stores RevenueCat's current verdict for one account. Without a secret key
 // there is no verdict, so nothing is revoked.
-async function syncSubscriberFromRevenueCat(userId, appUserId, log) {
+async function syncSubscriberFromRevenueCat(
+  userId,
+  appUserId,
+  log,
+  eventType = "API_SYNC",
+) {
   if (!REVENUECAT_SECRET_API_KEY) return false;
   const { subscriber, cacheHit } =
     await fetchRevenueCatSubscriberCached(appUserId);
@@ -619,10 +679,9 @@ async function syncSubscriberFromRevenueCat(userId, appUserId, log) {
       endsAt: entitlement.expirationDate,
       store: entitlement.store,
       willRenew: entitlement.willRenew,
-      eventType: "API_SYNC",
+      eventType,
       periodType: String(
-        subscriber?.subscriptions?.[entitlement.productIdentifier]
-          ?.period_type ||
+        entitlement.periodType ||
           entitlement.raw?.periodType ||
           "NORMAL",
       ).toUpperCase(),
@@ -638,7 +697,7 @@ async function syncSubscriberFromRevenueCat(userId, appUserId, log) {
       endsAt: new Date(),
       store: null,
       willRenew: null,
-      eventType: "API_SYNC",
+      eventType,
     });
   }
   return true;
@@ -995,7 +1054,7 @@ export async function registerSubscriptionRoutes(app) {
         for (const id of affected) {
           invalidateRevenueCatSubscriberCache(id);
           if (!(await getUserById(Number(id)))) continue;
-          await syncSubscriberFromRevenueCat(Number(id), id, request.log);
+          await syncSubscriberFromRevenueCat(Number(id), id, request.log, "TRANSFER");
         }
         return reply.send({ received: true });
       }
@@ -1036,13 +1095,42 @@ export async function registerSubscriptionRoutes(app) {
         ![
           ...ACTIVE_EVENT_TYPES,
           ...INACTIVE_EVENT_TYPES,
-          "BILLING_ISSUE",
+          ...RESYNC_EVENT_TYPES,
           "SUBSCRIPTION_EXTENDED",
         ].includes(eventType)
       ) {
         return reply.send({ received: true });
       }
 
+      // A refund arrives as a CANCELLATION whose expiry may still lie in the
+      // future; RevenueCat's current state is the verdict for these events.
+      if (RESYNC_EVENT_TYPES.has(eventType)) {
+        try {
+          if (
+            await syncSubscriberFromRevenueCat(
+              userId,
+              appUserId,
+              request.log,
+              eventType,
+            )
+          ) {
+            await mysqlPool.query(
+              "UPDATE revenue_events SET snapshot_applied=1 WHERE event_id=?",
+              [String(event.id)],
+            );
+            return reply.send({ received: true });
+          }
+        } catch (error) {
+          request.log.warn(
+            { err: error, eventType },
+            "RevenueCat re-sync failed, applying the webhook fields",
+          );
+        }
+      }
+
+      const refunded =
+        eventType === "CANCELLATION" &&
+        String(event.cancel_reason || "").toUpperCase() === "CUSTOMER_SUPPORT";
       let status = "none";
       if (ACTIVE_EVENT_TYPES.has(eventType)) status = "active";
       if (INACTIVE_EVENT_TYPES.has(eventType)) status = "expired";
@@ -1052,11 +1140,14 @@ export async function registerSubscriptionRoutes(app) {
           "CANCELLATION",
           "SUBSCRIPTION_PAUSED",
           "SUBSCRIPTION_EXTENDED",
+          "REFUND_REVERSED",
         ].includes(eventType)
       ) {
         status =
           Number(event.expiration_at_ms) > Date.now() ? "active" : "expired";
       }
+      // A refund ends access at once, whatever expiry the event carries.
+      if (refunded) status = "expired";
 
       const startsAt =
         parseMillisOrDate(event?.purchased_at_ms) ||
