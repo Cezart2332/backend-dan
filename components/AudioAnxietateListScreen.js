@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../utils/api';
 import { useSubscription } from '../contexts/SubscriptionContext';
+import { hasPaidAccess } from '../utils/subscriptionPolicy.mjs';
 import AudioLibraryContent from './AudioLibraryContent';
 import AudioAccessGate from './AudioAccessGate';
 
@@ -122,7 +123,7 @@ const videos = [
 export default function AudioAnxietateListScreen({ navigation }) {
  const [cmsSubsections,setCmsSubsections]=useState([]);
  const { subscription,hasProEntitlement }=useSubscription();
- const hasPaidSub=hasProEntitlement || ['basic','premium','vip','pro'].includes(String(subscription?.type || '').toLowerCase());
+ const hasPaidSub=hasPaidAccess({ subscription, hasProEntitlement });
  useEffect(()=>{let active=true;api.getCmsVideoSection('audio-anxietate').then(data=>{if(active)setCmsSubsections(data.subsections || []);}).catch(()=>{});return()=>{active=false;};},[]);
  return <AudioAccessGate navigation={navigation}><AudioLibraryContent navigation={navigation} lessons={videos} cmsSubsections={cmsSubsections} hasPaidSub={hasPaidSub} /></AudioAccessGate>;
 }

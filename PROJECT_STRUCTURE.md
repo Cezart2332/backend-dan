@@ -14,25 +14,25 @@ The project has **three parts**:
 ## 1. Mobile App (`/` root)
 
 ### Tech Stack
-- **Expo SDK 54** (managed workflow)
-- **React Native** 0.81.5 / React 19.1.0
+- **Expo SDK 57** (managed workflow)
+- **React Native** 0.86.3 / React 19.2.3
 - **Navigation:** `@react-navigation/native` + `@react-navigation/stack`
 - **IAP:** RevenueCat (`react-native-purchases`)
 - **Push:** `expo-notifications` via Expo Push API
 - **Auth:** Email/password + Google OAuth + Apple Sign-In (Facebook OAuth server-side)
 - **Payments:** RevenueCat (App Store, Google Play)
-- **Video:** `expo-av`, `expo-video`
+- **Video / audio:** `expo-video` (HLS lessons), `expo-audio`
 - **Builds:** EAS Build + Submit (CI/CD via GitHub Actions)
 
 ### Key Files
 | File | Purpose |
 |------|---------|
-| `App.js` | Root component, navigation stack (48 screens), auth boot, push notification handler |
+| `App.js` | Root component, navigation stack (53 screens), auth boot, push notification handler |
 | `app.json` | Expo config: bundle IDs, schemes, permissions, plugins, env vars |
 | `eas.json` | EAS Build profiles (dev / preview / production) |
 | `package.json` | Dependencies and scripts |
 
-### Screens (`components/` — 48 files)
+### Screens (`components/`)
 | Screen | File | Purpose |
 |--------|------|---------|
 | Login | `LoginScreen.js` | Email/password + Google + Apple login |
@@ -104,7 +104,7 @@ The project has **three parts**:
 | `assets/` | App icons (iOS + Android), splash screen, logo |
 | `google-services.json` | Firebase project config for Android |
 | `@cartealuidan__dan-fost-anxios.jks` | Android signing keystore |
-| `.github/workflows/pipeline.yaml` | CI/CD: auto EAS build + submit |
+| `.github/workflows/pipeline.yaml` | CI/CD: `npm test`, then EAS build + submit |
 
 ### Notification Types Handled (App.js)
 | Type | Action on tap |

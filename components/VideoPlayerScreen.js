@@ -22,6 +22,15 @@ const time = (value) => `${Math.floor(Math.max(0,value) / 60)}:${String(Math.flo
 export default function VideoPlayerScreen(props) {
   return <LessonPlayerContent key={props.videoFile} {...props} />;
 }
+// A lesson route whose params override these defaults.
+export function createVideoScreen({ title: defaultTitle, subtitle, videoFile: defaultVideo, artist, accent }) {
+  return function VideoScreen({ route, navigation }) {
+    const { title, videoFile, nowPlayingTitle, nowPlayingArtist, nowPlayingArtwork, nowPlayingAccent } = route.params || {};
+    return <VideoPlayerScreen navigation={navigation} title={title || defaultTitle} subtitle={subtitle}
+      videoFile={videoFile || defaultVideo} nowPlayingTitle={nowPlayingTitle || title || defaultTitle}
+      nowPlayingArtist={nowPlayingArtist || artist} nowPlayingArtwork={nowPlayingArtwork} nowPlayingAccent={nowPlayingAccent || accent} />;
+  };
+}
 function LessonPlayerContent({ navigation, title = 'Lecție cu Dan', subtitle = '', videoFile, nowPlayingTitle, nowPlayingArtist = 'Dan fost anxios', nowPlayingArtwork, nowPlayingAccent }) {
   const { tc } = useTheme();
   const styles = useThemedStyles(createStyles);

@@ -15,7 +15,6 @@ export default function IntelegeAnxietateVideoScreen({ navigation, route }) {
       title={title}
       subtitle={route.params?.sectionTitle || 'Înțelege anxietatea'}
       videoFile={videoFile}
-      playButtonText="Redă video"
       nowPlayingTitle={nowPlayingTitle || title}
       nowPlayingArtist={nowPlayingArtist || "Dan fost anxios · Lecție video"}
       nowPlayingArtwork={nowPlayingArtwork}

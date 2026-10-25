@@ -24,7 +24,9 @@ export function createAudioActivityRepository({ storage, session, save, fetchSta
         const state = await serial(() => read(owner));
         for (const snapshot of Object.values(state.pending)) {
           if (!await current(owner, token)) return;
-          await save(snapshot, token);
+          // A snapshot the server refuses for good (400/409) would block every
+          // later one, so it is acknowledged like a delivered one.
+          try { await save(snapshot, token); } catch (error) { if (![400, 409].includes(error?.status)) throw error; }
           await serial(async () => {
             if (!await current(owner, token)) return;
             const latest = await read(owner);

@@ -5,7 +5,7 @@ import { View, Text, TouchableOpacity, StyleSheet, FlatList,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { getEntries, replaceAllWithServerEntries, isBackendReady } from '../utils/progressStorage';
+import { getEntries, replaceAllWithServerEntries } from '../utils/progressStorage';
 import { getToken } from '../utils/authStorage';
 import { api } from '../utils/api';
 import { useTheme, useThemedStyles } from './ui/themeContext';
@@ -18,28 +18,16 @@ export default function ProgressHistoryScreen({ navigation }) {
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', async () => {
-      const backendReady = await isBackendReady();
       try {
         const token = await getToken();
         if (token) {
           const res = await api.listProgress(token);
-          const serverItems = res?.items || [];
-          const mapped = serverItems.map((row) => ({
-            id: String(row.id),
-            date: row.client_date || row.created_at,
-            level: row.level,
-            description: row.description,
-            actions: row.actions,
-          }));
-          await replaceAllWithServerEntries(serverItems);
-          setEntries(mapped);
-          return;
+          await replaceAllWithServerEntries(res?.items || []);
         }
       } catch {}
-      if (!backendReady) {
-        const list = await getEntries();
-        setEntries(list);
-      }
+      // Server entries plus the ones still waiting to be sent; offline, the
+      // last copy kept on the phone.
+      setEntries(await getEntries());
     });
     return unsubscribe;
   }, [navigation]);

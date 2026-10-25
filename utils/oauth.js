@@ -6,7 +6,7 @@ import { Platform } from 'react-native';
 import { api } from './api';
 import { saveToken } from './authStorage';
 import { saveUser } from './userStorage';
-import { saveSubscription } from './subscriptionStorage';
+import { cacheSubscriptionFromServer } from './subscriptionStorage';
 import { reportError } from './monitoring';
 
 // Ensure the browser auth session completes properly on Android/iOS
@@ -118,21 +118,7 @@ export async function handleGoogleResponse(response) {
   if (result?.token) await saveToken(result.token);
   if (result?.user) await saveUser(result.user);
 
-  // Fetch subscription info
-  try {
-    if (result?.token) {
-      const subResp = await api.getCurrentSubscription(result.token);
-      const subscriptionType = String(subResp?.subscription?.type || '').toLowerCase();
-      const isBackendTrialActive = subResp?.status === 'active' && subscriptionType === 'trial';
-      await saveSubscription({
-        ...(subResp.subscription || {}),
-        _status: isBackendTrialActive ? 'none' : subResp.status,
-        _trialEligible: subResp.trialEligible,
-      });
-    }
-  } catch {
-    // Subscription fetch failed silently
-  }
+  await cacheSubscriptionFromServer(result?.token);
 
   return result;
 }
@@ -174,21 +160,7 @@ export async function signInWithApple() {
   if (result?.token) await saveToken(result.token);
   if (result?.user) await saveUser(result.user);
 
-  // Fetch subscription info
-  try {
-    if (result?.token) {
-      const subResp = await api.getCurrentSubscription(result.token);
-      const subscriptionType = String(subResp?.subscription?.type || '').toLowerCase();
-      const isBackendTrialActive = subResp?.status === 'active' && subscriptionType === 'trial';
-      await saveSubscription({
-        ...(subResp.subscription || {}),
-        _status: isBackendTrialActive ? 'none' : subResp.status,
-        _trialEligible: subResp.trialEligible,
-      });
-    }
-  } catch {
-    // Subscription fetch failed silently
-  }
+  await cacheSubscriptionFromServer(result?.token);
 
   return result;
 }

@@ -12,7 +12,8 @@
     "test:audio-social": "node --test tests/audio-social.test.mjs",
     "test:subscriptions": "node --test tests/subscription.test.mjs",
     "test:api-errors": "node --test tests/api-errors.test.mjs",
-    "test:social-notifications": "node --test tests/social-notifications.test.mjs"
+    "test:social-notifications": "node --test tests/social-notifications.test.mjs",
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "@expo/config-plugins": "~57.0.9",
@@ -29,6 +30,7 @@
     "expo-audio": "~57.0.5",
     "expo-auth-session": "~57.0.13",
     "expo-build-properties": "~57.0.22",
+    "expo-constants": "~57.0.20",
     "expo-crypto": "~57.0.3",
     "expo-font": "~57.0.4",
     "expo-haptics": "~57.0.3",

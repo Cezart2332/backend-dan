@@ -11,6 +11,7 @@ import { accessAllowed, confirmedAccess, DEFAULT_PREFERENCES } from '../utils/we
 import { wellbeingRepository as repository, setWellbeingAccount, stopWellbeingAccount, syncWellbeing, scheduleWellbeingReminder } from '../utils/wellbeingRuntime';
 
 const Context = createContext(null);
+const SERVER_RECHECK_MS = 10 * 60 * 1000;
 export function WellbeingProvider({ isAuthed, children }) {
   const subscriptionContext = useSubscription();
   const [owner, setOwner] = useState(null);
@@ -23,6 +24,7 @@ export function WellbeingProvider({ isAuthed, children }) {
   const pendingRefresh = useRef(false);
   const pendingPull = useRef(false);
   const onlineProof = useRef(false);
+  const lastServerCheck = useRef(0);
   const [onlineVerified, setOnlineVerified] = useState(false);
   // True when the last server check failed for a reason other than a verdict,
   // so the gate can say "no connection" instead of "no subscription".
@@ -51,11 +53,15 @@ export function WellbeingProvider({ isAuthed, children }) {
       if (confirmedLive) {
         await repository.update(id, { access: { ...confirmed, checkedAt: new Date().toISOString() } });
         setVerifyFailed(false);
+      } else if (options.periodic && Date.now() - lastServerCheck.current < SERVER_RECHECK_MS) {
+        // The minute timer asks the server again only every few minutes; opening
+        // the app, reconnecting or a subscription change still check at once.
       } else {
         // Network failure preserves the last confirmed, finite expiry.
         try {
           const result = await api.getCurrentSubscription(token);
           if (ownerRef.current !== id) return;
+          lastServerCheck.current = Date.now();
           onlineProof.current = true; setOnlineVerified(true); setVerifyFailed(false);
           await repository.update(id, { access: { owner: id, status: result.status, type: result.subscription?.type, expiresAt: result.subscription?.ends_at, checkedAt: new Date().toISOString() } });
         } catch (failure) {
@@ -90,7 +96,7 @@ export function WellbeingProvider({ isAuthed, children }) {
   useEffect(() => {
     let active = true;
     ownerRef.current = null;
-    onlineProof.current = false; setOnlineVerified(false);
+    onlineProof.current = false; setOnlineVerified(false); lastServerCheck.current = 0;
     setOwner(null); setData(null); setError(null); setVerifyFailed(false);
     stopWellbeingAccount().catch(() => {});
     if (isAuthed) (async () => {
@@ -106,7 +112,7 @@ export function WellbeingProvider({ isAuthed, children }) {
   useEffect(() => {
     const listener = AppState.addEventListener('change', (state) => { if (state === 'active') { setNow(Date.now()); refreshRef.current(); } else { onlineProof.current = false; setOnlineVerified(false); } });
     const network = NetInfo.addEventListener((state) => { if (state.isConnected && state.isInternetReachable !== false && AppState.currentState === 'active') refreshRef.current(); else { onlineProof.current = false; setOnlineVerified(false); } });
-    const timer = setInterval(() => { setNow(Date.now()); if (AppState.currentState === 'active') refreshRef.current({ pull: false }); }, 60000);
+    const timer = setInterval(() => { setNow(Date.now()); if (AppState.currentState === 'active') refreshRef.current({ pull: false, periodic: true }); }, 60000);
     return () => { listener.remove(); network(); clearInterval(timer); };
   }, []);
   useEffect(() => { if (owner) refreshRef.current(); }, [owner, subscriptionContext.status, subscriptionContext.subscription?.ends_at]);

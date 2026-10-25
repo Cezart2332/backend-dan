@@ -17,7 +17,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
 import { saveToken } from '../utils/authStorage';
 import { saveUser } from '../utils/userStorage';
-import { saveSubscription } from '../utils/subscriptionStorage';
+import { cacheSubscriptionFromServer } from '../utils/subscriptionStorage';
 import { useGoogleAuth, handleGoogleResponse, signInWithApple } from '../utils/oauth';
 import metaEvents from '../utils/metaEvents';
 import { useTheme, useThemedStyles } from './ui/themeContext';
@@ -55,7 +55,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
       await handleGoogleResponse(response);
       metaEvents.logEvent(metaEvents.STANDARD_EVENTS.COMPLETED_REGISTRATION, { registration_method: 'google' });
       if (typeof onAuthenticated === 'function') onAuthenticated();
-      navigation.navigate('Dashboard');
+      navigation.reset({ index: 0, routes: [{ name: 'Dashboard' }] });
     } catch (e) {
       setError(e.message || 'Autentificare Google eșuată');
     } finally {
@@ -70,7 +70,7 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
       await signInWithApple();
       metaEvents.logEvent(metaEvents.STANDARD_EVENTS.COMPLETED_REGISTRATION, { registration_method: 'apple' });
       if (typeof onAuthenticated === 'function') onAuthenticated();
-      navigation.navigate('Dashboard');
+      navigation.reset({ index: 0, routes: [{ name: 'Dashboard' }] });
     } catch (e) {
       if (e.code === 'ERR_CANCELED') return; // User cancelled
       setError(e.message || 'Autentificare Apple eșuată');
@@ -81,7 +81,9 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
 
   const onRegister = async () => {
     setError('');
-    if (!email || !password || !fullName) {
+    // Keyboards often add a space after an autocompleted address.
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !password || !fullName) {
       setError('Completează nume, email și parolă');
       return;
     }
@@ -95,23 +97,10 @@ export default function RegisterScreen({ navigation, onAuthenticated }) {
     }
     try {
       setLoading(true);
-      const res = await api.register({ email, password, name: fullName });
+      const res = await api.register({ email: cleanEmail, password, name: fullName });
       if (res?.token) await saveToken(res.token);
       if (res?.user) await saveUser(res.user);
-      try {
-        if (res?.token) {
-          const subResp = await api.getCurrentSubscription(res.token);
-          const subscriptionType = String(subResp?.subscription?.type || '').toLowerCase();
-          const isBackendTrialActive = subResp?.status === 'active' && subscriptionType === 'trial';
-          await saveSubscription({
-            ...(subResp.subscription || {}),
-            _status: isBackendTrialActive ? 'none' : subResp.status,
-            _trialEligible: subResp.trialEligible,
-          });
-        }
-      } catch (err) {
-        // Subscription fetch failed silently - not critical for registration
-      }
+      await cacheSubscriptionFromServer(res?.token);
       metaEvents.logEvent(metaEvents.STANDARD_EVENTS.COMPLETED_REGISTRATION, { registration_method: 'email' });
       if (typeof onAuthenticated === 'function') onAuthenticated();
       // Show disclaimer modal before onboarding

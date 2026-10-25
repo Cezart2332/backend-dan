@@ -17,6 +17,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
 import { getToken } from '../utils/authStorage';
 import { useSubscription } from '../contexts/SubscriptionContext';
+import { hasWebinarAccess } from '../utils/subscriptionPolicy.mjs';
 import { useTheme, useThemedStyles } from './ui/themeContext';
 import { registerForPushNotifications } from '../utils/pushRegistration';
 
@@ -53,9 +54,8 @@ function formatWebinarDate(value) {
 export default function WebinariiScreen({ navigation, route }) {
   const { tc } = useTheme();
   const styles = useThemedStyles(createStyles);
-  const { subscription, hasProEntitlement } = useSubscription();
-  const subType = String(subscription?.type || '').toLowerCase();
-  const hasWebinarAccess = hasProEntitlement || ['premium', 'vip', 'pro'].includes(subType);
+  const { subscription } = useSubscription();
+  const webinarAccess = hasWebinarAccess(subscription);
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -166,7 +166,7 @@ export default function WebinariiScreen({ navigation, route }) {
           </View>
         </View>
 
-        {!hasWebinarAccess ? (
+        {!webinarAccess ? (
           <View style={styles.blockedCard}>
             <Feather name="lock" size={24} color={tc("#5c5a80", 'fg')} />
             <Text style={styles.blockedTitle}>Acces Premium/VIP</Text>

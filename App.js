@@ -65,19 +65,16 @@ import { isActivePrivateChatNotification } from "./utils/socialNotifications";
 import { socialNotificationTarget } from "./utils/socialNotificationRoutes.mjs";
 import CmsSectionScreen from "./components/CmsSectionScreen";
 import NotificationsScreen from "./components/NotificationsScreen";
-import { getToken, clearToken } from "./utils/authStorage";
+import { getToken } from "./utils/authStorage";
 import { registerForPushNotifications } from "./utils/pushRegistration";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import SubscriptionPaywall from "./components/SubscriptionPaywall";
-import { clearSubscription } from "./utils/subscriptionStorage";
-import { clearUser } from "./utils/userStorage";
-import { clearEntries } from "./utils/progressStorage";
-import { replaceAllRuns } from "./utils/challengeStorage";
+import { clearLocalAccountData } from "./utils/session";
 import { api } from "./utils/api";
 import AppSplashScreen from "./components/AppSplashScreen";
 import AppErrorBoundary from "./components/AppErrorBoundary";
 import metaEvents from "./utils/metaEvents";
-import { clearAppBadge, syncAppBadge } from "./utils/appBadge";
+import { syncAppBadge } from "./utils/appBadge";
 import { syncDailyQuoteSchedule } from "./utils/dailyQuote";
 import { initMonitoring, wrapWithMonitoring } from "./utils/monitoring";
 import { ThemeProvider, useTheme } from "./components/ui/themeContext";
@@ -190,14 +187,17 @@ function AppContent() {
         // the background and can revoke only the same session that started it.
         if (mounted) setIsAuthed(true);
         api.getCurrentSubscription(token).catch(async (err) => {
-          const msg = err?.message || '';
-          const revoked = err?.status === 401 || ['Neautorizat','BAD_TOKEN','NO_AUTH'].some(value => msg.includes(value));
-          if (!revoked || !mounted || await getToken() !== token) return;
+          // The server answers every missing or invalid session with 401.
+          if (err?.status !== 401 || !mounted || await getToken() !== token) return;
           await stopWellbeingAccount();
           if (!mounted || await getToken() !== token) return;
-          await Promise.allSettled([clearToken(), clearUser(), clearSubscription(), clearEntries(), replaceAllRuns([])]);
-          clearAppBadge();
-          if (mounted) setIsAuthed(false);
+          await clearLocalAccountData();
+          if (!mounted) return;
+          setIsAuthed(false);
+          // The stack opened on Dashboard; initialRouteName no longer applies.
+          if (navigationRef.current?.isReady?.()) {
+            navigationRef.current.reset({ index: 0, routes: [{ name: "Login" }] });
+          }
         }).catch(() => {});
       } catch {
         if (mounted) setIsAuthed(false);

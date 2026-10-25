@@ -13,7 +13,6 @@ import {
   ensureRevenueCatIdentity,
   fetchCustomerInfo,
   fetchOfferings,
-  getAllPackagesFromOfferings,
   getPackageForOfferingId,
   getPackageForProductId,
   OFFERING_IDS,
@@ -70,7 +69,6 @@ export function SubscriptionProvider({ children, isAuthed }) {
   const [status, setStatus] = useState("none");
   const [trialEligible, setTrialEligible] = useState(false);
   const [hasProEntitlement, setHasProEntitlement] = useState(false);
-  const [customerInfo, setCustomerInfo] = useState(null);
   const [offerings, setOfferings] = useState(null);
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
@@ -135,7 +133,7 @@ export function SubscriptionProvider({ children, isAuthed }) {
     if (!snapshot) return result;
     const commitEpoch = ++epochRef.current;
     refreshPromiseRef.current = null;
-    setCustomerInfo(info || null); applySnapshot(snapshot);
+    applySnapshot(snapshot);
     setSubscriptionResolved(true); setLoading(false);
     await saveSubscription(snapshot);
     if (await sameSession(owner, token, commitEpoch)) syncCustomer(result, token);
@@ -160,7 +158,7 @@ export function SubscriptionProvider({ children, isAuthed }) {
   const clearState = useCallback(() => {
     epochRef.current++; activeOwnerRef.current = null; refreshPromiseRef.current = null;
     setSubscription(null); setStatus('none'); setTrialEligible(false); setHasProEntitlement(false);
-    setCustomerInfo(null); setOfferings(null); setHasToken(false); setSubscriptionResolved(false);
+    setOfferings(null); setHasToken(false); setSubscriptionResolved(false);
     setPaywallRequested(false); setLoading(false);
     // Explicit sign-out cleanup owns SDK logout and cache deletion. Avoid a late
     // logOut callback clearing a newly signed-in account or flushing startup cache.
@@ -189,7 +187,6 @@ export function SubscriptionProvider({ children, isAuthed }) {
         const snapshot = liveSubscription({ owner, backend, revenueCat: rc });
         if (!snapshot) throw new Error('Nu am putut sincroniza abonamentul.');
         applySnapshot(snapshot);
-        if (info) setCustomerInfo(info);
         if (latestOfferings.status === 'fulfilled' && latestOfferings.value) setOfferings(latestOfferings.value);
         await saveSubscription(snapshot);
         if (rc && await sameSession(owner, token, epoch)) syncCustomer(rc, token);
@@ -204,8 +201,6 @@ export function SubscriptionProvider({ children, isAuthed }) {
       }
     })();
     refreshPromiseRef.current = executor;
-    const release = () => { if (refreshPromiseRef.current === executor) refreshPromiseRef.current = null; };
-    executor.then(release, release);
     return executor;
   }, [applySnapshot, describeCustomer, sameSession, syncCustomer]);
 
@@ -280,7 +275,7 @@ export function SubscriptionProvider({ children, isAuthed }) {
         listenerRef.current = null;
       }
     };
-  }, [isAuthed, clearState, refresh, applyCustomerInfo]);
+  }, [isAuthed, clearState, refresh]);
 
   const getPackagesByOffering = useCallback(() => {
     const basicPkg =
@@ -312,48 +307,6 @@ export function SubscriptionProvider({ children, isAuthed }) {
     await ensureRevenueCatIdentity(normalizeAppUserId((await getUser())?.id));
   }, []);
 
-  const purchaseByOfferingId = useCallback(
-    async (offeringId) => {
-      const packages = getPackagesByOffering();
-      const pkg = packages?.[offeringId] || getPackageForProductId(offerings, offeringId);
-      await requireIdentity();
-      const info = await purchaseRevenueCatPackage(pkg);
-      const applyResult = await applyCustomerInfo(info);
-      if (applyResult?.ownershipMismatch) {
-        throw new Error("Acest abonament este asociat altui cont. Conectează-te cu acel cont și folosește „Restaurează achizițiile”.");
-      }
-      await refreshAfterAccessChange();
-      return info;
-    },
-    [applyCustomerInfo, getPackagesByOffering, offerings, refreshAfterAccessChange, requireIdentity]
-  );
-
-  const restorePurchases = useCallback(async () => {
-    const token = await getToken();
-    if (!token) throw new Error("Nu ești conectat. Intră în cont și încearcă din nou.");
-
-    const historyPayload = await api.getSubscriptionHistory(token).catch(() => null);
-    const historyRows = Array.isArray(historyPayload?.history) ? historyPayload.history : [];
-    const hasPaidHistory = hasPaidHistoryRows(historyRows);
-    const hasPaidSnapshot = hasProEntitlement || isPaidSubscriptionType(subscription?.type);
-
-    if (!hasPaidHistory && !hasPaidSnapshot) {
-      throw new Error(
-        "Restaurarea achizițiilor funcționează doar pe contul cu care ai cumpărat abonamentul. Conectează-te cu acel cont."
-      );
-    }
-
-    await requireIdentity();
-    const info = await restoreRevenueCatPurchases();
-    const applyResult = await applyCustomerInfo(info);
-    if (applyResult?.ownershipMismatch) {
-      throw new Error(
-        "Abonamentul găsit este asociat altui cont din aplicație. Conectează-te cu contul cu care l-ai cumpărat."
-      );
-    }
-    return info;
-  }, [applyCustomerInfo, hasProEntitlement, requireIdentity, subscription]);
-
   const showPaywall = useCallback(async () => {
     await requireIdentity();
     const result = await presentRevenueCatPaywall();
@@ -384,28 +337,7 @@ export function SubscriptionProvider({ children, isAuthed }) {
     return result;
   }, [refreshAfterAccessChange]);
 
-  useEffect(() => {
-    if (!initializing) return;
-    if (hasToken) setInitializing(false);
-  }, [initializing, hasToken]);
-
-  useEffect(() => {
-    if (isAuthed) return;
-    if (initializing) setInitializing(false);
-  }, [isAuthed, clearState, refresh]);
-
   const packagesByOffering = useMemo(() => getPackagesByOffering(), [getPackagesByOffering]);
-  const packages = useMemo(() => getAllPackagesFromOfferings(offerings), [offerings]);
-
-  const user = useMemo(
-    () => ({
-      pro: hasProEntitlement,
-      subscription,
-      appUserId: customerInfo?.originalAppUserId || null,
-      activeEntitlements: Object.keys(customerInfo?.entitlements?.active || {}),
-    }),
-    [hasProEntitlement, subscription, customerInfo]
-  );
 
   const purchasePackage = useCallback(
     async (pkg) => {
@@ -452,15 +384,11 @@ export function SubscriptionProvider({ children, isAuthed }) {
 
   const value = useMemo(
     () => ({
-      user,
-      packages,
       packagesByOffering,
       subscription,
       status,
       trialEligible,
       hasProEntitlement,
-      customerInfo,
-      offerings,
       loading,
       initializing,
       subscriptionResolved,
@@ -469,30 +397,18 @@ export function SubscriptionProvider({ children, isAuthed }) {
       requestPaywall,
       dismissPaywall,
       refresh,
-      purchaseByOfferingId,
-      restorePurchases,
       purchasePackage,
       restorePermissions,
       showPaywall,
       openCustomerCenter,
       startFreeTrial,
-      getPackagesByOffering,
-      offeringsLoaded: Boolean(offerings),
-      // Backward-compatible aliases for existing screens.
-      purchaseByProductId: purchaseByOfferingId,
-      getPackagesByProduct: getPackagesByOffering,
-      setTrialEligible: (eligible) => setTrialEligible(Boolean(eligible)),
     }),
     [
-      user,
-      packages,
       packagesByOffering,
       subscription,
       status,
       trialEligible,
       hasProEntitlement,
-      customerInfo,
-      offerings,
       loading,
       initializing,
       subscriptionResolved,
@@ -501,14 +417,11 @@ export function SubscriptionProvider({ children, isAuthed }) {
       requestPaywall,
       dismissPaywall,
       refresh,
-      purchaseByOfferingId,
-      restorePurchases,
       purchasePackage,
       restorePermissions,
       showPaywall,
       openCustomerCenter,
       startFreeTrial,
-      getPackagesByOffering,
     ]
   );
 
@@ -524,6 +437,3 @@ export function useSubscription() {
   if (!ctx) throw new Error("useSubscription must be used within SubscriptionProvider");
   return ctx;
 }
-
-// RevenueCat-style alias for easier migration from examples/docs.
-export const useRevenueCat = useSubscription;

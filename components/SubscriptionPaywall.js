@@ -14,7 +14,7 @@ import {
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useSubscription } from "../contexts/SubscriptionContext";
 import { signOutCleanup } from "../utils/session";
-import { subscriptionLoadingVisible } from '../utils/subscriptionPolicy.mjs';
+import { hasActiveTrial, subscriptionLoadingVisible } from '../utils/subscriptionPolicy.mjs';
 import { useTheme, useThemedStyles } from "./ui/themeContext";
 
 const { width } = Dimensions.get("window");
@@ -46,16 +46,11 @@ export default function SubscriptionPaywall({ isAuthed, navigationRef, currentRo
   // Paywall-ul nu se mai afiseaza automat pentru utilizatorii fara abonament.
   // Apare doar la cerere (paywallRequested), cand utilizatorul apasa pe o sectiune blocata.
   const shouldShow = useMemo(() => {
-    const isTrialSubscription = String(subscription?.type || "").toLowerCase() === "trial";
-    const trialEndsAtMs = subscription?.ends_at ? Date.parse(subscription.ends_at) : NaN;
-    const hasActiveTrialAccess =
-      isTrialSubscription && (!Number.isFinite(trialEndsAtMs) || trialEndsAtMs > Date.now());
-
     if (!paywallRequested) return false;
     if (!isAuthed) return false;
     if (!hasToken) return false;
     if (initializing) return false;
-    if (hasActiveTrialAccess) return false;
+    if (hasActiveTrial(subscription)) return false;
     if (hasProEntitlement) return false;
     if (currentRoute && EXCLUDED_ROUTES.has(currentRoute)) return false;
     return true;

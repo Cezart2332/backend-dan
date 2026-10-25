@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { addEntry, getUnsyncedEntries, markEntrySynced, setBackendReady } from '../utils/progressStorage';
+import { addEntry, getUnsyncedEntries, markEntrySynced } from '../utils/progressStorage';
 import { getToken } from '../utils/authStorage';
 import { api } from '../utils/api';
 import { useTheme, useThemedStyles } from './ui/themeContext';
@@ -29,6 +29,8 @@ export default function ProgressScreen({ navigation }) {
   const [anxietyLevel, setAnxietyLevel] = useState(0);
   const [feelings, setFeelings] = useState('');
   const [recentActions, setRecentActions] = useState('');
+  // A second tap while the journal is being sent would send it twice.
+  const sendingRef = useRef(false);
   // On mount, if token exists, attempt to sync any unsynced local entries
   React.useEffect(() => {
     (async () => {
@@ -40,7 +42,6 @@ export default function ProgressScreen({ navigation }) {
           const res = await api.createProgress({ level: e.level, description: e.description, actions: e.actions, date: e.date }, token);
           if (res?.id) await markEntrySynced(e.localId || e.id, res.id);
         }
-        await setBackendReady(true);
       } catch {}
     })();
   }, []);
@@ -50,6 +51,16 @@ export default function ProgressScreen({ navigation }) {
   };
 
   const handleSendJournal = async () => {
+    if (sendingRef.current) return;
+    sendingRef.current = true;
+    try {
+      await sendJournal();
+    } finally {
+      sendingRef.current = false;
+    }
+  };
+
+  const sendJournal = async () => {
     if (anxietyLevel === 0) {
       Alert.alert('Nivel lipsă', 'Te rog să selectezi nivelul de anxietate.');
       return;
@@ -68,17 +79,26 @@ export default function ProgressScreen({ navigation }) {
     };
     try {
       const token = await getToken();
+      let serverId = null;
       if (token) {
-        await api.createProgress({ level: entry.level, description: entry.description, actions: entry.actions, date: entry.date }, token);
+        const res = await api.createProgress({ level: entry.level, description: entry.description, actions: entry.actions, date: entry.date }, token);
+        serverId = res?.id ?? null;
       }
-      // Always keep local copy too
-      await addEntry(entry);
+      // Always keep local copy too, marked as sent so the next sync skips it
+      await addEntry(entry, serverId);
       hapticNotify('success');
       Alert.alert('Jurnal trimis', 'Jurnalul a fost trimis către Dan.');
     } catch (e) {
-      Alert.alert('Eroare', e?.message || 'Nu am reușit să trimit progresul.');
+      // Without a connection the entry waits on the phone and is sent the next
+      // time this screen opens; a rejected entry keeps the form for editing.
+      if (!['network', 'timeout', 'server', 'rate-limited'].includes(e?.kind)) {
+        Alert.alert('Eroare', e?.message || 'Nu am reușit să trimit progresul.');
+        return;
+      }
+      await addEntry(entry);
+      Alert.alert('Jurnal salvat', 'Nu ne-am putut conecta acum. Jurnalul e salvat pe telefon și îl trimitem automat data viitoare când deschizi această secțiune.');
     }
-    
+
     // Reset form
     setAnxietyLevel(0);
     setFeelings('');

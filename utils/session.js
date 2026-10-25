@@ -10,13 +10,21 @@ import { stopWellbeingAccount } from './wellbeingRuntime';
 
 /**
  * Curățenia la ieșirea din cont. Dezabonarea de la push are nevoie de
- * sesiune, așa că rulează înainte de ștergerea token-ului.
+ * sesiune, așa că rulează înainte de ștergerea token-ului; cine a făcut-o deja
+ * (ștergerea contului) o poate sări.
  */
-export async function signOutCleanup() {
+export async function signOutCleanup({ skipPushUnregister = false } = {}) {
   await stopWellbeingAccount();
-  await unregisterPushNotifications();
+  if (!skipPushUnregister) await unregisterPushNotifications();
+  await Promise.allSettled([logoutRevenueCatUser(), clearLocalAccountData()]);
+}
+
+/**
+ * Șterge de pe telefon datele contului (sesiune, profil, abonament, jurnal,
+ * provocări) și badge-ul. Folosită și când serverul a revocat deja sesiunea.
+ */
+export async function clearLocalAccountData() {
   await Promise.allSettled([
-    logoutRevenueCatUser(),
     clearToken(),
     clearUser(),
     clearSubscription(),

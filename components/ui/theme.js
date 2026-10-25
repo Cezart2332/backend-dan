@@ -116,4 +116,3 @@ export const shadows = {
   },
 };
 
-export const tokens = { colors, gradients, fonts, radius, spacing, type, shadows };

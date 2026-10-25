@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
 import { getToken } from '../utils/authStorage';
-import { saveChallengeRun } from '../utils/challengeStorage';
+import { challengeRunPayload, saveChallengeRun, sendUnsentRuns } from '../utils/challengeStorage';
 import { useTheme, useThemedStyles } from './ui/themeContext';
 import { hapticNotify } from '../utils/haptics';
 
@@ -37,8 +37,12 @@ export default function ChallengeRunScreen({ route, navigation }) {
     if (current) current.identity.then(identity => queuePanelActivity(identity,'challenge',{...current.value,completedAt:new Date().toISOString()})).catch(() => {});
   };
   const canSubmit = finished && difficulty !== null;
+  // A second tap while saving would record the run twice.
+  const submitting = useRef(false);
 
   const handleSubmit = async () => {
+    if (submitting.current) return;
+    submitting.current = true;
     const payload = {
       challenge_id: challenge?.id,
       difficulty,
@@ -51,11 +55,17 @@ export default function ChallengeRunScreen({ route, navigation }) {
       if (token) {
         const res = await api.createChallengeRun(payload, token);
         id = res?.id || null;
+        // Back online: runs saved earlier without a connection go out too.
+        sendUnsentRuns((run) => api.createChallengeRun(challengeRunPayload(run), token)).catch(() => {});
       }
     } catch {}
-    await saveChallengeRun({ ...payload, id, levelId: level?.id });
-    hapticNotify('success');
-    navigation.navigate('Provocari');
+    try {
+      await saveChallengeRun({ ...payload, id, levelId: level?.id });
+      hapticNotify('success');
+      navigation.navigate('Provocari');
+    } finally {
+      submitting.current = false;
+    }
   };
 
   return (

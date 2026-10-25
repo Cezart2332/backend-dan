@@ -27,13 +27,20 @@ export async function flushPanelActivity(identity) {
 
 export function startPanelActivity() {
   let stopped = false;
+  // Today's visit is queued once per account; later wake-ups only retry the
+  // outbox, which costs no request once it is empty.
+  let queuedVisit = null;
   const visit = async () => {
     const identity = await activityIdentity();
-    if (!stopped && identity)
-      await queuePanelActivity(identity, "visit", {
-        day: new Date().toISOString().slice(0, 10),
-        platform: Platform.OS,
-      });
+    if (stopped || !identity) return;
+    const day = new Date().toISOString().slice(0, 10);
+    const key = `${identity.owner}:${day}`;
+    if (queuedVisit === key) {
+      await flushPanelActivity(identity);
+      return;
+    }
+    await queuePanelActivity(identity, "visit", { day, platform: Platform.OS });
+    queuedVisit = key;
   };
   visit().catch(() => {});
   const state = AppState.addEventListener("change", (value) => {

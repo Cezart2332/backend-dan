@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cachedSubscription, liveSubscription, revenueCatOwnershipMismatch, subscriptionLoadingVisible } from '../utils/subscriptionPolicy.mjs';
+import { cachedSubscription, hasActiveTrial, hasPaidAccess, hasWebinarAccess, liveSubscription, revenueCatOwnershipMismatch, subscriptionLoadingVisible } from '../utils/subscriptionPolicy.mjs';
 
 const now = Date.parse('2026-09-30T10:00:00Z');
 const future = '2026-10-01T00:00:00Z';
@@ -91,4 +91,27 @@ test('actual expiry cannot grant access', () => {
   const expired = liveSubscription({ owner: 42, backend: { ...backend, subscription: { ...backend.subscription, ends_at: new Date(now).toISOString() } } }, now);
   assert.equal(expired.type, undefined);
   assert.equal(expired._status, 'expired');
+});
+
+test('webinars follow the server rule: Premium, VIP and pro until expiry, never Basic or trial', () => {
+  for (const type of ['premium', 'VIP', 'pro']) assert.equal(hasWebinarAccess({ type, ends_at: future }, now), true);
+  assert.equal(hasWebinarAccess({ type: 'vip', ends_at: null }, now), true);
+  for (const type of ['basic', 'trial', '', undefined]) assert.equal(hasWebinarAccess({ type, ends_at: future }, now), false);
+  assert.equal(hasWebinarAccess({ type: 'premium', ends_at: '2026-09-01T00:00:00Z' }, now), false);
+  assert.equal(hasWebinarAccess(null, now), false);
+});
+
+test('paid content opens with a store entitlement or a paid plan, never with a trial alone', () => {
+  assert.equal(hasPaidAccess({ hasProEntitlement: true, subscription: null }), true);
+  for (const type of ['basic', 'Premium', 'vip', 'pro']) assert.equal(hasPaidAccess({ subscription: { type } }), true);
+  for (const type of ['trial', '', undefined]) assert.equal(hasPaidAccess({ subscription: { type } }), false);
+  assert.equal(hasPaidAccess(), false);
+});
+
+test('the account trial runs until its end date, and without one it counts as running', () => {
+  assert.equal(hasActiveTrial({ type: 'trial', ends_at: future }, now), true);
+  assert.equal(hasActiveTrial({ type: 'TRIAL' }, now), true);
+  assert.equal(hasActiveTrial({ type: 'trial', ends_at: '2026-09-29T00:00:00Z' }, now), false);
+  assert.equal(hasActiveTrial({ type: 'premium', ends_at: future }, now), false);
+  assert.equal(hasActiveTrial(null, now), false);
 });

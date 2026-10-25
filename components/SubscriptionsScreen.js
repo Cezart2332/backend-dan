@@ -21,6 +21,7 @@ import {
   isUserCancelledPurchase,
   OFFERING_IDS,
 } from "../utils/revenuecat";
+import { hasActiveTrial } from "../utils/subscriptionPolicy.mjs";
 import { useTheme, useThemedStyles } from "./ui/themeContext";
 
 const SERIF = Platform.OS === "ios" ? "Georgia" : "serif";
@@ -304,9 +305,7 @@ export default function SubscriptionsScreen({ navigation }) {
   };
 
   const isTrialSubscription = String(subscription?.type || "").toLowerCase() === "trial";
-  const trialEndsAtMs = subscription?.ends_at ? Date.parse(subscription.ends_at) : NaN;
-  const hasActiveTrialAccess =
-    isTrialSubscription && (!Number.isFinite(trialEndsAtMs) || trialEndsAtMs > Date.now());
+  const hasActiveTrialAccess = hasActiveTrial(subscription);
   const canShowTrialAction =
     !hasActiveTrialAccess && (trialEligible || status === "none" || status === "expired");
 

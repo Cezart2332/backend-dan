@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
 import { getToken } from '../utils/authStorage';
-import { getRuns, replaceAllRuns } from '../utils/challengeStorage';
+import { challengeRunPayload, getRuns, isUnsentRun, replaceAllRuns, sendUnsentRuns } from '../utils/challengeStorage';
 import { resolveChallengeTitle } from '../challenges';
 import { useTheme, useThemedStyles } from './ui/themeContext';
 
@@ -21,12 +21,15 @@ export default function ChallengeHistoryScreen({ navigation }) {
     try {
       const token = await getToken();
       if (token) {
+        await sendUnsentRuns((run) => api.createChallengeRun(challengeRunPayload(run), token)).catch(() => {});
         const [historyRes, cmsRes] = await Promise.all([
           api.listChallengeRuns(token),
           api.getCmsChallenges().catch(() => ({ levels: [] })),
         ]);
         setCmsData(cmsRes);
-        const items = historyRes?.items || [];
+        // Runs still waiting for a connection stay listed until they are sent.
+        const unsent = (await getRuns()).filter(isUnsentRun);
+        const items = [...unsent, ...(historyRes?.items || [])];
         await replaceAllRuns(items);
         setItems(items);
         return;

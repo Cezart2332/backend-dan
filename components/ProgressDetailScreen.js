@@ -5,7 +5,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { getEntryById, isBackendReady } from '../utils/progressStorage';
+import { getEntryById } from '../utils/progressStorage';
 import { getToken } from '../utils/authStorage';
 import { api } from '../utils/api';
 import { useTheme, useThemedStyles } from './ui/themeContext';
@@ -19,7 +19,6 @@ export default function ProgressDetailScreen({ route, navigation }) {
   useEffect(() => {
     (async () => {
       let data = null;
-      const backendReady = await isBackendReady();
       try {
         const token = await getToken();
         if (token) {
@@ -33,7 +32,8 @@ export default function ProgressDetailScreen({ route, navigation }) {
           };
         }
       } catch {}
-      if (!data && !backendReady) data = await getEntryById(id);
+      // Offline, or an entry still waiting to be sent: the phone's copy.
+      if (!data) data = await getEntryById(id);
       setEntry(data);
     })();
   }, [id]);

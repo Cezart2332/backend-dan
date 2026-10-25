@@ -19,6 +19,7 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import { api } from "../utils/api";
 import { getToken } from "../utils/authStorage";
 import { signOutCleanup } from "../utils/session";
+import { registerForPushNotifications, unregisterPushNotifications } from "../utils/pushRegistration";
 import { hapticNotify, hapticSelection } from "../utils/haptics";
 import { useTheme, useThemedStyles } from "./ui/themeContext";
 import { AppButton } from './ui';
@@ -114,8 +115,16 @@ export default function SettingsScreen({ navigation, onLogout }) {
         return;
       }
 
-      const response = await api.deleteAccount(token);
-      
+      // The phone is unlinked while the session still works; after deletion the
+      // request could only wait for its timeout.
+      await unregisterPushNotifications();
+      let response;
+      try {
+        response = await api.deleteAccount(token);
+      } finally {
+        if (!response?.success) registerForPushNotifications().catch(() => {});
+      }
+
       if (response.success) {
         const user = await getUser();
         await stopWellbeingAccount();
@@ -123,7 +132,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
         if (user?.id) await deleteAudioActivity(user.id);
         if (user?.id) await removePanelActivity(user.id);
         // Clear all local storage
-        await signOutCleanup();
+        await signOutCleanup({ skipPushUnregister: true });
         hapticNotify("success");
 
         Alert.alert(

@@ -227,21 +227,6 @@ export function AppTextField({ label, error, icon, style, inputStyle, ...props }
   );
 }
 
-export function StateView({ icon = "feather", title, message, action }) {
-  const { tc } = useTheme();
-  const styles = useThemedStyles(createStyles);
-  return (
-    <AppCard style={styles.stateCard}>
-      <View style={styles.stateIcon}>
-        <Feather name={icon} size={22} color={tc(colors.primary, 'fg')} />
-      </View>
-      <Text style={styles.stateTitle}>{title}</Text>
-      {message ? <Text style={styles.stateMessage}>{message}</Text> : null}
-      {action}
-    </AppCard>
-  );
-}
-
 // Ionicons rămâne exportat pentru conținutul dinamic din CMS,
 // care trimite nume de iconițe Ionicons.
 export { Feather, Ionicons };
@@ -377,18 +362,4 @@ const createStyles = (tc) => StyleSheet.create({
     fontSize: 12,
     marginTop: spacing.xs,
   },
-  stateCard: { alignItems: "center", marginTop: spacing.xl },
-  stateIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: tc("rgba(255,255,255,0.55)", 'bg'),
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: tc("rgba(32,47,62,0.2)", 'bg'),
-    marginBottom: spacing.md,
-  },
-  stateTitle: { ...type.sectionTitle, color: tc(type.sectionTitle.color, 'fg'), textAlign: "center" },
-  stateMessage: { ...type.body, color: tc(type.body.color, 'fg'), textAlign: "center", marginTop: spacing.xs },
 });

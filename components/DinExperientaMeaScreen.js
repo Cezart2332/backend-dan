@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../utils/api';
 import { useSubscription } from '../contexts/SubscriptionContext';
+import { hasPaidAccess } from '../utils/subscriptionPolicy.mjs';
 import VideoLibraryContent from './VideoLibraryContent';
 
 const videos = [
@@ -65,7 +66,7 @@ const videos = [
 export default function DinExperientaMeaScreen({ navigation }) {
   const [sections,setSections] = useState([]);
   const { subscription,hasProEntitlement } = useSubscription();
-  const paid = hasProEntitlement || ['basic','premium','vip','pro'].includes(String(subscription?.type || '').toLowerCase());
+  const paid = hasPaidAccess({ subscription, hasProEntitlement });
   useEffect(() => {
     let active = true;
     api.getCmsVideoSection('din-experienta-mea').then(data => { if(active) setSections(data.subsections || []); }).catch(() => {});

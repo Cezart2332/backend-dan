@@ -5,6 +5,7 @@ import { getToken } from "../utils/authStorage";
 import { getUser, saveUser } from "../utils/userStorage";
 import { signOutCleanup } from "../utils/session";
 import { useSubscription } from "../contexts/SubscriptionContext";
+import { hasActiveTrial, hasPaidAccess, hasWebinarAccess } from "../utils/subscriptionPolicy.mjs";
 import { api, toAbsoluteApiUrl } from "../utils/api";
 import { setAppBadgeCount } from "../utils/appBadge";
 
@@ -23,9 +24,8 @@ const BUILTIN_CMS_SLUGS = new Set([
 export default function DashboardScreen({ navigation, onLogout }) {
   const { subscription, hasProEntitlement, requestPaywall } = useSubscription();
   const subType = subscription?.type || null;
-  const normalizedSubType = String(subType || "").toLowerCase();
-  const hasWebinarAccess = ["premium", "vip", "pro"].includes(normalizedSubType);
-  const hasPaidSub = hasProEntitlement || ["basic", "premium", "vip", "pro"].includes(normalizedSubType);
+  const webinarAccess = hasWebinarAccess(subscription);
+  const hasPaidSub = hasPaidAccess({ subscription, hasProEntitlement });
   const [profileName, setProfileName] = useState("");
   const [profileAvatarUrl, setProfileAvatarUrl] = useState(null);
   const [cmsSections, setCmsSections] = useState([]);
@@ -123,13 +123,10 @@ export default function DashboardScreen({ navigation, onLogout }) {
   const paidOnlyIds = new Set([4, 5, 6, 7, 10]);
   // Deschise oricui, chiar și fără niciun abonament: chatul comunității și abonamentele.
   const freeForAllIds = new Set([9, 12]);
-  const trialEndsAtMs = subscription?.ends_at ? Date.parse(subscription.ends_at) : NaN;
-  const hasActiveTrial =
-    normalizedSubType === "trial" && (!Number.isFinite(trialEndsAtMs) || trialEndsAtMs > Date.now());
-  const hasNoPlan = !hasPaidSub && !hasActiveTrial;
+  const hasNoPlan = !hasPaidSub && !hasActiveTrial(subscription);
 
   const lockStateFor = (id) => {
-    const webinarLocked = id === 11 && !hasWebinarAccess;
+    const webinarLocked = id === 11 && !webinarAccess;
     const contentLocked = paidOnlyIds.has(id) && !hasPaidSub;
     const noPlanLocked = hasNoPlan && !freeForAllIds.has(id);
     const locked = webinarLocked || contentLocked || noPlanLocked;

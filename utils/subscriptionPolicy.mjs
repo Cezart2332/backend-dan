@@ -36,3 +36,23 @@ export function liveSubscription({ owner, backend, revenueCat: reported }, now =
 export function subscriptionLoadingVisible({ isAuthed, paywallRequested, initializing, subscriptionResolved, pendingAction }) {
   return Boolean(isAuthed && paywallRequested && !pendingAction && (initializing || !subscriptionResolved));
 }
+
+// Same rule as the server's /api/webinars: Premium and VIP include webinars,
+// Basic and trials do not, whatever the store entitlement says.
+export function hasWebinarAccess(subscription, now = Date.now()) {
+  if (!['premium', 'vip', 'pro'].includes(String(subscription?.type || '').toLowerCase())) return false;
+  const end = Date.parse(subscription?.ends_at || '');
+  return !Number.isFinite(end) || end > now;
+}
+
+// Paid content opens with an active store entitlement or a paid plan on the account.
+export function hasPaidAccess({ subscription, hasProEntitlement } = {}) {
+  return Boolean(hasProEntitlement) || paid(subscription?.type);
+}
+
+// The account's free trial, until its end date (none means it is still running).
+export function hasActiveTrial(subscription, now = Date.now()) {
+  if (String(subscription?.type || '').toLowerCase() !== 'trial') return false;
+  const end = Date.parse(subscription?.ends_at || '');
+  return !Number.isFinite(end) || end > now;
+}

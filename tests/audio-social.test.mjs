@@ -64,3 +64,8 @@ test('offline cached totals do not double-count pending snapshots',async()=>{
   const f=fixture(async()=>{throw new Error('offline');});await f.repo.loadStats();await f.repo.saveSnapshot(1,snapshot);
   assert.deepEqual(await f.repo.loadStats(),{stats:{audioCompleted:2},offline:true,pending:true});
 });
+test('a snapshot the server rejects for good does not hold back the ones after it',async()=>{
+  const sent=[];const f=fixture(async s=>{sent.push(s.clientId);if(s.clientId==='bad')throw Object.assign(new Error('Audio invalid.'),{status:400});});
+  await f.repo.saveSnapshot(1,{...snapshot,clientId:'bad'});await f.repo.saveSnapshot(1,snapshot);
+  await f.repo.sync();assert.deepEqual(sent,['bad','stable']);assert.deepEqual(f.pending(),{});
+});

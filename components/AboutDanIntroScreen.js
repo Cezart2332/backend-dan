@@ -8,7 +8,6 @@ export default function AboutDanIntroScreen({ navigation }) {
       title="Intro"
       subtitle="Despre Dan"
       videoFile="about_dan_intro.mp4"
-      playButtonText="Redă Intro"
       nowPlayingTitle="Intro · Despre Dan"
       nowPlayingArtist="Dan fost anxios · Despre Dan"
     />

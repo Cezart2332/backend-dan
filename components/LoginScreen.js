@@ -20,7 +20,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
 import { saveToken } from '../utils/authStorage';
 import { saveUser } from '../utils/userStorage';
-import { saveSubscription } from '../utils/subscriptionStorage';
+import { cacheSubscriptionFromServer } from '../utils/subscriptionStorage';
 import { useGoogleAuth, handleGoogleResponse, signInWithApple } from '../utils/oauth';
 import { useTheme, useThemedStyles } from './ui/themeContext';
 
@@ -61,7 +61,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
       setError('');
       await handleGoogleResponse(response);
       if (typeof onAuthenticated === 'function') onAuthenticated();
-      navigation.navigate('Dashboard');
+      navigation.reset({ index: 0, routes: [{ name: 'Dashboard' }] });
     } catch (e) {
       setError(e.message || 'Autentificare Google eșuată');
     } finally {
@@ -75,7 +75,7 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
       setError('');
       await signInWithApple();
       if (typeof onAuthenticated === 'function') onAuthenticated();
-      navigation.navigate('Dashboard');
+      navigation.reset({ index: 0, routes: [{ name: 'Dashboard' }] });
     } catch (e) {
       if (e.code === 'ERR_CANCELED') return; // User cancelled
       setError(e.message || 'Autentificare Apple eșuată');
@@ -86,32 +86,20 @@ export default function LoginScreen({ navigation, onAuthenticated }) {
 
   const onLogin = async () => {
     setError('');
-    if (!email || !password) {
+    // Keyboards often add a space after an autocompleted address.
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !password) {
       setError('Introdu email și parolă');
       return;
     }
     try {
       setLoading(true);
-      const res = await api.login({ email, password });
+      const res = await api.login({ email: cleanEmail, password });
       if (res?.token) await saveToken(res.token);
       if (res?.user) await saveUser(res.user);
-      // Fetch subscription (trial or active) and persist
-      try {
-        if (res?.token) {
-          const subResp = await api.getCurrentSubscription(res.token);
-          const subscriptionType = String(subResp?.subscription?.type || '').toLowerCase();
-          const isBackendTrialActive = subResp?.status === 'active' && subscriptionType === 'trial';
-          await saveSubscription({
-            ...(subResp.subscription || {}),
-            _status: isBackendTrialActive ? 'none' : subResp.status,
-            _trialEligible: subResp.trialEligible,
-          });
-        }
-      } catch (e) {
-        // Subscription fetch failed silently - not critical for login
-      }
-  if (typeof onAuthenticated === 'function') onAuthenticated();
-  navigation.navigate('Dashboard');
+      await cacheSubscriptionFromServer(res?.token);
+      if (typeof onAuthenticated === 'function') onAuthenticated();
+      navigation.reset({ index: 0, routes: [{ name: 'Dashboard' }] });
     } catch (e) {
       setError(e.message || 'Autentificare eșuată');
     } finally {

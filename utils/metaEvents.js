@@ -36,20 +36,6 @@ function logEvent(eventName, params, valueToSum) {
   } catch (e) {}
 }
 
-function logPurchase(amount, currency, params) {
-  if (!isAvailable()) return;
-  try {
-    AppEventsLogger.logPurchase(amount, currency || 'RON', params || {});
-  } catch (e) {}
-}
-
-function logPushNotificationOpen(payload) {
-  if (!isAvailable()) return;
-  try {
-    AppEventsLogger.logPushNotificationOpen(payload);
-  } catch (e) {}
-}
-
 function setAdvertiserTrackingEnabled(enabled) {
   if (!isAvailable()) return;
   try {
@@ -57,35 +43,9 @@ function setAdvertiserTrackingEnabled(enabled) {
   } catch (e) {}
 }
 
-function setUserData(userData) {
-  if (!isAvailable()) return;
-  try {
-    AppEventsLogger.setUserData(userData);
-  } catch (e) {}
-}
-
-function setUserID(userID) {
-  if (!isAvailable()) return;
-  try {
-    AppEventsLogger.setUserID(userID);
-  } catch (e) {}
-}
-
-function clearUserData() {
-  if (!isAvailable()) return;
-  try {
-    AppEventsLogger.clearUserData();
-  } catch (e) {}
-}
-
 export default {
   isAvailable,
   STANDARD_EVENTS,
   logEvent,
-  logPurchase,
-  logPushNotificationOpen,
   setAdvertiserTrackingEnabled,
-  setUserData,
-  setUserID,
-  clearUserData,
 };

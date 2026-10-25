@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const KEY = 'progress_entries_v1';
+// Flag from older versions, still removed at sign-out.
 const READY_KEY = 'progress_backend_ready_v1';
 
 function normalizeEntry(e) {
@@ -17,11 +18,19 @@ function normalizeEntry(e) {
   };
 }
 
-export async function addEntry(entry) {
+// With a serverId the entry is already on the server and is never resent.
+export async function addEntry(entry, serverId = null) {
   try {
     const raw = await AsyncStorage.getItem(KEY);
     const list = raw ? JSON.parse(raw) : [];
-    const normalized = normalizeEntry({ ...entry, synced: false, serverId: null, localId: entry.id || String(Date.now()) });
+    const synced = serverId != null;
+    const normalized = normalizeEntry({
+      ...entry,
+      id: synced ? String(serverId) : entry.id,
+      synced,
+      serverId: synced ? Number(serverId) : null,
+      localId: entry.id || String(Date.now()),
+    });
     list.unshift(normalized);
     await AsyncStorage.setItem(KEY, JSON.stringify(list));
   } catch {}
@@ -61,8 +70,10 @@ export async function markEntrySynced(localId, serverId) {
   } catch {}
 }
 
+// Entries not yet sent stay on top until the next sync delivers them.
 export async function replaceAllWithServerEntries(serverItems) {
   try {
+    const waiting = (await getEntries()).filter((e) => !e.synced || !e.serverId);
     const normalized = (serverItems || []).map((row) => normalizeEntry({
       id: String(row.id),
       localId: String(row.id),
@@ -73,7 +84,7 @@ export async function replaceAllWithServerEntries(serverItems) {
       actions: row.actions,
       synced: true,
     }));
-    await AsyncStorage.setItem(KEY, JSON.stringify(normalized));
+    await AsyncStorage.setItem(KEY, JSON.stringify([...waiting, ...normalized]));
   } catch {}
 }
 
@@ -91,12 +102,4 @@ export async function clearEntries() {
     await AsyncStorage.removeItem(KEY);
     await AsyncStorage.removeItem(READY_KEY);
   } catch {}
-}
-
-export async function setBackendReady(flag) {
-  try { await AsyncStorage.setItem(READY_KEY, flag ? '1' : '0'); } catch {}
-}
-
-export async function isBackendReady() {
-  try { return (await AsyncStorage.getItem(READY_KEY)) === '1'; } catch { return false; }
 }

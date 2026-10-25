@@ -33,6 +33,7 @@ const MAX_MESSAGE_LENGTH = 2000;
 const RECONNECT_DELAY_MS = 2500;
 const PING_INTERVAL_MS = 25000;
 const SEND_TIMEOUT_MS = 12000;
+const MARK_READ_DELAY_MS = 1500;
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 const CHAT_NOTIFICATION_TYPES = new Set(['chat_message', 'chat_unread']);
 
@@ -222,7 +223,13 @@ export default function CommunityChatScreen({ navigation }) {
   const listRef = useRef(null);
   const reconnectTimerRef = useRef(null);
   const pingIntervalRef = useRef(null);
+  const markReadTimerRef = useRef(null);
   const shouldReconnectRef = useRef(false);
+  // Bumped whenever the socket is torn down, so a connect still waiting for
+  // the token does not open a socket for a screen that has been left.
+  const connectAttemptRef = useRef(0);
+  // True after the first connection of this visit; later ones are reconnects.
+  const connectedOnceRef = useRef(false);
   const shouldAutoScrollRef = useRef(true);
   const isNearBottomRef = useRef(true); // starts true so initial load scrolls to bottom
   const previousLengthRef = useRef(0);
@@ -286,7 +293,22 @@ export default function CommunityChatScreen({ navigation }) {
     };
   }, []);
 
+  // Messages sent while the socket was down arrive only through history.
+  const catchUpMissedMessages = useCallback(async () => {
+    try {
+      const authToken = await getToken();
+      if (!authToken) return;
+      const history = await api.getChatHistory(authToken, null);
+      const incoming = Array.isArray(history?.items) ? history.items : [];
+      setMessages((prev) => mergeMessages(prev, incoming));
+      api.markChatAsRead(authToken).then(syncAppBadge).catch(() => {});
+    } catch {
+      // The next reconnect or visit tries again.
+    }
+  }, []);
+
   const clearSocketRuntime = useCallback(() => {
+    connectAttemptRef.current += 1;
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = null;
@@ -295,6 +317,15 @@ export default function CommunityChatScreen({ navigation }) {
     if (pingIntervalRef.current) {
       clearInterval(pingIntervalRef.current);
       pingIntervalRef.current = null;
+    }
+
+    if (markReadTimerRef.current) {
+      // Leaving the chat sends the pending read receipt right away.
+      clearTimeout(markReadTimerRef.current);
+      markReadTimerRef.current = null;
+      getToken().then((token) => {
+        if (token) api.markChatAsRead(token).catch(() => {});
+      });
     }
 
     if (wsRef.current) {
@@ -312,7 +343,9 @@ export default function CommunityChatScreen({ navigation }) {
   }, []);
 
   const connectWebSocket = useCallback(async () => {
+    const attempt = connectAttemptRef.current;
     const authToken = await getToken();
+    if (attempt !== connectAttemptRef.current || !shouldReconnectRef.current) return;
     if (!authToken) {
       setSocketStatus('disconnected');
       setSocketError('Autentificare necesară pentru chat.');
@@ -333,6 +366,8 @@ export default function CommunityChatScreen({ navigation }) {
     ws.onopen = () => {
       setSocketStatus('connected');
       setSocketError('');
+      if (connectedOnceRef.current) catchUpMissedMessages();
+      connectedOnceRef.current = true;
 
       if (pingIntervalRef.current) {
         clearInterval(pingIntervalRef.current);
@@ -400,11 +435,15 @@ export default function CommunityChatScreen({ navigation }) {
           setSocketError('');
         }
         setMessages((prev) => mergeMessages(prev, [payload]));
-        // Mark as read when receiving new messages while screen is focused
-        if (payloadType === 'message' && isFocused) {
-          getToken().then((token) => {
-            if (token) api.markChatAsRead(token).catch(() => {});
-          });
+        // Mark as read when receiving new messages while screen is focused;
+        // a burst of messages shares one request.
+        if (payloadType === 'message' && isFocused && !markReadTimerRef.current) {
+          markReadTimerRef.current = setTimeout(() => {
+            markReadTimerRef.current = null;
+            getToken().then((token) => {
+              if (token) api.markChatAsRead(token).catch(() => {});
+            });
+          }, MARK_READ_DELAY_MS);
         }
       }
     };
@@ -430,7 +469,7 @@ export default function CommunityChatScreen({ navigation }) {
         });
       }, RECONNECT_DELAY_MS);
     };
-  }, [isFocused, markPendingFailed, resolvePending]);
+  }, [isFocused, markPendingFailed, resolvePending, catchUpMissedMessages]);
 
   const loadHistory = useCallback(async ({ before = null, appendOlder = false } = {}) => {
     const authToken = await getToken();
@@ -504,6 +543,8 @@ export default function CommunityChatScreen({ navigation }) {
 
   useEffect(() => {
     shouldReconnectRef.current = isFocused;
+    // Each visit loads history itself, so its first connection needs no catch-up.
+    connectedOnceRef.current = false;
 
     if (!isFocused) {
       clearSocketRuntime();
